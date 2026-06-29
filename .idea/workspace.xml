@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="80a84349-3319-409f-8a10-f0aa2f6eb13e" name="Changes" comment="make folder structure">
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/.env.example" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/LICENSE" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/analytics-engine/anomaly-detection/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/analytics-engine/datasets/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/analytics-engine/incident-classification/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/analytics-engine/models/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/analytics-engine/notebooks/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/analytics-engine/root-cause-analysis/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/Dockerfile" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/api/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/api/alerts.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/api/health.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/api/incidents.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/api/metrics.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/api/recovery.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/config/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/database/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/main.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/middleware/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/models/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/schemas/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/services/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/utils/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/requirements.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/Dockerfile" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/package.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/public/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/App.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/assets/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/context/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/hooks/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/layouts/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/main.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/pages/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/routes/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/services/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/utils/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/decision-engine/engine/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/decision-engine/planner/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/decision-engine/policies/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/decision-engine/rules/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/decision-engine/utils/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/deployment/aws/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/deployment/docker/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/deployment/github-actions/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/deployment/kubernetes/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/docker-compose.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/docs/api/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/docs/architecture/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/docs/diagrams/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/docs/meeting-notes/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/docs/proposal/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/docs/reports/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/docs/sprint-plans/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/grafana/dashboards/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/grafana/provisioning/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure/docker/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure/monitoring-targets/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure/nginx/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure/sample-app/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure/scripts/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure/ubuntu/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/integrations/aws/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/integrations/email/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/integrations/rest-api/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/integrations/service-now/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/integrations/slack/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/integrations/webhook/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/loki/config/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/collectors/cpu.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/collectors/disk.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/collectors/ebpf/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/collectors/logs.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/collectors/memory.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/collectors/network.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/collectors/process.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/config/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/main.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/requirements.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/scheduler/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/tests/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/utils/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/prometheus/prometheus.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/prometheus/rules/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/self-healing/ansible/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/self-healing/logs/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/self-healing/recovery/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/self-healing/rollback/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/self-healing/scripts/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/self-healing/verification/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/testing/integration/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/testing/performance/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/testing/scenarios/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/testing/security/.gitkeep" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/testing/unit/.gitkeep" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7
+}</component>
+  <component name="ProjectId" id="3FpWG8f26VsQDr0F5vDAg13VzVq" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main",
+    "ignore.virus.scanning.warn.message": "true",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/Admin/Desktop/kernel-aware-self-healing-platform",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RunManager">
+    <configuration name="main" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
+      <module name="kernel-aware-self-healing-platform" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="jdk-22-openjdk-22-3183f394aec4-bad0321e" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="80a84349-3319-409f-8a10-f0aa2f6eb13e" name="Changes" comment="" />
+      <created>1782772395461</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1782772395461</updated>
+      <workItem from="1782772398402" duration="35000" />
+    </task>
+    <task id="LOCAL-00001" summary="make folder structure">
+      <option name="closed" value="true" />
+      <created>1782772953304</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1782772953304</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
+    <servers />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="make folder structure" />
+    <option name="LAST_COMMIT_MESSAGE" value="make folder structure" />
+  </component>
+</project>
