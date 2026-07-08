@@ -4,17 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="80a84349-3319-409f-8a10-f0aa2f6eb13e" name="Changes" comment="make folder structure">
-      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure/Dockerfile" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure/crud.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure/database.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure/docker-compose.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure/model.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure/nginx.conf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure/requirements.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure/schema.py" afterDir="false" />
+    <list default="true" id="80a84349-3319-409f-8a10-f0aa2f6eb13e" name="Changes" comment="make example infastrure">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure/app.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -55,60 +46,60 @@
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
       <entry key="MS100" value="1.0" />
-      <entry key="MS500" value="1.0" />
-      <entry key="S2" value="1.0" />
-      <entry key="S5" value="1.0" />
-      <entry key="S10" value="1.0000000076180091" />
-      <entry key="S30" value="1.0101478656918665" />
-      <entry key="S60" value="1.3606612605462507" />
-      <entry key="M2" value="3.2075141487619256" />
-      <entry key="M5" value="7.650131142874805" />
-      <entry key="M10" value="10.642338790905146" />
-      <entry key="M15" value="11.986411981617282" />
-      <entry key="M30" value="15.0924400393199" />
-      <entry key="H1" value="24.439262979027344" />
-      <entry key="H2" value="43.53309219332318" />
-      <entry key="H4" value="70.3508851816552" />
-      <entry key="D1" value="139.27543155074449" />
-      <entry key="W1" value="164.1580711110702" />
+      <entry key="MS500" value="1.0000000000257363" />
+      <entry key="S2" value="1.0026836643749104" />
+      <entry key="S5" value="1.189981780660128" />
+      <entry key="S10" value="2.101735811128054" />
+      <entry key="S30" value="5.863754718460039" />
+      <entry key="S60" value="9.092952247682495" />
+      <entry key="M2" value="11.855225801116863" />
+      <entry key="M5" value="14.365835840986811" />
+      <entry key="M10" value="16.890337498733373" />
+      <entry key="M15" value="19.094373451436425" />
+      <entry key="M30" value="24.11114311142503" />
+      <entry key="H1" value="34.11335828661261" />
+      <entry key="H2" value="53.567102601141904" />
+      <entry key="H4" value="81.38382248360527" />
+      <entry key="D1" value="153.59389237377874" />
+      <entry key="W1" value="179.87365028582556" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
       <entry key="MS500" value="0.0" />
       <entry key="S2" value="0.0" />
       <entry key="S5" value="0.0" />
-      <entry key="S10" value="1.2031073536461196E-292" />
-      <entry key="S30" value="9.775674914157424E-98" />
-      <entry key="S60" value="5.3732053674245736E-49" />
-      <entry key="M2" value="1.2674495225747859E-24" />
-      <entry key="M5" value="5.558933965248251E-10" />
-      <entry key="M10" value="4.8412903630803346E-5" />
-      <entry key="M15" value="0.0023140245525663837" />
-      <entry key="M30" value="0.1221742415678549" />
-      <entry key="H1" value="0.9984618609165394" />
-      <entry key="H2" value="3.186374208929357" />
-      <entry key="H4" value="6.08931992443353" />
-      <entry key="D1" value="11.30265842851915" />
-      <entry key="W1" value="12.736788306759314" />
+      <entry key="S10" value="0.0" />
+      <entry key="S30" value="7.265780251327539E-113" />
+      <entry key="S60" value="1.4648771135121435E-56" />
+      <entry key="M2" value="2.0927365004655485E-28" />
+      <entry key="M5" value="1.706495179655709E-11" />
+      <entry key="M10" value="8.482383551223908E-6" />
+      <entry key="M15" value="7.245568715698054E-4" />
+      <entry key="M30" value="0.06836469965499695" />
+      <entry key="H1" value="0.7468916593696886" />
+      <entry key="H2" value="2.7558770792684735" />
+      <entry key="H4" value="5.663049062340475" />
+      <entry key="D1" value="11.166768820586702" />
+      <entry key="W1" value="12.714798760974173" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="2.6335216656729308E-14" />
-      <entry key="MS500" value="0.001923567271280372" />
-      <entry key="S2" value="0.20942419019473635" />
-      <entry key="S5" value="0.5350701675959387" />
-      <entry key="S10" value="0.7314849135341326" />
-      <entry key="S30" value="0.9111655841471443" />
-      <entry key="S60" value="1.309817904341501" />
-      <entry key="M2" value="3.181598598254577" />
-      <entry key="M5" value="7.639529874778107" />
-      <entry key="M10" value="10.637021375482396" />
-      <entry key="M15" value="11.98512518569831" />
-      <entry key="M30" value="15.212621182406059" />
-      <entry key="H1" value="25.435956904973985" />
-      <entry key="H2" value="46.717457225656254" />
-      <entry key="H4" value="76.4383606000531" />
-      <entry key="D1" value="150.5775127384485" />
-      <entry key="W1" value="176.89476615003755" />
+      <entry key="MS100" value="0.8408964152537145" />
+      <entry key="MS500" value="0.9659363289497396" />
+      <entry key="S2" value="0.9940347777208769" />
+      <entry key="S5" value="1.1859316840862892" />
+      <entry key="S10" value="2.0982732136261215" />
+      <entry key="S30" value="5.8601909980094575" />
+      <entry key="S60" value="9.089917872099733" />
+      <entry key="M2" value="11.853128073837963" />
+      <entry key="M5" value="14.364476179770293" />
+      <entry key="M10" value="16.888849414421063" />
+      <entry key="M15" value="19.093590294431248" />
+      <entry key="M30" value="24.17819762533348" />
+      <entry key="H1" value="34.85882877291111" />
+      <entry key="H2" value="56.32119230318801" />
+      <entry key="H4" value="87.04513125705978" />
+      <entry key="D1" value="164.7600867320837" />
+      <entry key="W1" value="192.58835534526145" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -202,7 +193,15 @@
       <option name="project" value="LOCAL" />
       <updated>1782772953304</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="make example infastrure">
+      <option name="closed" value="true" />
+      <created>1783075119906</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1783075119907</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -213,6 +212,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="make folder structure" />
-    <option name="LAST_COMMIT_MESSAGE" value="make folder structure" />
+    <MESSAGE value="make example infastrure" />
+    <option name="LAST_COMMIT_MESSAGE" value="make example infastrure" />
   </component>
 </project>
