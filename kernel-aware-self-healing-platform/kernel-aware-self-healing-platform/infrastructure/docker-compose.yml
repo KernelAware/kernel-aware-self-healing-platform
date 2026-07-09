@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - fastapi
+
+  postgres:
+    image: postgres:16
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: monitoring
+
+    ports:
+      - "5432:5432"
+
+  fastapi:
+    build: .
+    container_name: fastapi-server
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - ./data:/app/data
