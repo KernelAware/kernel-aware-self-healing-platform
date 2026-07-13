@@ -1,10 +1,3 @@
-# monitoring-agent/collectors/health.py
-# ─────────────────────────────────────────────────────────────
-# DATA COLLECTION LAYER - Hardware Health Metrics Collector
-# Responsibility: Collect raw hardware health data from Linux
-# Does NOT: detect anomalies, trigger healing, make decisions
-# Part of: Linux Monitoring Agent → Data Collection Layer
-# ─────────────────────────────────────────────────────────────
 
 import psutil
 import subprocess
