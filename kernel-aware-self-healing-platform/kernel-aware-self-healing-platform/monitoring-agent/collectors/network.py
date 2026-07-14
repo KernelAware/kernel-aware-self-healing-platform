@@ -1,5 +1,4 @@
 import psutil
-import time
 import logging
 from datetime import datetime
 
@@ -7,22 +6,12 @@ from datetime import datetime
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Thresholds
-NETWORK_WARNING_MB = 500
-NETWORK_CRITICAL_MB = 1000
-
-PACKET_DROP_WARNING = 100
-PACKET_DROP_CRITICAL = 500
-
-ERROR_WARNING = 50
-ERROR_CRITICAL = 200
-
-
 # 1. Network IO Statistics
 def get_network_io():
 
     try:
         io = psutil.net_io_counters()
+
         return {
             "bytes_sent": io.bytes_sent,
             "bytes_received": io.bytes_recv,
@@ -38,10 +27,13 @@ def get_network_io():
         }
 
     except Exception as e:
-        logger.error(f"Network IO collection failed: {e}")
+        logger.error(
+            f"Network IO collection failed: {e}"
+        )
+
         return {}
 
-# 2. Network Interfaces
+# 2. Network Interface Information
 def get_network_interfaces():
 
     try:
@@ -64,7 +56,7 @@ def get_network_interfaces():
 
         return {}
 
-# 3. Network Addresses
+# 3. Network Address Information
 def get_network_addresses():
 
     try:
@@ -110,7 +102,7 @@ def get_network_errors():
 
         return {}
 
-# 5. Active Connections
+# 5. Active Network Connections
 def get_active_connections():
 
     try:
@@ -137,9 +129,7 @@ def get_active_connections():
 
         return []
 
-
-
-# 6. Network Related Processes
+# ─── 6. Network Using Processes ──────────────────────
 def get_network_processes():
 
     try:
@@ -153,12 +143,12 @@ def get_network_processes():
 
         for pid in pids:
             try:
-                proc = psutil.Process(pid)
+                process = psutil.Process(pid)
 
                 processes.append({
                     "pid": pid,
-                    "name": proc.name(),
-                    "status": proc.status()
+                    "name": process.name(),
+                    "status": process.status()
                 })
 
             except (
@@ -176,83 +166,7 @@ def get_network_processes():
 
         return []
 
-# 7. Network Anomaly Detection
-def check_network_anomaly():
-
-    try:
-        io = get_network_io()
-        errors = get_network_errors()
-
-        sent_mb = (
-            io.get("bytes_sent",0) / (1024*1024)
-        )
-
-        received_mb = (
-            io.get("bytes_received",0) / (1024*1024)
-        )
-
-        total_errors = (
-            errors["incoming_errors"] + errors["outgoing_errors"]
-        )
-
-        total_drops = (
-            errors["incoming_drops"] + errors["outgoing_drops"]
-        )
-
-        alert = "NORMAL"
-
-        if (
-            total_errors >= ERROR_CRITICAL or total_drops >= PACKET_DROP_CRITICAL
-        ):
-
-            alert = "CRITICAL"
-
-        elif (
-            total_errors >= ERROR_WARNING or total_drops >= PACKET_DROP_WARNING
-        ):
-
-            alert = "WARNING"
-
-        result = {
-
-            "timestamp":
-                datetime.now().isoformat(),
-
-            "traffic": {
-                "sent_mb":
-                    round(sent_mb,2),
-                "received_mb":
-                    round(received_mb,2)
-            },
-
-            "errors":
-                total_errors,
-            "drops":
-                total_drops,
-            "alert_level":
-                alert,
-            "needs_healing":
-                alert == "CRITICAL"
-        }
-
-        if alert != "NORMAL":
-
-            logger.warning(
-                f"NETWORK {alert}: "
-                f"errors={total_errors}, "
-                f"drops={total_drops}"
-            )
-
-        return result
-
-    except Exception as e:
-        logger.error(
-            f"Network anomaly check failed: {e}"
-        )
-
-        return {}
-
-# 8. Complete Network Snapshot
+# 7. Complete Network Snapshot
 def get_network_stats_snapshot():
 
     try:
@@ -270,105 +184,38 @@ def get_network_stats_snapshot():
             "connections":
                 get_active_connections(),
             "network_processes":
-                get_network_processes(),
-            "anomaly":
-                check_network_anomaly()
+                get_network_processes()
         }
 
     except Exception as e:
         logger.error(
-            f"Network snapshot failed: {e}"
+            f"Network snapshot collection failed: {e}"
         )
 
         return {}
 
-
-
-# 9. Continuous Network Monitor
-def monitor_network_continuously(
-        interval=15,
-        callback=None
-):
-
-    logger.info(
-        f"Network monitoring started "
-        f"every {interval} seconds"
-    )
-
-    while True:
-        try:
-            snapshot = (
-                get_network_stats_snapshot()
-            )
-
-            anomaly = (
-                snapshot.get(
-                    "anomaly",
-                    {}
-                )
-            )
-
-            if (
-                anomaly.get(
-                    "needs_healing"
-                )
-                and callback
-            ):
-
-                logger.critical(
-                    "Network critical. "
-                    "Triggering self-healing!"
-                )
-
-                callback(anomaly)
-
-            time.sleep(interval)
-
-        except KeyboardInterrupt:
-
-            logger.info(
-                "Network monitoring stopped"
-            )
-
-            break
-
-        except Exception as e:
-
-            logger.error(
-                f"Network monitoring error: {e}"
-            )
-
-            time.sleep(interval)
-
-# Run directly for testing
-
+# Run Directly For Testing
 if __name__ == "__main__":
 
     print("=== Network Metrics Test ===\n")
-
     print("Network IO:")
-
     print(get_network_io())
-
-    print("\nInterfaces:")
-
+    print("\nNetwork Interfaces:")
     print(get_network_interfaces())
-
-    print("\nErrors:")
-
+    print("\nNetwork Addresses:")
+    print(get_network_addresses())
+    print("\nNetwork Errors:")
     print(get_network_errors())
-
     print("\nActive Connections:")
 
-    print(len(get_active_connections()),"connections")
+    connections = get_active_connections()
 
+    print(f"{len(connections)} connections found")
     print("\nNetwork Processes:")
 
-    for proc in get_network_processes():
-        print(proc)
+    for process in get_network_processes():
+        print(process)
 
-    print("\nAnomaly Check:")
-
-    anomaly = check_network_anomaly()
-
-    print(anomaly)
+    print("\nComplete Snapshot:")
+    snapshot = get_network_stats_snapshot()
+    print(snapshot)
