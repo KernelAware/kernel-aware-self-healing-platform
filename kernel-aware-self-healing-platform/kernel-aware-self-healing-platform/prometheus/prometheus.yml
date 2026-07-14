@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 1m
+
+scrape_configs:
+  - job_name: "monitering-agent"
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+        - monitoring-agent:8001
