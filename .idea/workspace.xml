@@ -4,11 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="80a84349-3319-409f-8a10-f0aa2f6eb13e" name="Changes" comment="make example infastrure">
-      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/deployment/docker/docker-compose.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/kernel-aware-self-healing-platform.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/kernel-aware-self-healing-platform.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="80a84349-3319-409f-8a10-f0aa2f6eb13e" name="Changes" comment="make docker.yml file for run grafana , loki ,promithese" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -220,7 +216,15 @@
       <option name="project" value="LOCAL" />
       <updated>1783487624721</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="make docker.yml file for run grafana , loki ,promithese">
+      <option name="closed" value="true" />
+      <created>1784026947044</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1784026947044</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -232,6 +236,7 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="make folder structure" />
     <MESSAGE value="make example infastrure" />
-    <option name="LAST_COMMIT_MESSAGE" value="make example infastrure" />
+    <MESSAGE value="make docker.yml file for run grafana , loki ,promithese" />
+    <option name="LAST_COMMIT_MESSAGE" value="make docker.yml file for run grafana , loki ,promithese" />
   </component>
 </project>
