@@ -11,17 +11,13 @@ def get_network_io():
 
     try:
         io = psutil.net_io_counters()
-
         return {
             "bytes_sent": io.bytes_sent,
             "bytes_received": io.bytes_recv,
-
             "packets_sent": io.packets_sent,
             "packets_received": io.packets_recv,
-
             "errors_in": io.errin,
             "errors_out": io.errout,
-
             "drops_in": io.dropin,
             "drops_out": io.dropout
         }
@@ -30,7 +26,6 @@ def get_network_io():
         logger.error(
             f"Network IO collection failed: {e}"
         )
-
         return {}
 
 # 2. Network Interface Information
@@ -39,21 +34,18 @@ def get_network_interfaces():
     try:
         interfaces = {}
         stats = psutil.net_if_stats()
-
         for name, info in stats.items():
             interfaces[name] = {
                 "is_up": info.isup,
                 "speed_mbps": info.speed,
                 "mtu": info.mtu
             }
-
         return interfaces
 
     except Exception as e:
         logger.error(
             f"Network interface collection failed: {e}"
         )
-
         return {}
 
 # 3. Network Address Information
@@ -62,52 +54,27 @@ def get_network_addresses():
     try:
         addresses = {}
         interfaces = psutil.net_if_addrs()
-
         for interface, addr_list in interfaces.items():
             addresses[interface] = []
-
             for addr in addr_list:
                 addresses[interface].append({
                     "family": str(addr.family),
                     "address": addr.address,
                     "netmask": addr.netmask
                 })
-
         return addresses
 
     except Exception as e:
         logger.error(
             f"Network address collection failed: {e}"
         )
-
         return {}
 
-# 4. Network Errors and Drops
-def get_network_errors():
-
-    try:
-        io = psutil.net_io_counters()
-
-        return {
-            "incoming_errors": io.errin,
-            "outgoing_errors": io.errout,
-            "incoming_drops": io.dropin,
-            "outgoing_drops": io.dropout
-        }
-
-    except Exception as e:
-        logger.error(
-            f"Network error collection failed: {e}"
-        )
-
-        return {}
-
-# 5. Active Network Connections
+# 4. Active Network Connections
 def get_active_connections():
 
     try:
         connections = []
-
         for conn in psutil.net_connections():
             connections.append({
                 "fd": conn.fd,
@@ -118,33 +85,27 @@ def get_active_connections():
                 "status": conn.status,
                 "pid": conn.pid
             })
-
         return connections
-
 
     except Exception as e:
         logger.error(
             f"Active connection collection failed: {e}"
         )
-
         return []
 
-# ─── 6. Network Using Processes ──────────────────────
+# ─── 5. Network Using Processes ──────────────────────
 def get_network_processes():
 
     try:
         processes = []
         connections = psutil.net_connections()
         pids = set()
-
         for conn in connections:
             if conn.pid:
                 pids.add(conn.pid)
-
         for pid in pids:
             try:
                 process = psutil.Process(pid)
-
                 processes.append({
                     "pid": pid,
                     "name": process.name(),
@@ -156,31 +117,25 @@ def get_network_processes():
                 psutil.AccessDenied
             ):
                 pass
-
         return processes
 
     except Exception as e:
         logger.error(
             f"Network process collection failed: {e}"
         )
-
         return []
 
-# 7. Complete Network Snapshot
+# 6. Complete Network Snapshot
 def get_network_stats_snapshot():
 
     try:
         return {
-            "timestamp":
-                datetime.now().isoformat(),
             "network_io":
                 get_network_io(),
             "interfaces":
                 get_network_interfaces(),
             "addresses":
                 get_network_addresses(),
-            "errors":
-                get_network_errors(),
             "connections":
                 get_active_connections(),
             "network_processes":
@@ -191,7 +146,6 @@ def get_network_stats_snapshot():
         logger.error(
             f"Network snapshot collection failed: {e}"
         )
-
         return {}
 
 # Run Directly For Testing
@@ -204,15 +158,12 @@ if __name__ == "__main__":
     print(get_network_interfaces())
     print("\nNetwork Addresses:")
     print(get_network_addresses())
-    print("\nNetwork Errors:")
-    print(get_network_errors())
     print("\nActive Connections:")
 
     connections = get_active_connections()
-
     print(f"{len(connections)} connections found")
-    print("\nNetwork Processes:")
 
+    print("\nNetwork Processes:")
     for process in get_network_processes():
         print(process)
 
