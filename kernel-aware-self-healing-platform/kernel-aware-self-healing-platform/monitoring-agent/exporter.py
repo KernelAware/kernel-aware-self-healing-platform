@@ -146,6 +146,8 @@ def update_network_metrics():
             len(network["network_processes"])
         )
 
+    return generate_latest().decode("utf-8")
+
 if __name__ == "__main__":
 
     update_network_metrics()

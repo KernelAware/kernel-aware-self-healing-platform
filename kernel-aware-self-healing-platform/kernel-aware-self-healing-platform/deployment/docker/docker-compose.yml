@@ -4,14 +4,24 @@ services:
     volumes:
       - /home/pasindu/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/prometheus/prometheus.yml
     ports:
-      - "9090:9090"
+      - "7070:7070"
 
   grafana:
     image: grafana/grafana
     ports:
-      - "3000:3000"
+      - "3030:3030"
 
   loki:
     image: grafana/loki
     ports:
-      - "3100:3100"
+      - "3200:3200"
+
+  monitering-agent:
+    build: ../../monitoring-agent
+    container_name: monitering-agent
+
+    ports:
+      - "8001:8001"
+
+    volumes:
+      - ./data:/app/data
