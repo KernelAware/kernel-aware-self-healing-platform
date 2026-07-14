@@ -8,6 +8,7 @@ from datetime import datetime   #This library works with dates and times.
 ## Logging Configuration
 
 logging.basicConfig(
+    #filename="app.txt",    #to store logs in a txt file, witout this default is the terminal
     level=logging.INFO,    #Record messages that are INFO level or more important   Python records INFO WARNING ERROR CRITICAL but ignores DEBUG
     format="%(asctime)s | %(levelname)s | %(message)s"  #use ths format for the log messages
     #Current Date and Time | Log Level | Message
@@ -67,54 +68,67 @@ def bytes_to_gb(value):
             "free_gb": 211,
             "usage_percent": 58
         }
+    for all partitions
 """
 def get_disk_usage():
     disks = []  #an empty list that will eventually store the information of all detected disk partitions
     try:
-        partitions = psutil.disk_partitions(all=False)  #returns all real mounted disk partitions.
+        partitions = psutil.disk_partitions(all=False)  #returns all real mounted disk partition objects 
         for partition in partitions:    #loops through every partition.
             try:
-                usage = psutil.disk_usage(partition.mountpoint) #how much space is being used on this partition
+                usage = psutil.disk_usage(partition.mountpoint) #returns a object that shows the usage on this partition
+                # create a dictionary called disk
                 disk = {
-                    "device": partition.device,
+                    "device": partition.device, #device attribute of partiton object
                     "mountpoint": partition.mountpoint,
                     "filesystem": partition.fstype,
                     "total_bytes": usage.total,
-                    "used_bytes": usage.used,
+                    "used_bytes": usage.used,   #used attribute of the usage object
                     "free_bytes": usage.free,
                     "total_gb": bytes_to_gb(usage.total),
                     "used_gb": bytes_to_gb(usage.used),
                     "free_gb": bytes_to_gb(usage.free),
                     "usage_percent": usage.percent
-                }
-                disks.append(disk)
+                }   
+                disks.append(disk) #Take the dictionary named disk and add it to the end of the disks list.
                 logger.info(
-                    f"{partition.mountpoint} "
+                    f"{partition.mountpoint} "  # (f)formatted string - allows you to insert variables directly into a string.
                     f"Usage : {usage.percent}%"
                 )
 
-            except PermissionError:
+            except PermissionError: #if the failier is a permission error
                 logger.warning(
                     f"Permission denied : "
                     f"{partition.mountpoint}"
                 )
 
-            except Exception as e:
+            except Exception as e:  #if the failure is an exception
                 logger.error(
                     f"Error reading "
-                    f"{partition.mountpoint} : {e}"
+                    f"{partition.mountpoint} : {e}" # store the exception error in e and log it
                 )
         return disks
     
-    except Exception as e:
+    except Exception as e:  #if the wholw function failed
         logger.error(
             f"Disk usage collection failed : {e}"
         )
-        return []
+        return []   #return an empty list
 
 
-# Mounted Partitions
-
+# Return information about all mounted disk partitions on the Linux system
+"""
+    Returns
+    [
+        {
+            "device": "/dev/sda1",
+            "mountpoint": "/",
+            "filesystem": "ext4",
+            "options": "rw,relatime"
+        }
+    ]
+    for all disk partitions
+"""
 def get_mounted_partitions():
     result = []
     try:
@@ -135,14 +149,25 @@ def get_mounted_partitions():
         logger.error(
             f"Partition collection failed : {e}"
         )
-        return []
+        return []   # if fails return empty list
 
 
-# Disk I/O Counters
-
+# collects system-wide disk I/O statistics and return total I/O statistics
+"""
+    Returns
+    {
+        "read_bytes": 123456789,
+        "write_bytes": 987654321,
+        "read_count": 4567,
+        "write_count": 3210,
+        "read_time_ms": 1500,
+        "write_time_ms": 2100,
+        "busy_time_ms": 3200
+    }
+"""
 def get_disk_io_counters():
     try:
-        io = psutil.disk_io_counters()
+        io = psutil.disk_io_counters()  # returns cumulative I/O statistics object
         if io is None:
             return {}
         return {
@@ -154,11 +179,55 @@ def get_disk_io_counters():
             "write_time_ms": getattr(io, "write_time", 0),
             "busy_time_ms": getattr(io, "busy_time", 0)
         }
+        #getattr : If the attribute exists, return its value.
+        #If the attribute doesn't exist, return the default_value instead.
     
     except Exception as e:
         logger.error(
-            f"Disk IO collection failed : {e}"
+            f"Total Disk IO collection failed : {e}"
         )
+        return {}   # if fails return empty list
+    
+
+# detailed IO metrics for each individual disk
+"""
+    Returns
+        {
+            "nvme0n1": {
+                "read_bytes": 4000000000,
+                "write_bytes": 2000000000,
+                ...
+            },
+            "sda": {
+                "read_bytes": 6000000000,
+                "write_bytes": 3000000000,
+                ...
+            }
+        }
+    For all disks
+"""
+def get_disk_io_counters_per_disk():
+    try:
+        disk_io = psutil.disk_io_counters(perdisk=True)
+        #returns Key value pairs
+        #key : disk name, Value : object containing the statistics for that disk.
+        if not disk_io:
+            return {}
+        result = {}
+        for disk_name, io in disk_io.items():   # Disk name , Object
+            result[disk_name] = {
+                "read_bytes": io.read_bytes,
+                "write_bytes": io.write_bytes,
+                "read_count": io.read_count,
+                "write_count": io.write_count,
+                "read_time_ms": getattr(io, "read_time", 0),
+                "write_time_ms": getattr(io, "write_time", 0),
+                "busy_time_ms": getattr(io, "busy_time", 0)
+            }
+        return result
+
+    except Exception as e:
+        logger.error(f"Per-disk IO collection failed: {e}")
         return {}
     
 
@@ -356,79 +425,6 @@ def get_low_free_space_partitions(threshold=LOW_FREE_SPACE_PERCENT):
         return []
     
 
-# Disk Health Analysis
-
-def get_disk_health(disk_usage):
-    health = []
-    for disk in disk_usage:
-        usage = disk["usage_percent"]
-        if usage >= DISK_CRITICAL_THRESHOLD:
-            status = "CRITICAL"
-            reason = "Disk usage exceeded critical threshold."
-        elif usage >= DISK_WARNING_THRESHOLD:
-            status = "WARNING"
-            reason = "Disk usage exceeded warning threshold."
-        else:
-            status = "NORMAL"
-            reason = "Disk usage is healthy."
-        health.append({
-            "device": disk["device"],
-            "mountpoint": disk["mountpoint"],
-            "usage_percent": usage,
-            "status": status,
-            "reason": reason
-        })
-    return health
-
-
-# Disk Anomaly Detection
-
-def check_disk_anomaly(snapshot):
-    alerts = []
-    severity = "NORMAL"
-
-    # Check Disk Usage
-    for disk in snapshot["disk_usage"]:
-        if disk["usage_percent"] >= DISK_CRITICAL_THRESHOLD:
-            severity = "CRITICAL"
-            alerts.append(
-                f"{disk['mountpoint']} is "
-                f"{disk['usage_percent']}% full."
-            )
-        elif disk["usage_percent"] >= DISK_WARNING_THRESHOLD:
-            if severity != "CRITICAL":
-                severity = "WARNING"
-            alerts.append(
-                f"{disk['mountpoint']} usage "
-                f"is high."
-            )
-
-    # Check Throughput
-    throughput = snapshot["throughput"]
-    if throughput["read_speed_bps"] > READ_SPEED_WARNING:
-        alerts.append(
-            "High disk read throughput detected."
-        )
-    if throughput["write_speed_bps"] > WRITE_SPEED_WARNING:
-        alerts.append(
-            "High disk write throughput detected."
-        )
-
-    # Check IOPS
-    iops = snapshot["iops"]
-    if iops["total_iops"] > IOPS_WARNING:
-        alerts.append(
-            "Disk IOPS exceeded threshold."
-        )
-        if severity == "NORMAL":
-            severity = "WARNING"
-    return {
-        "severity": severity,
-        "healthy": severity == "NORMAL",
-        "alerts": alerts
-    }
-
-
 # Complete Disk Snapshot
 
 def get_disk_stats_snapshot():
@@ -444,6 +440,8 @@ def get_disk_stats_snapshot():
             get_mounted_partitions(),
         "io_counters":
             get_disk_io_counters(),
+        "per_disk_io_counters": 
+            get_disk_io_counters_per_disk(),
         "throughput":
             get_disk_throughput(),
         "iops":
@@ -452,15 +450,12 @@ def get_disk_stats_snapshot():
             get_disk_latency(),
         "busy_time":
             get_disk_busy_percentage(),
-        "health":
-            get_disk_health(usage),
         "busiest_partition":
             get_busiest_partition(),
         "low_free_space":
             get_low_free_space_partitions()
     }
 
-    snapshot["anomaly"] = check_disk_anomaly(snapshot)
     return snapshot
 
 
