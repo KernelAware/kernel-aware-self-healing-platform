@@ -5,9 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="80a84349-3319-409f-8a10-f0aa2f6eb13e" name="Changes" comment="make example infastrure">
-      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/collectors/service.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/deployment/docker/docker-compose.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/kernel-aware-self-healing-platform.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/kernel-aware-self-healing-platform.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/collectors/process.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/collectors/process.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -28,7 +28,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="main" />
+        <entry key="$PROJECT_DIR$" value="feature/dashboard" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -47,61 +47,61 @@
 }</component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.0000000024165154" />
-      <entry key="MS500" value="1.0319360372804447" />
-      <entry key="S2" value="2.5778411533996217" />
-      <entry key="S5" value="6.613278597146377" />
-      <entry key="S10" value="10.060850742116855" />
-      <entry key="S30" value="13.646222651745042" />
-      <entry key="S60" value="14.775800364371358" />
-      <entry key="M2" value="15.499545238424345" />
-      <entry key="M5" value="17.041275442044437" />
-      <entry key="M10" value="20.007052418353748" />
-      <entry key="M15" value="22.62935216568327" />
-      <entry key="M30" value="28.68611155088483" />
-      <entry key="H1" value="36.8926118003523" />
-      <entry key="H2" value="50.53382310989741" />
-      <entry key="H4" value="79.05588509227941" />
-      <entry key="D1" value="192.21850992670088" />
-      <entry key="W1" value="243.4672321085203" />
+      <entry key="MS100" value="1.0927827231652412" />
+      <entry key="MS500" value="1.6338454496039727" />
+      <entry key="S2" value="3.6926778302168914" />
+      <entry key="S5" value="7.89886096244675" />
+      <entry key="S10" value="11.862995442419694" />
+      <entry key="S30" value="18.47950412453889" />
+      <entry key="S60" value="21.628139686184156" />
+      <entry key="M2" value="23.628342701808442" />
+      <entry key="M5" value="25.00167753363004" />
+      <entry key="M10" value="25.495036625913755" />
+      <entry key="M15" value="25.73618185287499" />
+      <entry key="M30" value="27.96533935834725" />
+      <entry key="H1" value="38.173510867410194" />
+      <entry key="H2" value="59.395018098298834" />
+      <entry key="H4" value="94.99869326214099" />
+      <entry key="D1" value="228.2366874631674" />
+      <entry key="W1" value="290.9250684309425" />
     </decayedCancelled>
     <decayedSelected>
-      <entry key="MS100" value="0.0" />
-      <entry key="MS500" value="0.0" />
-      <entry key="S2" value="2.9155595636787942E-177" />
-      <entry key="S5" value="2.432227715292071E-71" />
-      <entry key="S10" value="5.011516105582266E-36" />
-      <entry key="S30" value="2.1337116633299897E-12" />
-      <entry key="S60" value="1.9638009565052986E-6" />
-      <entry key="M2" value="0.0019994694113429448" />
-      <entry key="M5" value="0.14439473864464508" />
-      <entry key="M10" value="0.7165427520699761" />
-      <entry key="M15" value="1.3864087316270528" />
-      <entry key="M30" value="3.210534285052387" />
-      <entry key="H1" value="5.663569006088378" />
-      <entry key="H2" value="8.537420856209264" />
-      <entry key="H4" value="12.425724347067145" />
-      <entry key="D1" value="23.253271670023896" />
-      <entry key="W1" value="27.225334674504072" />
+      <entry key="MS100" value="1.3502884270978646E-38" />
+      <entry key="MS500" value="2.6673825708865292E-8" />
+      <entry key="S2" value="0.012779719664965323" />
+      <entry key="S5" value="0.17482701034230766" />
+      <entry key="S10" value="0.4181231999570313" />
+      <entry key="S30" value="0.7477700876443166" />
+      <entry key="S60" value="0.8647370049005172" />
+      <entry key="M2" value="0.9299123640970247" />
+      <entry key="M5" value="0.9713523811433922" />
+      <entry key="M10" value="0.9856193594554741" />
+      <entry key="M15" value="0.9926210608837857" />
+      <entry key="M30" value="1.1248756492345933" />
+      <entry key="H1" value="2.1359557997229417" />
+      <entry key="H2" value="4.826369624025322" />
+      <entry key="H4" value="9.319340620491857" />
+      <entry key="D1" value="22.749461851222115" />
+      <entry key="W1" value="27.96654746252961" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.0020788503306806883" />
-      <entry key="MS500" value="0.32245309118009946" />
-      <entry key="S2" value="2.308611738640613" />
-      <entry key="S5" value="6.4914704811887285" />
-      <entry key="S10" value="9.996265296152131" />
-      <entry key="S30" value="13.623610755318985" />
-      <entry key="S60" value="14.764168906246606" />
-      <entry key="M2" value="15.494324461966782" />
-      <entry key="M5" value="17.1783294276764" />
-      <entry key="M10" value="20.7135253192262" />
-      <entry key="M15" value="24.004327191259524" />
-      <entry key="M30" value="31.884942798196096" />
-      <entry key="H1" value="42.54655290476559" />
-      <entry key="H2" value="59.06430515539072" />
-      <entry key="H4" value="91.47678156335394" />
-      <entry key="D1" value="215.47037637075016" />
-      <entry key="W1" value="270.69233504540347" />
+      <entry key="MS100" value="1.0009135065788497" />
+      <entry key="MS500" value="1.5913965431259003" />
+      <entry key="S2" value="3.6673287929727283" />
+      <entry key="S5" value="7.946007022579595" />
+      <entry key="S10" value="12.10978904940048" />
+      <entry key="S30" value="19.110501208176395" />
+      <entry key="S60" value="22.42238015917697" />
+      <entry key="M2" value="24.519447487202445" />
+      <entry key="M5" value="25.956572891860276" />
+      <entry key="M10" value="26.472263825035814" />
+      <entry key="M15" value="26.7231515632169" />
+      <entry key="M30" value="29.08688772198772" />
+      <entry key="H1" value="40.3060592457323" />
+      <entry key="H2" value="64.21750864691153" />
+      <entry key="H4" value="104.31440306757881" />
+      <entry key="D1" value="250.98476579431068" />
+      <entry key="W1" value="318.8913763949902" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -112,33 +112,33 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Python.app.executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.process.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "codeWithMe.voiceChat.enabledByDefault": "false",
-    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "feature/infrastructure__layer",
-    "ignore.virus.scanning.warn.message": "true",
-    "junie.onboarding.icon.badge.shown": "true",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "/home/pasindu/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "to.speed.mode.migration.done": "true",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python.app.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.process.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/pasindu/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure" />
