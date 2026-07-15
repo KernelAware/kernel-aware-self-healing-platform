@@ -25,3 +25,12 @@ services:
 
     volumes:
       - ./data:/app/data
+
+  dashboard:
+    build:
+      context: ../../dashboard
+      dockerfile: Dockerfile
+    container_name: kernel-aware-dashboard
+    ports:
+      - "8080:80"
+    restart: unless-stopped
