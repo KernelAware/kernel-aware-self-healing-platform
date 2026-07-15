@@ -6,6 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="80a84349-3319-409f-8a10-f0aa2f6eb13e" name="Changes" comment="make docker.yml file for run grafana , loki ,promithese">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/docker-compose.yml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/deployment/docker/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/deployment/docker/docker-compose.yml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -45,61 +47,61 @@
 }</component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.4352865572833786" />
-      <entry key="MS500" value="3.303650979284612" />
-      <entry key="S2" value="4.463184210709567" />
-      <entry key="S5" value="4.816532932090681" />
-      <entry key="S10" value="5.091524875384972" />
-      <entry key="S30" value="5.589348704990395" />
-      <entry key="S60" value="7.1375265799032155" />
-      <entry key="M2" value="15.178968361644923" />
-      <entry key="M5" value="38.38149308553054" />
-      <entry key="M10" value="58.64123454790372" />
-      <entry key="M15" value="72.09138326077907" />
-      <entry key="M30" value="109.7160500001606" />
-      <entry key="H1" value="170.02230222724646" />
-      <entry key="H2" value="243.85743750305622" />
-      <entry key="H4" value="330.4349875626885" />
-      <entry key="D1" value="576.2083164533354" />
-      <entry key="W1" value="691.4215979237276" />
+      <entry key="MS100" value="1.0000002732666324" />
+      <entry key="MS500" value="1.1103878146964625" />
+      <entry key="S2" value="4.293995303742802" />
+      <entry key="S5" value="10.471169357018706" />
+      <entry key="S10" value="17.356610896623295" />
+      <entry key="S30" value="29.44812057676064" />
+      <entry key="S60" value="37.54878561165108" />
+      <entry key="M2" value="46.95439236302444" />
+      <entry key="M5" value="71.74351498114264" />
+      <entry key="M10" value="104.43707689520109" />
+      <entry key="M15" value="126.99453647477908" />
+      <entry key="M30" value="176.6851210756803" />
+      <entry key="H1" value="245.91475088383396" />
+      <entry key="H2" value="327.4532560235325" />
+      <entry key="H4" value="419.93751051664566" />
+      <entry key="D1" value="673.9911402235812" />
+      <entry key="W1" value="791.8753181934791" />
     </decayedCancelled>
     <decayedSelected>
-      <entry key="MS100" value="1.5621796967484616E-173" />
-      <entry key="MS500" value="2.746288749826804E-35" />
-      <entry key="S2" value="2.2892148234690492E-9" />
-      <entry key="S5" value="3.4984415292312044E-4" />
-      <entry key="S10" value="0.018704121459602336" />
-      <entry key="S30" value="0.2660480843243441" />
-      <entry key="S60" value="0.5450944231743197" />
-      <entry key="M2" value="0.9510256550199061" />
-      <entry key="M5" value="1.8178737314286346" />
-      <entry key="M10" value="2.7931149439898153" />
-      <entry key="M15" value="3.442470342459724" />
-      <entry key="M30" value="4.549073494743186" />
-      <entry key="H1" value="6.283883268147696" />
-      <entry key="H2" value="10.627975298199098" />
-      <entry key="H4" value="18.59164406223558" />
-      <entry key="D1" value="43.94153481134101" />
-      <entry key="W1" value="54.78016145916103" />
+      <entry key="MS100" value="1.3569724222973086E-78" />
+      <entry key="MS500" value="2.670018093060949E-16" />
+      <entry key="S2" value="1.2782875264251696E-4" />
+      <entry key="S5" value="0.02771095036426812" />
+      <entry key="S10" value="0.16646662299059917" />
+      <entry key="S30" value="0.558339494993477" />
+      <entry key="S60" value="0.8327589929522194" />
+      <entry key="M2" value="1.1848811205324663" />
+      <entry key="M5" value="1.9666262322282373" />
+      <entry key="M10" value="3.0768738242393714" />
+      <entry key="M15" value="3.920697787767001" />
+      <entry key="M30" value="5.456284135566879" />
+      <entry key="H1" value="7.501525644452346" />
+      <entry key="H2" value="11.961943946880336" />
+      <entry key="H4" value="20.00859960126977" />
+      <entry key="D1" value="45.71145687035809" />
+      <entry key="W1" value="56.739160941185695" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="1.4094670341628164" />
-      <entry key="MS500" value="3.287904219708928" />
-      <entry key="S2" value="4.45714186235994" />
-      <entry key="S5" value="4.8100772097739135" />
-      <entry key="S10" value="5.097387665938406" />
-      <entry key="S30" value="5.839155551605336" />
-      <entry key="S60" value="7.668992606436021" />
-      <entry key="M2" value="16.117358173497188" />
-      <entry key="M5" value="40.187461577421786" />
-      <entry key="M10" value="61.423542045542696" />
-      <entry key="M15" value="75.52425817131686" />
-      <entry key="M30" value="114.2580686127416" />
-      <entry key="H1" value="176.3007789408423" />
-      <entry key="H2" value="254.4804097150775" />
-      <entry key="H4" value="349.02187662492634" />
-      <entry key="D1" value="620.1477431042935" />
-      <entry key="W1" value="746.2013752861294" />
+      <entry key="MS100" value="0.003448309961441688" />
+      <entry key="MS500" value="0.4299896837137021" />
+      <entry key="S2" value="4.031506048677295" />
+      <entry key="S5" value="10.363362486893344" />
+      <entry key="S10" value="17.419414108750235" />
+      <entry key="S30" value="29.938699507228574" />
+      <entry key="S60" value="38.331019367318724" />
+      <entry key="M2" value="48.09949904808789" />
+      <entry key="M5" value="73.68259255395488" />
+      <entry key="M10" value="107.49356693863933" />
+      <entry key="M15" value="130.8984197272225" />
+      <entry key="M30" value="182.12995002232503" />
+      <entry key="H1" value="253.40839611658555" />
+      <entry key="H2" value="339.40891146404283" />
+      <entry key="H4" value="439.94069841581495" />
+      <entry key="D1" value="719.7003648227803" />
+      <entry key="W1" value="848.6140759988631" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -250,7 +252,15 @@
       <option name="project" value="LOCAL" />
       <updated>1784062292993</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="make docker.yml file for run grafana , loki ,promithese">
+      <option name="closed" value="true" />
+      <created>1784092585405</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1784092585405</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
