@@ -2,7 +2,7 @@ services:
   prometheus:
     image: prom/prometheus
     volumes:
-      - /home/pasindu/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/prometheus/prometheus.yml
+      - ../../prometheus/prometheus.yml
     ports:
       - "9090:9090"
 
