@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from exporter import update_network_metrics
+from sender.exporter_network import update_network_metrics
 
 import threading
 import time
@@ -13,8 +13,8 @@ def collect_metrix():
     last_metrix = {}
 
     while True:
-        pakaya = update_network_metrics()
-        print(pakaya)
+        Network_Metrics = update_network_metrics()
+        print(Network_Metrics)
 
         time.sleep(1)
 
