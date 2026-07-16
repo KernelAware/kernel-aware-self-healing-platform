@@ -8,26 +8,21 @@ import psutil
 
 
 def get_memory_metrics():
-    """
-    Returns memory and swap usage statistics.
-    """
-
     memory = psutil.virtual_memory()
     swap = psutil.swap_memory()
 
     return {
         "memory": {
-            "total_gb": round(memory.total / (1024 ** 3), 2),
-            "available_gb": round(memory.available / (1024 ** 3), 2),
-            "used_gb": round(memory.used / (1024 ** 3), 2),
-            "free_gb": round(memory.free / (1024 ** 3), 2),
+            "total_bytes": memory.total,
+            "available_bytes": memory.available,
+            "used_bytes": memory.used,
+            "free_bytes": memory.free,
             "usage_percent": memory.percent
         },
-
         "swap": {
-            "total_gb": round(swap.total / (1024 ** 3), 2),
-            "used_gb": round(swap.used / (1024 ** 3), 2),
-            "free_gb": round(swap.free / (1024 ** 3), 2),
+            "total_bytes": swap.total,
+            "used_bytes": swap.used,
+            "free_bytes": swap.free,
             "usage_percent": swap.percent
         }
     }
