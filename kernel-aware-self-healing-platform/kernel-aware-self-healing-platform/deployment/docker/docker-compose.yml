@@ -18,7 +18,7 @@ services:
 
   monitering-agent:
     build: ../../monitoring-agent
-    container_name: monitering-agent
+    container_name: monitoring-agent
 
     ports:
       - "8001:8001"
