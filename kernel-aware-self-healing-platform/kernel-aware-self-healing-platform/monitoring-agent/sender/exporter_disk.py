@@ -1,3 +1,5 @@
+# Collect the data from the collectors and then set the data to the prometheus format
+
 from prometheus_client import Gauge
 from prometheus_client import generate_latest
 
@@ -5,24 +7,18 @@ from collectors.disk import get_disk_stats_snapshot
 
 
 # ============================================================
-# Storage Usage
+# Partition Information
 # ============================================================
 
-disk_total_bytes = Gauge(
-    "disk_total_bytes",
-    "Total size of mounted partition in bytes",
+disk_partition_info = Gauge(
+    "disk_partition_info",
+    "Mounted disk partition information",
     ["device", "mountpoint", "filesystem"]
 )
 
-disk_used_bytes = Gauge(
-    "disk_used_bytes",
-    "Used space of mounted partition in bytes",
-    ["device", "mountpoint", "filesystem"]
-)
-
-disk_free_bytes = Gauge(
-    "disk_free_bytes",
-    "Free space of mounted partition in bytes",
+disk_partition_total_gb = Gauge(
+    "disk_partition_total_gb",
+    "Total size of mounted partition in GB",
     ["device", "mountpoint", "filesystem"]
 )
 
@@ -34,99 +30,88 @@ disk_usage_percent = Gauge(
 
 
 # ============================================================
-# Mounted Partition Information
+# Overall Disk IO
 # ============================================================
 
-disk_partition_info = Gauge(
-    "disk_partition_info",
-    "Mounted partition information",
-    ["device", "mountpoint", "filesystem", "options"]
+disk_read_bytes = Gauge(
+    "disk_read_bytes",
+    "Total disk read bytes"
 )
 
-
-# ============================================================
-# Overall IO Counters
-# ============================================================
-
-disk_read_bytes_total = Gauge(
-    "disk_read_bytes_total",
-    "Total bytes read since boot"
+disk_write_bytes = Gauge(
+    "disk_write_bytes",
+    "Total disk write bytes"
 )
 
-disk_write_bytes_total = Gauge(
-    "disk_write_bytes_total",
-    "Total bytes written since boot"
+disk_read_count = Gauge(
+    "disk_read_count",
+    "Total disk read operations"
 )
 
-disk_read_operations_total = Gauge(
-    "disk_read_operations_total",
-    "Total read operations since boot"
+disk_write_count = Gauge(
+    "disk_write_count",
+    "Total disk write operations"
 )
 
-disk_write_operations_total = Gauge(
-    "disk_write_operations_total",
-    "Total write operations since boot"
+disk_read_time_ms = Gauge(
+    "disk_read_time_ms",
+    "Total disk read time"
 )
 
-disk_read_time_ms_total = Gauge(
-    "disk_read_time_ms_total",
-    "Total read time in milliseconds"
+disk_write_time_ms = Gauge(
+    "disk_write_time_ms",
+    "Total disk write time"
 )
 
-disk_write_time_ms_total = Gauge(
-    "disk_write_time_ms_total",
-    "Total write time in milliseconds"
-)
-
-disk_busy_time_ms_total = Gauge(
-    "disk_busy_time_ms_total",
-    "Total busy time in milliseconds"
+disk_busy_time_ms = Gauge(
+    "disk_busy_time_ms",
+    "Total disk busy time"
 )
 
 
 # ============================================================
-# Per Disk IO Counters
+# Per Disk IO
 # ============================================================
 
-disk_perdisk_read_bytes_total = Gauge(
-    "disk_perdisk_read_bytes_total",
-    "Per disk read bytes",
+disk_per_read_bytes = Gauge(
+    "disk_per_read_bytes",
+    "Read bytes per disk",
     ["disk"]
 )
 
-disk_perdisk_write_bytes_total = Gauge(
-    "disk_perdisk_write_bytes_total",
-    "Per disk write bytes",
+disk_per_write_bytes = Gauge(
+    "disk_per_write_bytes",
+    "Write bytes per disk",
     ["disk"]
 )
 
-disk_perdisk_read_operations_total = Gauge(
-    "disk_perdisk_read_operations_total",
-    "Per disk read operations",
+disk_per_read_count = Gauge(
+    "disk_per_read_count",
+    "Read count per disk",
     ["disk"]
 )
 
-disk_perdisk_write_operations_total = Gauge(
-    "disk_perdisk_write_operations_total",
-    "Per disk write operations",
+disk_per_write_count = Gauge(
+    "disk_per_write_count",
+    "Write count per disk",
     ["disk"]
 )
 
-disk_perdisk_read_time_ms_total = Gauge(
-    "disk_perdisk_read_time_ms_total",
-    "Per disk read time",
+disk_per_read_time_ms = Gauge(
+    "disk_per_read_time_ms",
+    "Read time per disk",
     ["disk"]
 )
 
-disk_perdisk_write_time_ms_total = Gauge(
-    "disk_perdisk_write_time_ms_total",
-    "Per disk write time",
+disk_per_write_time_ms = Gauge(
+    "disk_per_write_time_ms",
+    "Write time per disk",
     ["disk"]
 )
 
-disk_perdisk_busy_time_ms_total = Gauge(
-    "disk_perdisk_busy_time_ms_total",
-    "Per disk busy time",
+disk_per_busy_time_ms = Gauge(
+    "disk_per_busy_time_ms",
+    "Busy time per disk",
     ["disk"]
 )
 
@@ -135,58 +120,32 @@ disk_perdisk_busy_time_ms_total = Gauge(
 # Throughput
 # ============================================================
 
-disk_read_speed_bps = Gauge(
-    "disk_read_speed_bps",
-    "Overall read speed in Bytes/s"
-)
-
-disk_write_speed_bps = Gauge(
-    "disk_write_speed_bps",
-    "Overall write speed in Bytes/s"
-)
-
 disk_read_speed_mb = Gauge(
     "disk_read_speed_mb",
-    "Overall read speed in MB/s"
+    "Overall disk read speed MB/s"
 )
 
 disk_write_speed_mb = Gauge(
     "disk_write_speed_mb",
-    "Overall write speed in MB/s"
+    "Overall disk write speed MB/s"
 )
 
 
-# ============================================================
-# Per Disk Throughput
-# ============================================================
-
-disk_perdisk_read_speed_bps = Gauge(
-    "disk_perdisk_read_speed_bps",
-    "Per disk read speed in Bytes/s",
+disk_per_read_speed_mb = Gauge(
+    "disk_per_read_speed_mb",
+    "Read speed MB/s per disk",
     ["disk"]
 )
 
-disk_perdisk_write_speed_bps = Gauge(
-    "disk_perdisk_write_speed_bps",
-    "Per disk write speed in Bytes/s",
-    ["disk"]
-)
-
-disk_perdisk_read_speed_mb = Gauge(
-    "disk_perdisk_read_speed_mb",
-    "Per disk read speed in MB/s",
-    ["disk"]
-)
-
-disk_perdisk_write_speed_mb = Gauge(
-    "disk_perdisk_write_speed_mb",
-    "Per disk write speed in MB/s",
+disk_per_write_speed_mb = Gauge(
+    "disk_per_write_speed_mb",
+    "Write speed MB/s per disk",
     ["disk"]
 )
 
 
 # ============================================================
-# Overall IOPS
+# IOPS
 # ============================================================
 
 disk_read_iops = Gauge(
@@ -205,88 +164,64 @@ disk_total_iops = Gauge(
 )
 
 
-# ============================================================
-# Per Disk IOPS
-# ============================================================
-
-disk_perdisk_read_iops = Gauge(
-    "disk_perdisk_read_iops",
+disk_per_read_iops = Gauge(
+    "disk_per_read_iops",
     "Per disk read IOPS",
     ["disk"]
 )
 
-disk_perdisk_write_iops = Gauge(
-    "disk_perdisk_write_iops",
+disk_per_write_iops = Gauge(
+    "disk_per_write_iops",
     "Per disk write IOPS",
     ["disk"]
 )
 
-disk_perdisk_total_iops = Gauge(
-    "disk_perdisk_total_iops",
+disk_per_total_iops = Gauge(
+    "disk_per_total_iops",
     "Per disk total IOPS",
     ["disk"]
 )
 
 
 # ============================================================
-# Overall Latency
+# Latency
 # ============================================================
 
 disk_read_latency_ms = Gauge(
     "disk_read_latency_ms",
-    "Average read latency",
+    "Overall read latency"
 )
 
 disk_write_latency_ms = Gauge(
     "disk_write_latency_ms",
-    "Average write latency",
+    "Overall write latency"
 )
 
 
-# ============================================================
-# Per Disk Latency
-# ============================================================
-
-disk_perdisk_read_latency_ms = Gauge(
-    "disk_perdisk_read_latency_ms",
+disk_per_read_latency_ms = Gauge(
+    "disk_per_read_latency_ms",
     "Per disk read latency",
     ["disk"]
 )
 
-disk_perdisk_write_latency_ms = Gauge(
-    "disk_perdisk_write_latency_ms",
+disk_per_write_latency_ms = Gauge(
+    "disk_per_write_latency_ms",
     "Per disk write latency",
     ["disk"]
 )
 
 
 # ============================================================
-# Overall Busy
+# Busy Percentage
 # ============================================================
-
-disk_busy_time_ms = Gauge(
-    "disk_busy_time_ms",
-    "Busy time during interval"
-)
 
 disk_busy_percentage = Gauge(
     "disk_busy_percentage",
-    "Busy percentage"
+    "Overall busy percentage"
 )
 
-
-# ============================================================
-# Per Disk Busy
-# ============================================================
-
-disk_perdisk_busy_time_ms = Gauge(
-    "disk_perdisk_busy_time_ms",
-    "Per disk busy time",
-    ["disk"]
-)
-
-disk_perdisk_busy_percentage = Gauge(
-    "disk_perdisk_busy_percentage",
+disk_per_busy_percentage = Gauge(
+    "disk_per_busy_percentage",
     "Per disk busy percentage",
     ["disk"]
 )
@@ -296,156 +231,139 @@ def update_disk_metrics():
     disk = get_disk_stats_snapshot()
 
     # ============================================================
-    # Storage Usage
+    # Partition Information
     # ============================================================
+
+    usage_map = {}
 
     for partition in disk["disk_usage"]:
-
-        labels = {
-            "device": partition["device"],
-            "mountpoint": partition["mountpoint"],
-            "filesystem": partition["filesystem"]
-        }
-
-        disk_total_bytes.labels(**labels).set(
-            partition["total_bytes"]
-        )
-
-        disk_used_bytes.labels(**labels).set(
-            partition["used_bytes"]
-        )
-
-        disk_free_bytes.labels(**labels).set(
-            partition["free_bytes"]
-        )
-
-        disk_usage_percent.labels(**labels).set(
-            partition["usage_percent"]
-        )
-
-
-    # ============================================================
-    # Mounted Partitions
-    # ============================================================
+        usage_map[partition["mountpoint"]] = partition
 
     for partition in disk["mounted_partitions"]:
+
+        mountpoint = partition["mountpoint"]
+
+        if mountpoint not in usage_map:
+            continue
+
+        usage = usage_map[mountpoint]
 
         disk_partition_info.labels(
             device=partition["device"],
             mountpoint=partition["mountpoint"],
-            filesystem=partition["filesystem"],
-            options=partition["options"]
+            filesystem=partition["filesystem"]
         ).set(1)
 
-
-    # ============================================================
-    # Overall IO Counters
-    # ============================================================
-
-    io = disk["io_counters"]
-
-    if io:
-
-        disk_read_bytes_total.set(
-            io["read_bytes"]
+        disk_partition_total_gb.labels(
+            device=partition["device"],
+            mountpoint=partition["mountpoint"],
+            filesystem=partition["filesystem"]
+        ).set(
+            usage["total_gb"]
         )
 
-        disk_write_bytes_total.set(
-            io["write_bytes"]
+        disk_usage_percent.labels(
+            device=partition["device"],
+            mountpoint=partition["mountpoint"],
+            filesystem=partition["filesystem"]
+        ).set(
+            usage["usage_percent"]
         )
 
-        disk_read_operations_total.set(
-            io["read_count"]
-        )
-
-        disk_write_operations_total.set(
-            io["write_count"]
-        )
-
-        disk_read_time_ms_total.set(
-            io["read_time_ms"]
-        )
-
-        disk_write_time_ms_total.set(
-            io["write_time_ms"]
-        )
-
-        disk_busy_time_ms_total.set(
-            io["busy_time_ms"]
-        )
 
 
     # ============================================================
-    # Per Disk IO Counters
+    # Overall Disk IO
     # ============================================================
 
-    for disk_name, values in disk["io_counters perdisk"].items():
+    disk_read_bytes.set(
+        disk["io_counters"]["read_bytes"]
+    )
 
-        disk_perdisk_read_bytes_total.labels(
-            disk=disk_name
-        ).set(
-            values["read_bytes"]
-        )
+    disk_write_bytes.set(
+        disk["io_counters"]["write_bytes"]
+    )
 
-        disk_perdisk_write_bytes_total.labels(
-            disk=disk_name
-        ).set(
-            values["write_bytes"]
-        )
+    disk_read_count.set(
+        disk["io_counters"]["read_count"]
+    )
 
-        disk_perdisk_read_operations_total.labels(
-            disk=disk_name
-        ).set(
-            values["read_count"]
-        )
+    disk_write_count.set(
+        disk["io_counters"]["write_count"]
+    )
 
-        disk_perdisk_write_operations_total.labels(
-            disk=disk_name
-        ).set(
-            values["write_count"]
-        )
+    disk_read_time_ms.set(
+        disk["io_counters"]["read_time_ms"]
+    )
 
-        disk_perdisk_read_time_ms_total.labels(
-            disk=disk_name
-        ).set(
-            values["read_time_ms"]
-        )
+    disk_write_time_ms.set(
+        disk["io_counters"]["write_time_ms"]
+    )
 
-        disk_perdisk_write_time_ms_total.labels(
-            disk=disk_name
-        ).set(
-            values["write_time_ms"]
-        )
+    disk_busy_time_ms.set(
+        disk["io_counters"]["busy_time_ms"]
+    )
 
-        disk_perdisk_busy_time_ms_total.labels(
-            disk=disk_name
-        ).set(
-            values["busy_time_ms"]
-        )
 
 
     # ============================================================
     # Overall Throughput
     # ============================================================
 
-    throughput = disk["throughput"]
+    disk_read_speed_mb.set(
+        disk["throughput"]["read_speed_mb"]
+    )
 
-    if throughput:
+    disk_write_speed_mb.set(
+        disk["throughput"]["write_speed_mb"]
+    )
 
-        disk_read_speed_bps.set(
-            throughput["read_speed_bps"]
+        # ============================================================
+    # Per Disk IO
+    # ============================================================
+
+    for disk_name, data in disk["io_counters perdisk"].items():
+
+        disk_per_read_bytes.labels(
+            disk=disk_name
+        ).set(
+            data["read_bytes"]
         )
 
-        disk_write_speed_bps.set(
-            throughput["write_speed_bps"]
+        disk_per_write_bytes.labels(
+            disk=disk_name
+        ).set(
+            data["write_bytes"]
         )
 
-        disk_read_speed_mb.set(
-            throughput["read_speed_mb"]
+        disk_per_read_count.labels(
+            disk=disk_name
+        ).set(
+            data["read_count"]
         )
 
-        disk_write_speed_mb.set(
-            throughput["write_speed_mb"]
+        disk_per_write_count.labels(
+            disk=disk_name
+        ).set(
+            data["write_count"]
+        )
+
+        disk_per_read_time_ms.labels(
+            disk=disk_name
+        ).set(
+            data["read_time_ms"]
+        )
+
+        disk_per_write_time_ms.labels(
+            disk=disk_name
+        ).set(
+            data["write_time_ms"]
+        )
+
+        disk_per_busy_time_ms.labels(
+            disk=disk_name
+        ).set(
+            data["busy_time_ms"]
         )
 
 
@@ -453,148 +371,113 @@ def update_disk_metrics():
     # Per Disk Throughput
     # ============================================================
 
-    for disk_name, values in disk["throughput perdisk"].items():
+    for disk_name, data in disk["throughput perdisk"].items():
 
-        disk_perdisk_read_speed_bps.labels(
+        disk_per_read_speed_mb.labels(
             disk=disk_name
         ).set(
-            values["read_speed_bps"]
+            data["read_speed_mb"]
         )
 
-        disk_perdisk_write_speed_bps.labels(
+        disk_per_write_speed_mb.labels(
             disk=disk_name
         ).set(
-            values["write_speed_bps"]
-        )
-
-        disk_perdisk_read_speed_mb.labels(
-            disk=disk_name
-        ).set(
-            values["read_speed_mb"]
-        )
-
-        disk_perdisk_write_speed_mb.labels(
-            disk=disk_name
-        ).set(
-            values["write_speed_mb"]
+            data["write_speed_mb"]
         )
 
 
-            # ============================================================
+    # ============================================================
     # Overall IOPS
     # ============================================================
 
-    iops = disk["iops"]
+    disk_read_iops.set(
+        disk["iops"]["read_iops"]
+    )
 
-    if iops:
+    disk_write_iops.set(
+        disk["iops"]["write_iops"]
+    )
 
-        disk_read_iops.set(
-            iops["read_iops"]
-        )
-
-        disk_write_iops.set(
-            iops["write_iops"]
-        )
-
-        disk_total_iops.set(
-            iops["total_iops"]
-        )
+    disk_total_iops.set(
+        disk["iops"]["total_iops"]
+    )
 
 
     # ============================================================
     # Per Disk IOPS
     # ============================================================
 
-    for disk_name, values in disk["iops perdisk"].items():
+    for disk_name, data in disk["iops perdisk"].items():
 
-        disk_perdisk_read_iops.labels(
+        disk_per_read_iops.labels(
             disk=disk_name
         ).set(
-            values["read_iops"]
+            data["read_iops"]
         )
 
-        disk_perdisk_write_iops.labels(
+        disk_per_write_iops.labels(
             disk=disk_name
         ).set(
-            values["write_iops"]
+            data["write_iops"]
         )
 
-        disk_perdisk_total_iops.labels(
+        disk_per_total_iops.labels(
             disk=disk_name
         ).set(
-            values["total_iops"]
+            data["total_iops"]
         )
 
-
-    # ============================================================
+            # ============================================================
     # Overall Latency
     # ============================================================
 
-    latency = disk["latency"]
+    disk_read_latency_ms.set(
+        disk["latency"]["read_latency_ms"]
+    )
 
-    if latency:
-
-        disk_read_latency_ms.set(
-            latency["read_latency_ms"]
-        )
-
-        disk_write_latency_ms.set(
-            latency["write_latency_ms"]
-        )
+    disk_write_latency_ms.set(
+        disk["latency"]["write_latency_ms"]
+    )
 
 
     # ============================================================
     # Per Disk Latency
     # ============================================================
 
-    for disk_name, values in disk["latency perdisk"].items():
+    for disk_name, data in disk["latency perdisk"].items():
 
-        disk_perdisk_read_latency_ms.labels(
+        disk_per_read_latency_ms.labels(
             disk=disk_name
         ).set(
-            values["read_latency_ms"]
+            data["read_latency_ms"]
         )
 
-        disk_perdisk_write_latency_ms.labels(
+        disk_per_write_latency_ms.labels(
             disk=disk_name
         ).set(
-            values["write_latency_ms"]
+            data["write_latency_ms"]
         )
 
 
     # ============================================================
-    # Overall Busy Time
+    # Overall Busy Percentage
     # ============================================================
 
-    busy = disk["busy_time"]
-
-    if busy:
-
-        disk_busy_time_ms.set(
-            busy["busy_time_ms"]
-        )
-
-        disk_busy_percentage.set(
-            busy["busy_percentage"]
-        )
+    disk_busy_percentage.set(
+        disk["busy_time"]["busy_percentage"]
+    )
 
 
     # ============================================================
-    # Per Disk Busy Time
+    # Per Disk Busy Percentage
     # ============================================================
 
-    for disk_name, values in disk["busy_time perdisk"].items():
+    for disk_name, data in disk["busy_time perdisk"].items():
 
-        disk_perdisk_busy_time_ms.labels(
+        disk_per_busy_percentage.labels(
             disk=disk_name
         ).set(
-            values["busy_time_ms"]
-        )
-
-        disk_perdisk_busy_percentage.labels(
-            disk=disk_name
-        ).set(
-            values["busy_percentage"]
+            data["busy_percentage"]
         )
 
 
