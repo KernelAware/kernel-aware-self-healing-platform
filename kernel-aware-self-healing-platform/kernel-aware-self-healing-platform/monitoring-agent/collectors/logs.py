@@ -993,614 +993,346 @@ def get_authentication_statistics():
 
 
 def has_security_events():
-
     return (
-
         len(
-
             get_security_events()
-
         ) > 0
-
     )
 
 
-# ============================================================
-
 def authentication_summary():
-
     return {
-
         "authentication_logs":
-
             len(
-
                 RAW_DATA["authentication"]
-
             ),
 
         "failed_logins":
-
             len(
-
                 get_failed_logins()
-
             ),
 
         "successful_logins":
-
             len(
-
                 get_successful_logins()
-
             ),
 
         "ssh":
-
             len(
-
                 get_ssh_logs()
-
             ),
 
         "sudo":
-
             len(
-
                 get_sudo_logs()
-
             ),
 
         "security":
-
             len(
-
                 get_security_events()
-
             )
-
     }
 
 
-# ============================================================
-# Service Collectors
-#
+# Service Colectors
 # NO I/O
-#
 # Uses:
-#
 # RAW_DATA["services"]
-#
-# ============================================================
 
 def get_service_logs():
-
     logger.info("Getting service logs...")
-
     return RAW_DATA["services"]
 
 
-# ============================================================
-
 def get_failed_services():
-
     logger.info("Getting failed services...")
-
     keywords = (
-
         "failed",
-
         "failure",
-
         "failed with result",
-
         "exited with status",
-
         "core dumped"
-
     )
 
     return [
-
         line
-
         for line in RAW_DATA["services"]
-
         if any(
-
             keyword in line.lower()
-
             for keyword in keywords
-
         )
-
     ]
 
-
-# ============================================================
 
 def get_service_restart_events():
-
     logger.info("Getting service restart events...")
-
     keywords = (
-
         "restart",
-
         "restarted",
-
         "restarting"
-
     )
 
     return [
-
         line
-
         for line in RAW_DATA["services"]
-
         if any(
-
             keyword in line.lower()
-
             for keyword in keywords
-
         )
-
     ]
 
-
-# ============================================================
 
 def get_started_services():
-
     logger.info("Getting started services...")
-
     keywords = (
-
         "started",
-
         "starting"
-
     )
 
     return [
-
         line
-
         for line in RAW_DATA["services"]
-
         if any(
-
             keyword in line.lower()
-
             for keyword in keywords
-
         )
-
     ]
 
-
-# ============================================================
 
 def get_stopped_services():
-
     logger.info("Getting stopped services...")
-
     keywords = (
-
         "stopped",
-
         "stopping"
-
     )
 
     return [
-
         line
-
         for line in RAW_DATA["services"]
-
         if any(
-
             keyword in line.lower()
-
             for keyword in keywords
-
         )
-
     ]
 
-
-# ============================================================
 
 def get_reloaded_services():
-
     logger.info("Getting reloaded services...")
-
     keywords = (
-
         "reloaded",
-
         "reload"
-
     )
 
     return [
-
         line
-
         for line in RAW_DATA["services"]
-
         if any(
-
             keyword in line.lower()
-
             for keyword in keywords
-
         )
-
     ]
 
-
-# ============================================================
 
 def get_running_services():
-
     logger.info("Getting running services...")
-
     keywords = (
-
         "running",
-
         "started"
-
     )
 
     return [
-
         line
-
         for line in RAW_DATA["services"]
-
         if any(
-
             keyword in line.lower()
-
             for keyword in keywords
-
         )
-
     ]
 
-
-# ============================================================
 
 def get_service_failures():
-
     logger.info("Getting service failures...")
-
     keywords = (
-
         "failed",
-
         "failure",
-
         "crashed",
-
         "core dumped",
-
         "segmentation fault"
-
     )
 
     return [
-
         line
-
         for line in RAW_DATA["services"]
-
         if any(
-
             keyword in line.lower()
-
             for keyword in keywords
-
         )
-
     ]
 
-
-# ============================================================
 
 def get_service_status_changes():
-
     logger.info("Getting service status changes...")
-
     keywords = (
-
         "started",
-
         "stopped",
-
         "restart",
-
         "reloaded",
-
         "failed"
-
     )
 
     return [
-
         line
-
         for line in RAW_DATA["services"]
-
         if any(
-
             keyword in line.lower()
-
             for keyword in keywords
-
         )
-
     ]
 
 
-# ============================================================
-
 def find_service(service_name):
-
     logger.info(
-
         f"Searching for service: {service_name}"
-
     )
 
     service_name = service_name.lower()
 
     return [
-
         line
-
         for line in RAW_DATA["services"]
-
         if service_name in line.lower()
-
     ]
 
 
-# ============================================================
-
 def has_failed_services():
-
     return len(
-
         get_failed_services()
-
     ) > 0
 
 
-# ============================================================
-
 def service_summary():
-
     return {
-
         "service_logs":
-
             len(
-
                 RAW_DATA["services"]
-
             ),
 
         "failed_services":
-
             len(
-
                 get_failed_services()
-
             ),
 
         "running_services":
-
             len(
-
                 get_running_services()
-
             ),
 
         "restart_events":
-
             len(
-
                 get_service_restart_events()
-
             ),
 
         "started":
-
             len(
-
                 get_started_services()
-
             ),
 
         "stopped":
-
             len(
-
                 get_stopped_services()
-
             ),
 
         "reloaded":
-
             len(
-
                 get_reloaded_services()
-
             )
-
     }
 
 
-# ============================================================
-
 def get_service_statistics():
-
     logger.info(
-
         "Getting service statistics..."
-
     )
 
     return {
-
         "service_logs":
-
             len(
-
                 RAW_DATA["services"]
-
             ),
 
         "failed_services":
-
             len(
-
                 get_failed_services()
-
             ),
 
         "running_services":
-
             len(
-
                 get_running_services()
-
             ),
 
         "restart_events":
-
             len(
-
                 get_service_restart_events()
-
             ),
 
         "status_changes":
-
             len(
-
                 get_service_status_changes()
-
             ),
 
         "failures":
-
             len(
-
                 get_service_failures()
-
             )
-
     }
 
 
-# ============================================================
-# User & System Collectors
-#
-# NO I/O
-#
-# Uses:
-#
-# RAW_DATA["users"]
-# RAW_DATA["cron"]
-# RAW_DATA["applications"]
-#
-# ============================================================
-
 def get_login_sessions():
-
     logger.info("Getting login sessions...")
-
     sessions = []
-
     for line in RAW_DATA["users"].get("current", []):
-
         parts = line.split()
-
         session = {
-
             "user":
-
                 parts[0]
-
                 if len(parts) > 0
-
                 else "",
 
             "terminal":
-
                 parts[1]
-
                 if len(parts) > 1
-
                 else "",
 
             "date":
-
                 " ".join(parts[2:])
-
                 if len(parts) > 2
-
                 else "",
 
             "raw":
-
                 line
-
         }
 
         sessions.append(session)
-
     return sessions
 
 
-# ============================================================
-
 def get_login_history():
-
     logger.info("Getting login history...")
 
     return RAW_DATA["users"].get(
-
         "history",
-
         []
-
     )
 
 
-# ============================================================
-
 def get_logged_users():
-
     logger.info("Getting logged users...")
 
     return RAW_DATA["users"].get(
-
         "current",
-
         []
-
     )
 
-
-# ============================================================
 
 def get_cron_logs():
 
