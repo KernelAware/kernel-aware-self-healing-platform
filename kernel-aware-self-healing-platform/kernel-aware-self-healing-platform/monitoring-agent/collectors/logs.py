@@ -11,9 +11,7 @@ import subprocess
 from pathlib import Path
 from datetime import datetime
 
-# ============================================================
 # Logging Configuration
-# ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -32,12 +30,8 @@ logger.info("=" * 60)
 logger.info("KAISP Universal Log Collector Started")
 logger.info("=" * 60)
 
-# ============================================================
 # Configuration
-# ============================================================
-
 DEFAULT_LOG_LINES = 200
-
 COMMAND_TIMEOUT = 10
 
 # ============================================================
@@ -49,27 +43,16 @@ COMMAND_TIMEOUT = 10
 # ============================================================
 
 RAW_DATA = {
-
     "environment": {},
-
     "journal": [],
-
     "kernel": [],
-
     "authentication": [],
-
     "services": [],
-
     "boot": [],
-
     "cron": [],
-
     "applications": [],
-
     "users": [],
-
     "statistics": {}
-
 }
 
 # ============================================================
@@ -77,414 +60,250 @@ RAW_DATA = {
 # ============================================================
 
 LOG_DIRECTORIES = [
-
     Path("/host/var/log"),
-
     Path("/var/log")
-
 ]
 
 COMMON_LOG_FILES = {
-
     "syslog": [
-
         "syslog",
-
         "messages"
-
     ],
-
     "kernel": [
-
         "kern.log",
-
         "messages"
-
     ],
-
     "authentication": [
-
         "auth.log",
-
         "secure"
-
     ],
-
     "boot": [
-
         "boot.log"
-
     ],
-
     "cron": [
-
         "cron",
-
         "cron.log"
-
     ]
-
 }
 
-# ============================================================
 # Environment Detection
-# ============================================================
 
 def is_docker():
-
     return Path("/.dockerenv").exists()
 
 
 def is_kubernetes():
-
     return "KUBERNETES_SERVICE_HOST" in os.environ
 
 
 def is_ec2():
-
     try:
-
         return Path(
-
             "/sys/hypervisor/uuid"
-
         ).read_text().startswith(
-
             "ec2"
-
         )
 
     except Exception:
-
         return False
 
 
 def get_environment():
-
     if is_kubernetes():
-
         return "Kubernetes"
 
     if is_docker():
-
         return "Docker"
 
     if is_ec2():
-
         return "AWS EC2"
 
     return "Linux"
 
-# ============================================================
+
 # Command Detection
-# ============================================================
 
 def command_exists(command):
-
     return shutil.which(command) is not None
 
 
 def has_journalctl():
-
     return command_exists("journalctl")
 
 
 def has_systemctl():
-
     return command_exists("systemctl")
 
 
 def has_dmesg():
-
     return command_exists("dmesg")
 
 
 def has_last():
-
     return command_exists("last")
 
 
 def has_who():
-
     return command_exists("who")
 
-# ============================================================
+
 # Universal Log Discovery
-# ============================================================
 
 def find_log_file(log_type):
-
-    candidates = COMMON_LOG_FILES.get(
-
-        log_type,
-
-        []
-
-    )
-
+    candidates = COMMON_LOG_FILES.get(log_type,[])
     for directory in LOG_DIRECTORIES:
-
         if not directory.exists():
-
             continue
 
         for filename in candidates:
-
             path = directory / filename
-
             if path.exists():
-
                 return path
 
     return None
 
-# ============================================================
-# Helper
-#
-# Execute Linux Command
-# ============================================================
+
+# Helper function to Execute Linux Command
 
 def run_command(command):
-
     try:
-
-        result = subprocess.run(
-
-            command,
-
-            capture_output=True,
-
-            text=True,
-
-            timeout=COMMAND_TIMEOUT
-
-        )
-
+        result = subprocess.run(command, capture_output=True, text=True, timeout=COMMAND_TIMEOUT)
         if result.returncode != 0:
-
             return []
 
         return result.stdout.splitlines()
 
     except Exception as e:
-
         logger.warning(
-
             f"Command failed: {command} : {e}"
-
         )
 
         return []
 
-# ============================================================
-# Helper
-#
-# Read Log File
-# ============================================================
 
-def read_log_file(
+# Helper function to Read Log File
 
-        path,
-
-        lines=DEFAULT_LOG_LINES
-
-):
-
+def read_log_file(path,lines=DEFAULT_LOG_LINES):
     if path is None:
-
         return []
 
     try:
-
         with open(
-
                 path,
-
                 "r",
-
                 encoding="utf-8",
-
                 errors="ignore"
-
         ) as file:
-
             return file.readlines()[-lines:]
 
     except Exception as e:
-
         logger.warning(
-
             f"Unable to read {path}: {e}"
-
         )
-
         return []
 
-# ============================================================
+
 # Universal Reader
-#
 # ALL collectors will use this.
-#
 # Collectors NEVER know where logs come from.
-# ============================================================
 
 def read_logs(log_type):
-
     path = find_log_file(log_type)
-
     if path:
-
         return read_log_file(path)
 
     if has_journalctl():
-
         command = [
-
             "journalctl",
-
             "--no-pager",
-
             "-n",
-
             str(DEFAULT_LOG_LINES)
-
         ]
 
         if log_type == "kernel":
-
             command.insert(
-
                 1,
-
                 "-k"
-
             )
 
         return run_command(command)
 
     return []
 
-# ============================================================
+
 # Helper Functions
-# ============================================================
 
 def bytes_to_mb(value):
-
-    return round(
-
-        value /
-
-        (1024 * 1024),
-
-        2
-
-    )
+    return round( value / (1024 * 1024) , 2)
 
 
 def current_timestamp():
-
     return datetime.now().isoformat()
 
 
 def hostname():
-
     return socket.gethostname()
 
-# ============================================================
+
 # Environment Information
-# ============================================================
 
 def get_environment_information():
-
     return {
-
         "environment":
-
             get_environment(),
 
         "hostname":
-
             hostname(),
 
         "journalctl":
-
             has_journalctl(),
 
         "systemctl":
-
             has_systemctl(),
 
         "dmesg":
-
             has_dmesg(),
 
         "last":
-
             has_last(),
 
         "who":
-
             has_who(),
 
         "log_directory":
-
             str(
-
                 next(
-
-                    (
-
-                        d
-
-                        for d in LOG_DIRECTORIES
-
-                        if d.exists()
-
-                    ),
-
-                    ""
-
+                        (
+                            d
+                            for d in LOG_DIRECTORIES
+                            if d.exists()
+                        ),
+                        ""
+                    )
                 )
-
-            )
-
     }
 
-# ============================================================
+
 # Main
-#
 # Testing Part 1
-# ============================================================
 
 if __name__ == "__main__":
-
     print(
-
         json.dumps(
-
             get_environment_information(),
-
             indent=4
-
         )
-
     )
 
 
-
-    # ============================================================
 # Primary Collectors
-#
+
 # These are the ONLY functions that perform I/O.
 # Every other collector reads only from RAW_DATA.
-# ============================================================
 
 def collect_system_journal():
-
     logger.info("Collecting system journal...")
-
     if has_journalctl():
-
         RAW_DATA["journal"] = run_command(
             [
                 "journalctl",
@@ -495,16 +314,12 @@ def collect_system_journal():
         )
 
     else:
-
         RAW_DATA["journal"] = read_logs("syslog")
 
 
 def collect_kernel_logs():
-
     logger.info("Collecting kernel logs...")
-
     if has_dmesg():
-
         logs = run_command(
             [
                 "dmesg",
@@ -513,12 +328,10 @@ def collect_kernel_logs():
         )
 
         if logs:
-
             RAW_DATA["kernel"] = logs[-DEFAULT_LOG_LINES:]
             return
 
     if has_journalctl():
-
         logs = run_command(
             [
                 "journalctl",
@@ -530,7 +343,6 @@ def collect_kernel_logs():
         )
 
         if logs:
-
             RAW_DATA["kernel"] = logs
             return
 
@@ -538,20 +350,15 @@ def collect_kernel_logs():
 
 
 def collect_authentication_logs():
-
     logger.info("Collecting authentication logs...")
-
     RAW_DATA["authentication"] = read_logs(
         "authentication"
     )
 
 
 def collect_service_logs():
-
     logger.info("Collecting service logs...")
-
     if has_journalctl():
-
         RAW_DATA["services"] = run_command(
             [
                 "journalctl",
@@ -564,1109 +371,626 @@ def collect_service_logs():
         )
 
     else:
-
         RAW_DATA["services"] = read_logs(
             "syslog"
         )
 
 
 def collect_boot_logs():
-
     logger.info("Collecting boot logs...")
-
     boot = read_logs("boot")
-
     if boot:
-
         RAW_DATA["boot"] = boot
-
         return
 
     boot_events = []
-
     for line in RAW_DATA["journal"]:
-
         text = line.lower()
-
         if any(
-
             keyword in text
-
             for keyword in [
-
                 "boot",
-
                 "startup",
-
                 "booting",
-
                 "reached target"
-
             ]
-
         ):
-
             boot_events.append(line)
 
     RAW_DATA["boot"] = boot_events
 
 
 def collect_cron_logs():
-
     logger.info("Collecting cron logs...")
-
     cron = read_logs("cron")
-
     if cron:
-
         RAW_DATA["cron"] = cron
-
         return
 
     events = []
-
     for line in RAW_DATA["journal"]:
-
         text = line.lower()
-
         if any(
-
             keyword in text
-
             for keyword in [
-
                 "cron",
-
                 "crond",
-
                 "cronie"
-
             ]
-
         ):
-
             events.append(line)
 
     RAW_DATA["cron"] = events
 
 
 def collect_application_logs():
-
     logger.info("Collecting application logs...")
-
     RAW_DATA["applications"] = read_logs(
         "syslog"
     )
 
 
 def collect_user_sessions():
-
     logger.info("Collecting user sessions...")
-
     users = {}
-
     if has_last():
-
         users["history"] = run_command(
-
             [
-
                 "last",
-
                 "-n",
-
                 str(DEFAULT_LOG_LINES)
-
             ]
-
         )
 
     else:
-
         users["history"] = []
 
     if has_who():
-
         users["current"] = run_command(
-
             [
-
                 "who"
-
             ]
-
         )
 
     else:
-
         users["current"] = []
-
     RAW_DATA["users"] = users
 
 
 def collect_log_statistics():
-
     logger.info("Collecting log statistics...")
-
     stats = {}
-
     for log_type in COMMON_LOG_FILES:
-
         path = find_log_file(log_type)
-
         if path is None:
-
             stats[log_type] = {
-
                 "exists": False,
-
                 "path": None,
-
                 "size": 0
-
             }
 
             continue
 
         stats[log_type] = {
-
             "exists": True,
-
             "path": str(path),
-
             "size": path.stat().st_size,
-
             "modified": datetime.fromtimestamp(
-
                 path.stat().st_mtime
-
             ).isoformat()
-
         }
 
     RAW_DATA["statistics"] = stats
 
 
-# ============================================================
 # Refresh Sources
-#
 # The ONLY entry point that performs I/O.
-# ============================================================
 
 def refresh_sources():
-
     logger.info("=" * 60)
-
     logger.info("Refreshing log sources...")
-
     RAW_DATA["environment"] = get_environment_information()
-
     collect_system_journal()
-
     collect_kernel_logs()
-
     collect_authentication_logs()
-
     collect_service_logs()
-
     collect_boot_logs()
-
     collect_cron_logs()
-
     collect_application_logs()
-
     collect_user_sessions()
-
     collect_log_statistics()
-
     logger.info("Refresh complete.")
 
 
-    # ============================================================
 # Kernel Collectors
-#
+
 # NO I/O
-#
-# Uses:
-#
-# RAW_DATA["kernel"]
-#
-# ============================================================
+# Uses: RAW_DATA["kernel"]
 
 def get_system_journal_logs():
-
     logger.info("Getting system journal logs...")
-
     return RAW_DATA["journal"]
 
 
-# ============================================================
-
 def get_kernel_logs():
-
     logger.info("Getting kernel logs...")
-
     return RAW_DATA["kernel"]
 
 
-# ============================================================
-
 def get_oom_killer_logs():
-
     logger.info("Getting OOM Killer logs...")
-
     keywords = (
-
         "oom",
-
         "out of memory",
-
         "oom-killer",
-
         "killed process"
-
     )
 
     return [
-
         line
-
         for line in RAW_DATA["kernel"]
-
         if any(
-
             keyword in line.lower()
-
             for keyword in keywords
-
         )
-
     ]
 
-
-# ============================================================
 
 def get_filesystem_error_logs():
-
     logger.info(
-
         "Getting filesystem errors..."
-
     )
-
     keywords = (
-
         "ext4",
-
         "xfs",
-
         "btrfs",
-
         "filesystem",
-
         "superblock",
-
         "inode",
-
         "mount failed",
-
         "fs error"
-
     )
 
     return [
-
         line
-
         for line in RAW_DATA["kernel"]
-
         if any(
-
             keyword in line.lower()
-
             for keyword in keywords
-
         )
-
     ]
 
-
-# ============================================================
 
 def get_hardware_error_logs():
-
     logger.info(
-
         "Getting hardware errors..."
-
     )
 
     keywords = (
-
         "hardware",
-
         "machine check",
-
         "mce",
-
         "firmware",
-
         "pci",
-
         "thermal",
-
         "cpu",
-
         "memory",
-
         "nvme",
-
         "smart",
-
         "i/o error",
-
         "read error",
-
         "write error"
-
     )
 
     return [
-
         line
-
         for line in RAW_DATA["kernel"]
-
         if any(
-
             keyword in line.lower()
-
             for keyword in keywords
-
         )
-
     ]
 
-
-# ============================================================
 
 def get_network_error_logs():
-
     logger.info(
-
         "Getting network errors..."
-
     )
-
     keywords = (
-
         "network",
-
         "ethernet",
-
         "carrier",
-
         "dhcp",
-
         "dns",
-
         "interface",
-
         "link is down",
-
         "link is up",
-
         "connection lost",
-
         "route"
-
     )
 
     return [
-
         line
-
         for line in RAW_DATA["kernel"]
-
         if any(
-
             keyword in line.lower()
-
             for keyword in keywords
-
         )
-
     ]
 
 
-# ============================================================
-
 def get_boot_logs():
-
     logger.info(
-
         "Getting boot logs..."
-
     )
 
     return RAW_DATA["boot"]
 
 
-# ============================================================
-
 def get_kernel_statistics():
-
     logger.info(
-
         "Getting kernel statistics..."
-
     )
 
     return {
-
         "journal_logs":
-
             len(
-
                 RAW_DATA["journal"]
-
             ),
 
         "kernel_logs":
-
             len(
-
                 RAW_DATA["kernel"]
-
             ),
 
         "boot_logs":
-
             len(
-
                 RAW_DATA["boot"]
-
             ),
 
         "oom_events":
-
             len(
-
                 get_oom_killer_logs()
-
             ),
 
         "filesystem_errors":
-
             len(
-
                 get_filesystem_error_logs()
-
             ),
 
         "hardware_errors":
-
             len(
-
                 get_hardware_error_logs()
-
             ),
 
         "network_errors":
-
             len(
-
                 get_network_error_logs()
-
             )
-
     }
 
 
-# ============================================================
-
 def has_kernel_errors():
-
     return (
-
         len(
-
             get_filesystem_error_logs()
-
         )
-
         +
-
         len(
-
             get_hardware_error_logs()
-
         )
-
         +
-
         len(
-
             get_oom_killer_logs()
-
         )
-
     ) > 0
 
 
-# ============================================================
-
 def kernel_summary():
-
     return {
-
         "kernel_logs":
-
             len(
-
                 get_kernel_logs()
-
             ),
 
         "boot_logs":
-
             len(
-
                 get_boot_logs()
-
             ),
 
         "oom":
-
             len(
-
                 get_oom_killer_logs()
-
             ),
 
         "filesystem":
-
             len(
-
                 get_filesystem_error_logs()
-
             ),
 
         "hardware":
-
             len(
-
                 get_hardware_error_logs()
-
             ),
 
         "network":
-
             len(
-
                 get_network_error_logs()
-
             )
-
     }
 
 
-# ============================================================
-# Authentication Collectors
-#
-# NO I/O
-#
+# Authentication Collectors, NO I/O
 # Uses:
-#
 # RAW_DATA["authentication"]
-#
-# ============================================================
 
 def get_auth_logs():
-
     logger.info("Getting authentication logs...")
-
     return RAW_DATA["authentication"]
 
 
-# ============================================================
-
 def get_ssh_logs():
-
     logger.info("Getting SSH logs...")
-
     keywords = (
-
         "sshd",
-
         "ssh",
-
         "accepted password",
-
         "accepted publickey",
-
         "connection closed",
-
         "disconnect"
-
     )
 
     return [
-
         line
-
         for line in RAW_DATA["authentication"]
-
         if any(
-
             keyword in line.lower()
-
             for keyword in keywords
-
         )
-
     ]
 
-
-# ============================================================
 
 def get_failed_logins():
-
     logger.info("Getting failed logins...")
-
     keywords = (
-
         "failed password",
-
         "authentication failure",
-
         "invalid user",
-
         "failed login",
-
         "login incorrect"
-
     )
 
     return [
-
         line
-
         for line in RAW_DATA["authentication"]
-
         if any(
-
             keyword in line.lower()
-
             for keyword in keywords
-
         )
-
     ]
 
-
-# ============================================================
 
 def get_successful_logins():
-
     logger.info("Getting successful logins...")
-
     keywords = (
-
         "accepted password",
-
         "accepted publickey",
-
         "session opened",
-
         "login successful"
-
     )
 
     return [
-
         line
-
         for line in RAW_DATA["authentication"]
-
         if any(
-
             keyword in line.lower()
-
             for keyword in keywords
-
         )
-
     ]
 
-
-# ============================================================
 
 def get_sudo_logs():
-
     logger.info("Getting sudo logs...")
-
     return [
-
         line
-
         for line in RAW_DATA["authentication"]
-
         if "sudo" in line.lower()
-
     ]
 
-
-# ============================================================
 
 def get_permission_denied_logs():
-
     logger.info("Getting permission denied logs...")
-
     keywords = (
-
         "permission denied",
-
         "access denied",
-
         "operation not permitted"
-
     )
 
     return [
-
         line
-
         for line in RAW_DATA["authentication"]
-
         if any(
-
             keyword in line.lower()
-
             for keyword in keywords
-
         )
-
     ]
 
-
-# ============================================================
 
 def get_privilege_escalation_logs():
-
     logger.info("Getting privilege escalation logs...")
-
     keywords = (
-
         "sudo",
-
         "su:",
-
         "root",
-
         "session opened",
-
         "session closed"
-
     )
 
     return [
-
         line
-
         for line in RAW_DATA["authentication"]
-
         if any(
-
             keyword in line.lower()
-
             for keyword in keywords
-
         )
-
     ]
 
-
-# ============================================================
 
 def get_authentication_failures():
-
     logger.info("Getting authentication failures...")
-
     keywords = (
-
         "authentication failure",
-
         "failed password",
-
         "invalid user"
-
     )
 
     return [
-
         line
-
         for line in RAW_DATA["authentication"]
-
         if any(
-
             keyword in line.lower()
-
             for keyword in keywords
-
         )
-
     ]
 
-
-# ============================================================
 
 def get_login_events():
-
     logger.info("Getting login events...")
-
     keywords = (
-
         "accepted password",
-
         "accepted publickey",
-
         "session opened",
-
         "login"
-
     )
 
     return [
-
         line
-
         for line in RAW_DATA["authentication"]
-
         if any(
-
             keyword in line.lower()
-
             for keyword in keywords
-
         )
-
     ]
 
-
-# ============================================================
 
 def get_logout_events():
-
     logger.info("Getting logout events...")
-
     keywords = (
-
         "session closed",
-
         "logout",
-
         "logged out"
-
     )
 
     return [
-
         line
-
         for line in RAW_DATA["authentication"]
-
         if any(
-
             keyword in line.lower()
-
             for keyword in keywords
-
         )
-
     ]
 
-
-# ============================================================
 
 def get_root_login_events():
-
     logger.info("Getting root login events...")
-
     return [
-
         line
-
         for line in RAW_DATA["authentication"]
-
         if "root" in line.lower()
-
     ]
 
-
-# ============================================================
 
 def get_remote_login_events():
-
     logger.info("Getting remote login events...")
-
     keywords = (
-
         "sshd",
-
         "accepted password",
-
         "accepted publickey"
-
     )
 
     return [
-
         line
-
         for line in RAW_DATA["authentication"]
-
         if any(
-
             keyword in line.lower()
-
             for keyword in keywords
-
         )
-
     ]
 
-
-# ============================================================
 
 def get_security_events():
-
     logger.info("Getting security events...")
-
     keywords = (
-
         "sudo",
-
         "authentication failure",
-
         "failed password",
-
         "invalid user",
-
         "permission denied",
-
         "pam_unix",
-
         "root",
-
         "accepted password",
-
         "accepted publickey"
-
     )
 
     return [
-
         line
-
         for line in RAW_DATA["authentication"]
-
         if any(
-
             keyword in line.lower()
-
             for keyword in keywords
-
         )
-
     ]
 
 
-# ============================================================
-
 def get_authentication_statistics():
-
     logger.info("Getting authentication statistics...")
-
     return {
-
         "authentication_logs":
-
             len(
-
                 RAW_DATA["authentication"]
-
             ),
 
         "ssh_logs":
-
             len(
-
                 get_ssh_logs()
-
             ),
 
         "failed_logins":
-
             len(
-
                 get_failed_logins()
-
             ),
 
         "successful_logins":
-
             len(
-
                 get_successful_logins()
-
             ),
 
         "sudo_events":
-
             len(
-
                 get_sudo_logs()
-
             ),
 
         "permission_denied":
-
             len(
-
                 get_permission_denied_logs()
-
             ),
 
         "privilege_escalation":
-
             len(
-
                 get_privilege_escalation_logs()
-
             ),
 
         "authentication_failures":
-
             len(
-
                 get_authentication_failures()
-
             ),
 
         "security_events":
-
             len(
-
                 get_security_events()
-
             )
-
     }
 
-
-# ============================================================
 
 def has_security_events():
 
