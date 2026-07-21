@@ -1,14 +1,15 @@
-import json
+
 import os
+import re
+import json
+import time
 import socket
 import shutil
-import subprocess
 import logging
-import time
+import subprocess
 
 from pathlib import Path
 from datetime import datetime
-
 
 # ============================================================
 # Logging Configuration
@@ -16,10 +17,10 @@ from datetime import datetime
 
 BASE_DIR = Path(__file__).resolve().parent
 
-LOG_FILE = BASE_DIR / "log.txt"
+LOG_FILE = BASE_DIR / "app.txt"
 
 logging.basicConfig(
-    filename=str(LOG_FILE),
+#   filename=str(LOG_FILE),      ##################################################################################################  logger to file
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s",
     force=True
@@ -27,34 +28,61 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-logger.info("Linux Log Collector Started")
-
+logger.info("=" * 60)
+logger.info("KAISP Universal Log Collector Started")
+logger.info("=" * 60)
 
 # ============================================================
 # Configuration
 # ============================================================
 
-DEFAULT_LOG_LINES = 100
+DEFAULT_LOG_LINES = 200
 
 COMMAND_TIMEOUT = 10
 
+# ============================================================
+# Global Raw Data
+#
+# Filled ONLY by refresh_sources()
+#
+# No collector should execute Linux commands.
+# ============================================================
+
+RAW_DATA = {
+
+    "environment": {},
+
+    "journal": [],
+
+    "kernel": [],
+
+    "authentication": [],
+
+    "services": [],
+
+    "boot": [],
+
+    "cron": [],
+
+    "applications": [],
+
+    "users": [],
+
+    "statistics": {}
+
+}
 
 # ============================================================
-# Host Log Search Paths
+# Universal Log Locations
 # ============================================================
 
 LOG_DIRECTORIES = [
 
-    "/host/var/log",      # Docker mounted host logs
+    Path("/host/var/log"),
 
-    "/var/log"            # Native Linux
+    Path("/var/log")
 
 ]
-
-
-# ============================================================
-# Linux Log Files
-# ============================================================
 
 COMMON_LOG_FILES = {
 
@@ -66,19 +94,19 @@ COMMON_LOG_FILES = {
 
     ],
 
-    "auth": [
-
-        "auth.log",
-
-        "secure"
-
-    ],
-
-    "kern": [
+    "kernel": [
 
         "kern.log",
 
         "messages"
+
+    ],
+
+    "authentication": [
+
+        "auth.log",
+
+        "secure"
 
     ],
 
@@ -98,7 +126,6 @@ COMMON_LOG_FILES = {
 
 }
 
-
 # ============================================================
 # Environment Detection
 # ============================================================
@@ -110,13 +137,26 @@ def is_docker():
 
 def is_kubernetes():
 
-    return (
+    return "KUBERNETES_SERVICE_HOST" in os.environ
 
-        "KUBERNETES_SERVICE_HOST"
 
-        in os.environ
+def is_ec2():
 
-    )
+    try:
+
+        return Path(
+
+            "/sys/hypervisor/uuid"
+
+        ).read_text().startswith(
+
+            "ec2"
+
+        )
+
+    except Exception:
+
+        return False
 
 
 def get_environment():
@@ -129,11 +169,14 @@ def get_environment():
 
         return "Docker"
 
+    if is_ec2():
+
+        return "AWS EC2"
+
     return "Linux"
 
-
 # ============================================================
-# Command Availability
+# Command Detection
 # ============================================================
 
 def command_exists(command):
@@ -156,6 +199,15 @@ def has_dmesg():
     return command_exists("dmesg")
 
 
+def has_last():
+
+    return command_exists("last")
+
+
+def has_who():
+
+    return command_exists("who")
+
 # ============================================================
 # Universal Log Discovery
 # ============================================================
@@ -172,9 +224,13 @@ def find_log_file(log_type):
 
     for directory in LOG_DIRECTORIES:
 
+        if not directory.exists():
+
+            continue
+
         for filename in candidates:
 
-            path = Path(directory) / filename
+            path = directory / filename
 
             if path.exists():
 
@@ -182,10 +238,10 @@ def find_log_file(log_type):
 
     return None
 
-
 # ============================================================
 # Helper
-# Run Linux Command
+#
+# Execute Linux Command
 # ============================================================
 
 def run_command(command):
@@ -208,23 +264,21 @@ def run_command(command):
 
             return []
 
-        return [
+        return result.stdout.splitlines()
 
-            line.rstrip()
+    except Exception as e:
 
-            for line in result.stdout.splitlines()
+        logger.warning(
 
-            if line.strip()
+            f"Command failed: {command} : {e}"
 
-        ]
-
-    except Exception:
+        )
 
         return []
 
-
 # ============================================================
 # Helper
+#
 # Read Log File
 # ============================================================
 
@@ -236,11 +290,11 @@ def read_log_file(
 
 ):
 
+    if path is None:
+
+        return []
+
     try:
-
-        if path is None:
-
-            return []
 
         with open(
 
@@ -254,21 +308,24 @@ def read_log_file(
 
         ) as file:
 
-            return [
+            return file.readlines()[-lines:]
 
-                line.rstrip()
+    except Exception as e:
 
-                for line in file.readlines()[-lines:]
+        logger.warning(
 
-            ]
+            f"Unable to read {path}: {e}"
 
-    except Exception:
+        )
 
         return []
 
-
 # ============================================================
-# Universal Log Reader
+# Universal Reader
+#
+# ALL collectors will use this.
+#
+# Collectors NEVER know where logs come from.
 # ============================================================
 
 def read_logs(log_type):
@@ -293,7 +350,7 @@ def read_logs(log_type):
 
         ]
 
-        if log_type == "kern":
+        if log_type == "kernel":
 
             command.insert(
 
@@ -307,40 +364,8 @@ def read_logs(log_type):
 
     return []
 
-
 # ============================================================
-# Helper
-# Create Log Entry
-# ============================================================
-
-def create_log_entry(
-
-        source,
-
-        message
-
-):
-
-    return {
-
-        "timestamp":
-
-            datetime.now().isoformat(),
-
-        "source":
-
-            source,
-
-        "message":
-
-            message
-
-    }
-
-
-# ============================================================
-# Helper
-# Bytes → MB
+# Helper Functions
 # ============================================================
 
 def bytes_to_mb(value):
@@ -356,41 +381,22 @@ def bytes_to_mb(value):
     )
 
 
-# ============================================================
-# Helper
-# Last Modified
-# ============================================================
+def current_timestamp():
 
-def get_last_modified(path):
+    return datetime.now().isoformat()
 
-    try:
 
-        return datetime.fromtimestamp(
+def hostname():
 
-            os.path.getmtime(path)
-
-        ).isoformat()
-
-    except Exception:
-
-        return None
-
+    return socket.gethostname()
 
 # ============================================================
-# Module Information
+# Environment Information
 # ============================================================
 
-def module_information():
+def get_environment_information():
 
     return {
-
-        "module":
-
-            "Universal Linux Log Collector",
-
-        "version":
-
-            "3.0",
 
         "environment":
 
@@ -398,7 +404,7 @@ def module_information():
 
         "hostname":
 
-            socket.gethostname(),
+            hostname(),
 
         "journalctl":
 
@@ -412,62 +418,42 @@ def module_information():
 
             has_dmesg(),
 
-        "host_log_directory":
+        "last":
 
-            next(
+            has_last(),
 
-                (
+        "who":
 
-                    path
+            has_who(),
 
-                    for path in LOG_DIRECTORIES
+        "log_directory":
 
-                    if Path(path).exists()
+            str(
 
-                ),
+                next(
 
-                None
+                    (
+
+                        d
+
+                        for d in LOG_DIRECTORIES
+
+                        if d.exists()
+
+                    ),
+
+                    ""
+
+                )
 
             )
 
     }
 
-
-# ============================================================
-# Health Check
-# ============================================================
-
-def health_check():
-
-    return {
-
-        "healthy": True,
-
-        "environment":
-
-            get_environment(),
-
-        "hostname":
-
-            socket.gethostname(),
-
-        "journalctl":
-
-            has_journalctl(),
-
-        "systemctl":
-
-            has_systemctl(),
-
-        "dmesg":
-
-            has_dmesg()
-
-    }
-
-
 # ============================================================
 # Main
+#
+# Testing Part 1
 # ============================================================
 
 if __name__ == "__main__":
@@ -476,7 +462,7 @@ if __name__ == "__main__":
 
         json.dumps(
 
-            module_information(),
+            get_environment_information(),
 
             indent=4
 
@@ -484,124 +470,208 @@ if __name__ == "__main__":
 
     )
 
-    print(
-
-        json.dumps(
-
-            health_check(),
-
-            indent=4
-
-        )
-
-    )
 
 
     # ============================================================
-# System Journal Logs
+# Primary Collectors
+#
+# These are the ONLY functions that perform I/O.
+# Every other collector reads only from RAW_DATA.
 # ============================================================
 
-def get_system_journal_logs():
+def collect_system_journal():
 
-    logger.info(
-        "Collecting system journal logs..."
-    )
+    logger.info("Collecting system journal...")
 
     if has_journalctl():
 
-        return [
+        RAW_DATA["journal"] = run_command(
+            [
+                "journalctl",
+                "--no-pager",
+                "-n",
+                str(DEFAULT_LOG_LINES)
+            ]
+        )
 
-            create_log_entry(
-                "system_journal",
-                line
-            )
+    else:
 
-            for line in run_command(
-
-                [
-
-                    "journalctl",
-
-                    "--no-pager",
-
-                    "-n",
-
-                    str(DEFAULT_LOG_LINES)
-
-                ]
-
-            )
-
-        ]
-
-    logs = []
-
-    logs.extend(
-
-        [
-
-            create_log_entry(
-                "system_journal",
-                line
-            )
-
-            for line in read_logs("syslog")
-
-        ]
-
-    )
-
-    return logs
+        RAW_DATA["journal"] = read_logs("syslog")
 
 
-# ============================================================
-# Kernel Logs
-# ============================================================
+def collect_kernel_logs():
 
-def get_kernel_logs():
-
-    logger.info(
-        "Collecting kernel logs..."
-    )
+    logger.info("Collecting kernel logs...")
 
     if has_dmesg():
 
         logs = run_command(
-
             [
-
                 "dmesg",
-
                 "--ctime"
-
             ]
-
         )
 
         if logs:
 
-            return [
-
-                create_log_entry(
-                    "kernel",
-                    line
-                )
-
-                for line in logs[-DEFAULT_LOG_LINES:]
-
-            ]
+            RAW_DATA["kernel"] = logs[-DEFAULT_LOG_LINES:]
+            return
 
     if has_journalctl():
 
         logs = run_command(
+            [
+                "journalctl",
+                "-k",
+                "--no-pager",
+                "-n",
+                str(DEFAULT_LOG_LINES)
+            ]
+        )
+
+        if logs:
+
+            RAW_DATA["kernel"] = logs
+            return
+
+    RAW_DATA["kernel"] = read_logs("kernel")
+
+
+def collect_authentication_logs():
+
+    logger.info("Collecting authentication logs...")
+
+    RAW_DATA["authentication"] = read_logs(
+        "authentication"
+    )
+
+
+def collect_service_logs():
+
+    logger.info("Collecting service logs...")
+
+    if has_journalctl():
+
+        RAW_DATA["services"] = run_command(
+            [
+                "journalctl",
+                "--no-pager",
+                "-u",
+                "*",
+                "-n",
+                str(DEFAULT_LOG_LINES)
+            ]
+        )
+
+    else:
+
+        RAW_DATA["services"] = read_logs(
+            "syslog"
+        )
+
+
+def collect_boot_logs():
+
+    logger.info("Collecting boot logs...")
+
+    boot = read_logs("boot")
+
+    if boot:
+
+        RAW_DATA["boot"] = boot
+
+        return
+
+    boot_events = []
+
+    for line in RAW_DATA["journal"]:
+
+        text = line.lower()
+
+        if any(
+
+            keyword in text
+
+            for keyword in [
+
+                "boot",
+
+                "startup",
+
+                "booting",
+
+                "reached target"
+
+            ]
+
+        ):
+
+            boot_events.append(line)
+
+    RAW_DATA["boot"] = boot_events
+
+
+def collect_cron_logs():
+
+    logger.info("Collecting cron logs...")
+
+    cron = read_logs("cron")
+
+    if cron:
+
+        RAW_DATA["cron"] = cron
+
+        return
+
+    events = []
+
+    for line in RAW_DATA["journal"]:
+
+        text = line.lower()
+
+        if any(
+
+            keyword in text
+
+            for keyword in [
+
+                "cron",
+
+                "crond",
+
+                "cronie"
+
+            ]
+
+        ):
+
+            events.append(line)
+
+    RAW_DATA["cron"] = events
+
+
+def collect_application_logs():
+
+    logger.info("Collecting application logs...")
+
+    RAW_DATA["applications"] = read_logs(
+        "syslog"
+    )
+
+
+def collect_user_sessions():
+
+    logger.info("Collecting user sessions...")
+
+    users = {}
+
+    if has_last():
+
+        users["history"] = run_command(
 
             [
 
-                "journalctl",
-
-                "-k",
-
-                "--no-pager",
+                "last",
 
                 "-n",
 
@@ -611,83 +681,141 @@ def get_kernel_logs():
 
         )
 
-        if logs:
+    else:
 
-            return [
+        users["history"] = []
 
-                create_log_entry(
-                    "kernel",
-                    line
-                )
+    if has_who():
 
-                for line in logs
+        users["current"] = run_command(
+
+            [
+
+                "who"
 
             ]
 
-    return [
-
-        create_log_entry(
-            "kernel",
-            line
         )
 
-        for line in read_logs("kern")
+    else:
 
-    ]
+        users["current"] = []
+
+    RAW_DATA["users"] = users
+
+
+def collect_log_statistics():
+
+    logger.info("Collecting log statistics...")
+
+    stats = {}
+
+    for log_type in COMMON_LOG_FILES:
+
+        path = find_log_file(log_type)
+
+        if path is None:
+
+            stats[log_type] = {
+
+                "exists": False,
+
+                "path": None,
+
+                "size": 0
+
+            }
+
+            continue
+
+        stats[log_type] = {
+
+            "exists": True,
+
+            "path": str(path),
+
+            "size": path.stat().st_size,
+
+            "modified": datetime.fromtimestamp(
+
+                path.stat().st_mtime
+
+            ).isoformat()
+
+        }
+
+    RAW_DATA["statistics"] = stats
 
 
 # ============================================================
-# Boot Logs
+# Refresh Sources
+#
+# The ONLY entry point that performs I/O.
 # ============================================================
 
-def get_boot_logs():
+def refresh_sources():
 
-    logger.info(
-        "Collecting boot logs..."
-    )
+    logger.info("=" * 60)
 
-    boot_logs = []
+    logger.info("Refreshing log sources...")
 
-    for entry in get_system_journal_logs():
+    RAW_DATA["environment"] = get_environment_information()
 
-        message = entry["message"].lower()
+    collect_system_journal()
 
-        if any(
+    collect_kernel_logs()
 
-                keyword in message
+    collect_authentication_logs()
 
-                for keyword in [
+    collect_service_logs()
 
-                    "boot",
+    collect_boot_logs()
 
-                    "startup",
+    collect_cron_logs()
 
-                    "started",
+    collect_application_logs()
 
-                    "booting",
+    collect_user_sessions()
 
-                    "reached target"
+    collect_log_statistics()
 
-                ]
+    logger.info("Refresh complete.")
 
-        ):
 
-            boot_logs.append(entry)
+    # ============================================================
+# Kernel Collectors
+#
+# NO I/O
+#
+# Uses:
+#
+# RAW_DATA["kernel"]
+#
+# ============================================================
 
-    return boot_logs
+def get_system_journal_logs():
+
+    logger.info("Getting system journal logs...")
+
+    return RAW_DATA["journal"]
 
 
 # ============================================================
-# OOM Killer Logs
+
+def get_kernel_logs():
+
+    logger.info("Getting kernel logs...")
+
+    return RAW_DATA["kernel"]
+
+
 # ============================================================
 
 def get_oom_killer_logs():
 
-    logger.info(
-        "Collecting OOM killer logs..."
-    )
+    logger.info("Getting OOM Killer logs...")
 
-    keywords = [
+    keywords = (
 
         "oom",
 
@@ -697,38 +825,36 @@ def get_oom_killer_logs():
 
         "killed process"
 
-    ]
+    )
 
-    logs = []
+    return [
 
-    for entry in get_kernel_logs():
+        line
 
-        message = entry["message"].lower()
+        for line in RAW_DATA["kernel"]
 
         if any(
 
-                keyword in message
+            keyword in line.lower()
 
-                for keyword in keywords
+            for keyword in keywords
 
-        ):
+        )
 
-            logs.append(entry)
-
-    return logs
+    ]
 
 
-# ============================================================
-# Filesystem Error Logs
 # ============================================================
 
 def get_filesystem_error_logs():
 
     logger.info(
-        "Collecting filesystem errors..."
+
+        "Getting filesystem errors..."
+
     )
 
-    keywords = [
+    keywords = (
 
         "ext4",
 
@@ -746,38 +872,36 @@ def get_filesystem_error_logs():
 
         "fs error"
 
-    ]
+    )
 
-    logs = []
+    return [
 
-    for entry in get_kernel_logs():
+        line
 
-        message = entry["message"].lower()
+        for line in RAW_DATA["kernel"]
 
         if any(
 
-                keyword in message
+            keyword in line.lower()
 
-                for keyword in keywords
+            for keyword in keywords
 
-        ):
+        )
 
-            logs.append(entry)
-
-    return logs
+    ]
 
 
-# ============================================================
-# Hardware Error Logs
 # ============================================================
 
 def get_hardware_error_logs():
 
     logger.info(
-        "Collecting hardware errors..."
+
+        "Getting hardware errors..."
+
     )
 
-    keywords = [
+    keywords = (
 
         "hardware",
 
@@ -805,200 +929,312 @@ def get_hardware_error_logs():
 
         "write error"
 
-    ]
+    )
 
-    logs = []
+    return [
 
-    for entry in get_kernel_logs():
+        line
 
-        message = entry["message"].lower()
+        for line in RAW_DATA["kernel"]
 
         if any(
 
-                keyword in message
+            keyword in line.lower()
 
-                for keyword in keywords
+            for keyword in keywords
 
-        ):
+        )
 
-            logs.append(entry)
-
-    return logs
+    ]
 
 
-# ============================================================
-# Network Error Logs
 # ============================================================
 
 def get_network_error_logs():
 
     logger.info(
-        "Collecting network errors..."
+
+        "Getting network errors..."
+
     )
 
-    keywords = [
+    keywords = (
 
         "network",
 
         "ethernet",
 
+        "carrier",
+
+        "dhcp",
+
+        "dns",
+
+        "interface",
+
         "link is down",
 
         "link is up",
 
-        "dhcp",
+        "connection lost",
 
-        "carrier",
+        "route"
 
-        "dns",
+    )
 
-        "route",
+    return [
 
-        "interface",
+        line
 
-        "connection lost"
-
-    ]
-
-    logs = []
-
-    for entry in get_system_journal_logs():
-
-        message = entry["message"].lower()
+        for line in RAW_DATA["kernel"]
 
         if any(
 
-                keyword in message
+            keyword in line.lower()
 
-                for keyword in keywords
+            for keyword in keywords
 
-        ):
+        )
 
-            logs.append(entry)
-
-    return logs
+    ]
 
 
 # ============================================================
-# Kernel Statistics
+
+def get_boot_logs():
+
+    logger.info(
+
+        "Getting boot logs..."
+
+    )
+
+    return RAW_DATA["boot"]
+
+
 # ============================================================
 
 def get_kernel_statistics():
+
+    logger.info(
+
+        "Getting kernel statistics..."
+
+    )
+
+    return {
+
+        "journal_logs":
+
+            len(
+
+                RAW_DATA["journal"]
+
+            ),
+
+        "kernel_logs":
+
+            len(
+
+                RAW_DATA["kernel"]
+
+            ),
+
+        "boot_logs":
+
+            len(
+
+                RAW_DATA["boot"]
+
+            ),
+
+        "oom_events":
+
+            len(
+
+                get_oom_killer_logs()
+
+            ),
+
+        "filesystem_errors":
+
+            len(
+
+                get_filesystem_error_logs()
+
+            ),
+
+        "hardware_errors":
+
+            len(
+
+                get_hardware_error_logs()
+
+            ),
+
+        "network_errors":
+
+            len(
+
+                get_network_error_logs()
+
+            )
+
+    }
+
+
+# ============================================================
+
+def has_kernel_errors():
+
+    return (
+
+        len(
+
+            get_filesystem_error_logs()
+
+        )
+
+        +
+
+        len(
+
+            get_hardware_error_logs()
+
+        )
+
+        +
+
+        len(
+
+            get_oom_killer_logs()
+
+        )
+
+    ) > 0
+
+
+# ============================================================
+
+def kernel_summary():
 
     return {
 
         "kernel_logs":
 
             len(
+
                 get_kernel_logs()
+
             ),
 
         "boot_logs":
 
             len(
+
                 get_boot_logs()
+
             ),
 
-        "oom_events":
+        "oom":
 
             len(
+
                 get_oom_killer_logs()
+
             ),
 
-        "filesystem_errors":
+        "filesystem":
 
             len(
+
                 get_filesystem_error_logs()
+
             ),
 
-        "hardware_errors":
+        "hardware":
 
             len(
+
                 get_hardware_error_logs()
+
             ),
 
-        "network_errors":
+        "network":
 
             len(
+
                 get_network_error_logs()
+
             )
 
     }
 
+
 # ============================================================
-# Authentication Logs
+# Authentication Collectors
+#
+# NO I/O
+#
+# Uses:
+#
+# RAW_DATA["authentication"]
+#
 # ============================================================
 
 def get_auth_logs():
 
-    logger.info(
-        "Collecting authentication logs..."
-    )
+    logger.info("Getting authentication logs...")
 
-    return [
-
-        create_log_entry(
-            "authentication",
-            line
-        )
-
-        for line in read_logs("auth")
-
-    ]
+    return RAW_DATA["authentication"]
 
 
-# ============================================================
-# SSH Logs
 # ============================================================
 
 def get_ssh_logs():
 
-    logger.info(
-        "Collecting SSH logs..."
-    )
+    logger.info("Getting SSH logs...")
 
-    keywords = [
+    keywords = (
 
         "sshd",
 
         "ssh",
 
-        "accepted",
+        "accepted password",
 
-        "publickey",
+        "accepted publickey",
 
         "connection closed",
 
         "disconnect"
 
-    ]
+    )
 
-    logs = []
+    return [
 
-    for entry in get_auth_logs():
+        line
 
-        message = entry["message"].lower()
+        for line in RAW_DATA["authentication"]
 
         if any(
 
-                keyword in message
+            keyword in line.lower()
 
-                for keyword in keywords
+            for keyword in keywords
 
-        ):
+        )
 
-            logs.append(entry)
-
-    return logs
+    ]
 
 
-# ============================================================
-# Failed Login Attempts
 # ============================================================
 
 def get_failed_logins():
 
-    keywords = [
+    logger.info("Getting failed logins...")
+
+    keywords = (
 
         "failed password",
 
@@ -1006,36 +1242,36 @@ def get_failed_logins():
 
         "invalid user",
 
-        "failed"
+        "failed login",
 
-    ]
+        "login incorrect"
 
-    logs = []
+    )
 
-    for entry in get_auth_logs():
+    return [
 
-        message = entry["message"].lower()
+        line
+
+        for line in RAW_DATA["authentication"]
 
         if any(
 
-                keyword in message
+            keyword in line.lower()
 
-                for keyword in keywords
+            for keyword in keywords
 
-        ):
+        )
 
-            logs.append(entry)
-
-    return logs
+    ]
 
 
-# ============================================================
-# Successful Login Attempts
 # ============================================================
 
 def get_successful_logins():
 
-    keywords = [
+    logger.info("Getting successful logins...")
+
+    keywords = (
 
         "accepted password",
 
@@ -1045,51 +1281,49 @@ def get_successful_logins():
 
         "login successful"
 
-    ]
+    )
 
-    logs = []
+    return [
 
-    for entry in get_auth_logs():
+        line
 
-        message = entry["message"].lower()
+        for line in RAW_DATA["authentication"]
 
         if any(
 
-                keyword in message
+            keyword in line.lower()
 
-                for keyword in keywords
+            for keyword in keywords
 
-        ):
+        )
 
-            logs.append(entry)
-
-    return logs
+    ]
 
 
-# ============================================================
-# Sudo Activity
 # ============================================================
 
 def get_sudo_logs():
 
-    logs = []
+    logger.info("Getting sudo logs...")
 
-    for entry in get_auth_logs():
+    return [
 
-        if "sudo" in entry["message"].lower():
+        line
 
-            logs.append(entry)
+        for line in RAW_DATA["authentication"]
 
-    return logs
+        if "sudo" in line.lower()
+
+    ]
 
 
-# ============================================================
-# Permission Denied Events
 # ============================================================
 
 def get_permission_denied_logs():
 
-    keywords = [
+    logger.info("Getting permission denied logs...")
+
+    keywords = (
 
         "permission denied",
 
@@ -1097,73 +1331,69 @@ def get_permission_denied_logs():
 
         "operation not permitted"
 
-    ]
+    )
 
-    logs = []
+    return [
 
-    for entry in get_auth_logs():
+        line
 
-        message = entry["message"].lower()
+        for line in RAW_DATA["authentication"]
 
         if any(
 
-                keyword in message
+            keyword in line.lower()
 
-                for keyword in keywords
+            for keyword in keywords
 
-        ):
+        )
 
-            logs.append(entry)
-
-    return logs
+    ]
 
 
-# ============================================================
-# Privilege Escalation Events
 # ============================================================
 
 def get_privilege_escalation_logs():
 
-    keywords = [
+    logger.info("Getting privilege escalation logs...")
+
+    keywords = (
 
         "sudo",
 
         "su:",
 
+        "root",
+
         "session opened",
 
-        "session closed",
+        "session closed"
 
-        "root"
+    )
 
-    ]
+    return [
 
-    logs = []
+        line
 
-    for entry in get_auth_logs():
-
-        message = entry["message"].lower()
+        for line in RAW_DATA["authentication"]
 
         if any(
 
-                keyword in message
+            keyword in line.lower()
 
-                for keyword in keywords
+            for keyword in keywords
 
-        ):
+        )
 
-            logs.append(entry)
-
-    return logs
+    ]
 
 
-# ============================================================
-# Authentication Failures
 # ============================================================
 
 def get_authentication_failures():
 
-    keywords = [
+    logger.info("Getting authentication failures...")
+
+    keywords = (
 
         "authentication failure",
 
@@ -1171,71 +1401,67 @@ def get_authentication_failures():
 
         "invalid user"
 
-    ]
+    )
 
-    logs = []
+    return [
 
-    for entry in get_auth_logs():
+        line
 
-        message = entry["message"].lower()
+        for line in RAW_DATA["authentication"]
 
         if any(
 
-                keyword in message
+            keyword in line.lower()
 
-                for keyword in keywords
+            for keyword in keywords
 
-        ):
+        )
 
-            logs.append(entry)
-
-    return logs
+    ]
 
 
-# ============================================================
-# Login Events
 # ============================================================
 
 def get_login_events():
 
-    keywords = [
+    logger.info("Getting login events...")
 
-        "session opened",
+    keywords = (
 
         "accepted password",
 
         "accepted publickey",
 
+        "session opened",
+
         "login"
 
-    ]
+    )
 
-    logs = []
+    return [
 
-    for entry in get_auth_logs():
+        line
 
-        message = entry["message"].lower()
+        for line in RAW_DATA["authentication"]
 
         if any(
 
-                keyword in message
+            keyword in line.lower()
 
-                for keyword in keywords
+            for keyword in keywords
 
-        ):
+        )
 
-            logs.append(entry)
-
-    return logs
+    ]
 
 
-# ============================================================
-# Logout Events
 # ============================================================
 
 def get_logout_events():
 
-    keywords = [
+    logger.info("Getting logout events...")
+
+    keywords = (
 
         "session closed",
 
@@ -1243,94 +1469,88 @@ def get_logout_events():
 
         "logged out"
 
-    ]
+    )
 
-    logs = []
+    return [
 
-    for entry in get_auth_logs():
+        line
 
-        message = entry["message"].lower()
+        for line in RAW_DATA["authentication"]
 
         if any(
 
-                keyword in message
+            keyword in line.lower()
 
-                for keyword in keywords
+            for keyword in keywords
 
-        ):
+        )
 
-            logs.append(entry)
-
-    return logs
+    ]
 
 
-# ============================================================
-# Root Login Events
 # ============================================================
 
 def get_root_login_events():
 
-    logs = []
+    logger.info("Getting root login events...")
 
-    for entry in get_auth_logs():
+    return [
 
-        if "root" in entry["message"].lower():
+        line
 
-            logs.append(entry)
+        for line in RAW_DATA["authentication"]
 
-    return logs
+        if "root" in line.lower()
+
+    ]
 
 
-# ============================================================
-# Remote Login Events
 # ============================================================
 
 def get_remote_login_events():
 
-    keywords = [
+    logger.info("Getting remote login events...")
+
+    keywords = (
 
         "sshd",
 
-        "accepted",
+        "accepted password",
 
-        "publickey",
+        "accepted publickey"
 
-        "password"
+    )
 
-    ]
+    return [
 
-    logs = []
+        line
 
-    for entry in get_auth_logs():
-
-        message = entry["message"].lower()
+        for line in RAW_DATA["authentication"]
 
         if any(
 
-                keyword in message
+            keyword in line.lower()
 
-                for keyword in keywords
+            for keyword in keywords
 
-        ):
+        )
 
-            logs.append(entry)
-
-    return logs
+    ]
 
 
-# ============================================================
-# Security Events
 # ============================================================
 
 def get_security_events():
 
-    keywords = [
+    logger.info("Getting security events...")
+
+    keywords = (
 
         "sudo",
 
-        "failed password",
-
         "authentication failure",
+
+        "failed password",
 
         "invalid user",
 
@@ -1338,259 +1558,248 @@ def get_security_events():
 
         "pam_unix",
 
-        "session opened",
+        "root",
 
-        "session closed",
+        "accepted password",
 
-        "root"
+        "accepted publickey"
 
-    ]
+    )
 
-    logs = []
+    return [
 
-    for entry in get_auth_logs():
+        line
 
-        message = entry["message"].lower()
+        for line in RAW_DATA["authentication"]
 
         if any(
 
-                keyword in message
+            keyword in line.lower()
 
-                for keyword in keywords
+            for keyword in keywords
 
-        ):
+        )
 
-            logs.append(entry)
-
-    return logs
+    ]
 
 
-# ============================================================
-# Authentication Statistics
 # ============================================================
 
 def get_authentication_statistics():
+
+    logger.info("Getting authentication statistics...")
 
     return {
 
         "authentication_logs":
 
             len(
-                get_auth_logs()
+
+                RAW_DATA["authentication"]
+
+            ),
+
+        "ssh_logs":
+
+            len(
+
+                get_ssh_logs()
+
             ),
 
         "failed_logins":
 
             len(
+
                 get_failed_logins()
+
             ),
 
         "successful_logins":
 
             len(
+
                 get_successful_logins()
-            ),
 
-        "ssh_events":
-
-            len(
-                get_ssh_logs()
             ),
 
         "sudo_events":
 
             len(
+
                 get_sudo_logs()
+
             ),
 
         "permission_denied":
 
             len(
+
                 get_permission_denied_logs()
+
             ),
 
         "privilege_escalation":
 
             len(
+
                 get_privilege_escalation_logs()
+
             ),
 
         "authentication_failures":
 
             len(
+
                 get_authentication_failures()
+
             ),
 
         "security_events":
 
             len(
+
                 get_security_events()
+
             )
 
     }
 
+
 # ============================================================
-# Service Logs
+
+def has_security_events():
+
+    return (
+
+        len(
+
+            get_security_events()
+
+        ) > 0
+
+    )
+
+
+# ============================================================
+
+def authentication_summary():
+
+    return {
+
+        "authentication_logs":
+
+            len(
+
+                RAW_DATA["authentication"]
+
+            ),
+
+        "failed_logins":
+
+            len(
+
+                get_failed_logins()
+
+            ),
+
+        "successful_logins":
+
+            len(
+
+                get_successful_logins()
+
+            ),
+
+        "ssh":
+
+            len(
+
+                get_ssh_logs()
+
+            ),
+
+        "sudo":
+
+            len(
+
+                get_sudo_logs()
+
+            ),
+
+        "security":
+
+            len(
+
+                get_security_events()
+
+            )
+
+    }
+
+
+# ============================================================
+# Service Collectors
+#
+# NO I/O
+#
+# Uses:
+#
+# RAW_DATA["services"]
+#
 # ============================================================
 
 def get_service_logs():
 
-    logger.info(
-        "Collecting service logs..."
-    )
+    logger.info("Getting service logs...")
 
-    logs = []
-
-    if has_journalctl():
-
-        logs = run_command(
-
-            [
-
-                "journalctl",
-
-                "--no-pager",
-
-                "-u",
-
-                "*",
-
-                "-n",
-
-                str(DEFAULT_LOG_LINES)
-
-            ]
-
-        )
-
-    else:
-
-        logs = read_logs("syslog")
-
-    return [
-
-        create_log_entry(
-
-            "service",
-
-            line
-
-        )
-
-        for line in logs
-
-    ]
+    return RAW_DATA["services"]
 
 
-# ============================================================
-# Failed Services
 # ============================================================
 
 def get_failed_services():
 
-    logger.info(
-        "Collecting failed services..."
-    )
+    logger.info("Getting failed services...")
 
-    if not has_systemctl():
+    keywords = (
 
-        return []
+        "failed",
 
-    logs = run_command(
+        "failure",
 
-        [
+        "failed with result",
 
-            "systemctl",
+        "exited with status",
 
-            "--failed",
-
-            "--no-pager",
-
-            "--plain"
-
-        ]
+        "core dumped"
 
     )
 
     return [
 
-        create_log_entry(
+        line
 
-            "failed_service",
+        for line in RAW_DATA["services"]
 
-            line
+        if any(
+
+            keyword in line.lower()
+
+            for keyword in keywords
 
         )
-
-        for line in logs
-
-        if ".service" in line
 
     ]
 
 
-# ============================================================
-# Running Services
-# ============================================================
-
-def get_running_services():
-
-    logger.info(
-        "Collecting running services..."
-    )
-
-    if not has_systemctl():
-
-        return []
-
-    logs = run_command(
-
-        [
-
-            "systemctl",
-
-            "list-units",
-
-            "--type=service",
-
-            "--state=running",
-
-            "--no-pager",
-
-            "--plain"
-
-        ]
-
-    )
-
-    return [
-
-        create_log_entry(
-
-            "running_service",
-
-            line
-
-        )
-
-        for line in logs
-
-        if ".service" in line
-
-    ]
-
-
-# ============================================================
-# Service Restart Events
 # ============================================================
 
 def get_service_restart_events():
 
-    logger.info(
-        "Collecting service restart events..."
-    )
+    logger.info("Getting service restart events...")
 
-    keywords = [
+    keywords = (
 
         "restart",
 
@@ -1598,119 +1807,156 @@ def get_service_restart_events():
 
         "restarting"
 
-    ]
+    )
 
-    events = []
+    return [
 
-    for entry in get_service_logs():
+        line
 
-        message = entry["message"].lower()
-
-        if ".service" not in message:
-
-            continue
+        for line in RAW_DATA["services"]
 
         if any(
 
-            keyword in message
+            keyword in line.lower()
 
             for keyword in keywords
 
-        ):
+        )
 
-            events.append(entry)
-
-    return events
+    ]
 
 
-# ============================================================
-# Started Services
 # ============================================================
 
 def get_started_services():
 
-    events = []
+    logger.info("Getting started services...")
 
-    for entry in get_service_logs():
+    keywords = (
 
-        message = entry["message"].lower()
+        "started",
 
-        if (
+        "starting"
 
-            ".service" in message
+    )
 
-            and
+    return [
 
-            "started" in message
+        line
 
-        ):
+        for line in RAW_DATA["services"]
 
-            events.append(entry)
+        if any(
 
-    return events
+            keyword in line.lower()
+
+            for keyword in keywords
+
+        )
+
+    ]
 
 
-# ============================================================
-# Stopped Services
 # ============================================================
 
 def get_stopped_services():
 
-    events = []
+    logger.info("Getting stopped services...")
 
-    for entry in get_service_logs():
+    keywords = (
 
-        message = entry["message"].lower()
+        "stopped",
 
-        if (
+        "stopping"
 
-            ".service" in message
+    )
 
-            and
+    return [
 
-            "stopped" in message
+        line
 
-        ):
+        for line in RAW_DATA["services"]
 
-            events.append(entry)
+        if any(
 
-    return events
+            keyword in line.lower()
+
+            for keyword in keywords
+
+        )
+
+    ]
 
 
-# ============================================================
-# Reloaded Services
 # ============================================================
 
 def get_reloaded_services():
 
-    events = []
+    logger.info("Getting reloaded services...")
 
-    for entry in get_service_logs():
+    keywords = (
 
-        message = entry["message"].lower()
+        "reloaded",
 
-        if (
+        "reload"
 
-            ".service" in message
+    )
 
-            and
+    return [
 
-            "reloaded" in message
+        line
 
-        ):
+        for line in RAW_DATA["services"]
 
-            events.append(entry)
+        if any(
 
-    return events
+            keyword in line.lower()
+
+            for keyword in keywords
+
+        )
+
+    ]
 
 
 # ============================================================
-# Service Failures
+
+def get_running_services():
+
+    logger.info("Getting running services...")
+
+    keywords = (
+
+        "running",
+
+        "started"
+
+    )
+
+    return [
+
+        line
+
+        for line in RAW_DATA["services"]
+
+        if any(
+
+            keyword in line.lower()
+
+            for keyword in keywords
+
+        )
+
+    ]
+
+
 # ============================================================
 
 def get_service_failures():
 
-    keywords = [
+    logger.info("Getting service failures...")
+
+    keywords = (
 
         "failed",
 
@@ -1718,40 +1964,36 @@ def get_service_failures():
 
         "crashed",
 
-        "core dumped"
+        "core dumped",
 
-    ]
+        "segmentation fault"
 
-    failures = []
+    )
 
-    for entry in get_service_logs():
+    return [
 
-        message = entry["message"].lower()
+        line
 
-        if ".service" not in message:
-
-            continue
+        for line in RAW_DATA["services"]
 
         if any(
 
-            keyword in message
+            keyword in line.lower()
 
             for keyword in keywords
 
-        ):
+        )
 
-            failures.append(entry)
-
-    return failures
+    ]
 
 
-# ============================================================
-# Service Status Changes
 # ============================================================
 
 def get_service_status_changes():
 
-    keywords = [
+    logger.info("Getting service status changes...")
+
+    keywords = (
 
         "started",
 
@@ -1763,73 +2005,70 @@ def get_service_status_changes():
 
         "failed"
 
-    ]
+    )
 
-    changes = []
+    return [
 
-    for entry in get_service_logs():
+        line
 
-        message = entry["message"].lower()
-
-        if ".service" not in message:
-
-            continue
+        for line in RAW_DATA["services"]
 
         if any(
 
-            keyword in message
+            keyword in line.lower()
 
             for keyword in keywords
 
-        ):
+        )
 
-            changes.append(entry)
-
-    return changes
+    ]
 
 
 # ============================================================
-# Find Service
-# ============================================================
 
-def find_service(
+def find_service(service_name):
 
-        service_name
+    logger.info(
 
-):
+        f"Searching for service: {service_name}"
+
+    )
 
     service_name = service_name.lower()
 
-    results = []
+    return [
 
-    for entry in get_running_services():
+        line
 
-        if service_name in entry["message"].lower():
+        for line in RAW_DATA["services"]
 
-            results.append(entry)
+        if service_name in line.lower()
 
-    for entry in get_failed_services():
-
-        if service_name in entry["message"].lower():
-
-            results.append(entry)
-
-    return results
+    ]
 
 
 # ============================================================
-# Service Statistics
+
+def has_failed_services():
+
+    return len(
+
+        get_failed_services()
+
+    ) > 0
+
+
 # ============================================================
 
-def get_service_statistics():
+def service_summary():
 
     return {
 
-        "running_services":
+        "service_logs":
 
             len(
 
-                get_running_services()
+                RAW_DATA["services"]
 
             ),
 
@@ -1841,23 +2080,15 @@ def get_service_statistics():
 
             ),
 
-        "started_services":
+        "running_services":
 
             len(
 
-                get_started_services()
+                get_running_services()
 
             ),
 
-        "stopped_services":
-
-            len(
-
-                get_stopped_services()
-
-            ),
-
-        "restarted_services":
+        "restart_events":
 
             len(
 
@@ -1865,19 +2096,74 @@ def get_service_statistics():
 
             ),
 
-        "reloaded_services":
+        "started":
+
+            len(
+
+                get_started_services()
+
+            ),
+
+        "stopped":
+
+            len(
+
+                get_stopped_services()
+
+            ),
+
+        "reloaded":
 
             len(
 
                 get_reloaded_services()
 
-            ),
+            )
 
-        "service_failures":
+    }
+
+
+# ============================================================
+
+def get_service_statistics():
+
+    logger.info(
+
+        "Getting service statistics..."
+
+    )
+
+    return {
+
+        "service_logs":
 
             len(
 
-                get_service_failures()
+                RAW_DATA["services"]
+
+            ),
+
+        "failed_services":
+
+            len(
+
+                get_failed_services()
+
+            ),
+
+        "running_services":
+
+            len(
+
+                get_running_services()
+
+            ),
+
+        "restart_events":
+
+            len(
+
+                get_service_restart_events()
 
             ),
 
@@ -1887,388 +2173,320 @@ def get_service_statistics():
 
                 get_service_status_changes()
 
+            ),
+
+        "failures":
+
+            len(
+
+                get_service_failures()
+
             )
 
     }
 
-# ============================================================
-# Login History
-# ============================================================
-
-def get_login_history():
-
-    logger.info(
-        "Collecting login history..."
-    )
-
-    logs = run_command(
-
-        [
-
-            "last",
-
-            "-n",
-
-            str(DEFAULT_LOG_LINES)
-
-        ]
-
-    )
-
-    history = []
-
-    for line in logs:
-
-        if line.startswith("wtmp"):
-
-            continue
-
-        history.append(
-
-            create_log_entry(
-
-                "login_history",
-
-                line
-
-            )
-
-        )
-
-    return history
-
 
 # ============================================================
-# Logged Users
-# ============================================================
-
-def get_logged_users():
-
-    logger.info(
-        "Collecting logged users..."
-    )
-
-    logs = run_command(
-
-        [
-
-            "who"
-
-        ]
-
-    )
-
-    return [
-
-        create_log_entry(
-
-            "logged_user",
-
-            line
-
-        )
-
-        for line in logs
-
-    ]
-
-
-# ============================================================
-# Login Sessions
+# User & System Collectors
+#
+# NO I/O
+#
+# Uses:
+#
+# RAW_DATA["users"]
+# RAW_DATA["cron"]
+# RAW_DATA["applications"]
+#
 # ============================================================
 
 def get_login_sessions():
 
+    logger.info("Getting login sessions...")
+
     sessions = []
 
-    for entry in get_logged_users():
+    for line in RAW_DATA["users"].get("current", []):
 
-        columns = entry["message"].split()
+        parts = line.split()
 
-        sessions.append({
+        session = {
 
             "user":
 
-                columns[0]
+                parts[0]
 
-                if len(columns) > 0
+                if len(parts) > 0
 
                 else "",
 
             "terminal":
 
-                columns[1]
+                parts[1]
 
-                if len(columns) > 1
+                if len(parts) > 1
 
                 else "",
 
-            "login_time":
+            "date":
 
-                " ".join(
+                " ".join(parts[2:])
 
-                    columns[2:5]
-
-                )
-
-                if len(columns) > 4
+                if len(parts) > 2
 
                 else "",
 
             "raw":
 
-                entry["message"]
+                line
 
-        })
+        }
+
+        sessions.append(session)
 
     return sessions
 
 
 # ============================================================
-# Cron Logs
+
+def get_login_history():
+
+    logger.info("Getting login history...")
+
+    return RAW_DATA["users"].get(
+
+        "history",
+
+        []
+
+    )
+
+
+# ============================================================
+
+def get_logged_users():
+
+    logger.info("Getting logged users...")
+
+    return RAW_DATA["users"].get(
+
+        "current",
+
+        []
+
+    )
+
+
 # ============================================================
 
 def get_cron_logs():
 
-    logger.info(
-        "Collecting cron logs..."
-    )
+    logger.info("Getting cron logs...")
 
-    cron_logs = [
-
-        create_log_entry(
-
-            "cron",
-
-            line
-
-        )
-
-        for line in read_logs("cron")
-
-    ]
-
-    if cron_logs:
-
-        return cron_logs
-
-    keywords = [
-
-        "cron",
-
-        "crond",
-
-        "cronie"
-
-    ]
-
-    events = []
-
-    for entry in get_system_journal_logs():
-
-        message = entry["message"].lower()
-
-        if any(
-
-            keyword in message
-
-            for keyword in keywords
-
-        ):
-
-            events.append(entry)
-
-    return events
+    return RAW_DATA["cron"]
 
 
 # ============================================================
-# Login Events
-# ============================================================
 
-def get_login_events():
+def get_application_logs():
 
-    keywords = [
+    logger.info("Getting application logs...")
 
-        "session opened",
-
-        "accepted password",
-
-        "accepted publickey",
-
-        "login"
-
-    ]
-
-    events = []
-
-    for entry in get_auth_logs():
-
-        message = entry["message"].lower()
-
-        if any(
-
-            keyword in message
-
-            for keyword in keywords
-
-        ):
-
-            events.append(entry)
-
-    return events
+    return RAW_DATA["applications"]
 
 
-# ============================================================
-# Logout Events
-# ============================================================
-
-def get_logout_events():
-
-    keywords = [
-
-        "session closed",
-
-        "logout",
-
-        "logged out"
-
-    ]
-
-    events = []
-
-    for entry in get_auth_logs():
-
-        message = entry["message"].lower()
-
-        if any(
-
-            keyword in message
-
-            for keyword in keywords
-
-        ):
-
-            events.append(entry)
-
-    return events
-
-
-# ============================================================
-# Root Login Events
 # ============================================================
 
 def get_root_login_events():
 
-    events = []
+    logger.info("Getting root login events...")
 
-    for entry in get_auth_logs():
+    return [
 
-        if "root" in entry["message"].lower():
+        line
 
-            events.append(entry)
+        for line in RAW_DATA["users"].get(
 
-    return events
+            "history",
+
+            []
+
+        )
+
+        if "root" in line.lower()
+
+    ]
 
 
-# ============================================================
-# Remote Login Events
 # ============================================================
 
 def get_remote_login_events():
 
-    keywords = [
+    logger.info("Getting remote login events...")
 
-        "sshd",
+    keywords = (
 
-        "accepted",
+        "ssh",
 
-        "publickey",
+        "pts/",
 
-        "password"
+        "from"
 
-    ]
+    )
 
-    events = []
+    return [
 
-    for entry in get_auth_logs():
+        line
 
-        message = entry["message"].lower()
+        for line in RAW_DATA["users"].get(
+
+            "history",
+
+            []
+
+        )
 
         if any(
 
-            keyword in message
+            keyword in line.lower()
 
             for keyword in keywords
 
-        ):
+        )
 
-            events.append(entry)
-
-    return events
+    ]
 
 
 # ============================================================
-# Find User
+
+def get_local_login_events():
+
+    logger.info("Getting local login events...")
+
+    return [
+
+        line
+
+        for line in RAW_DATA["users"].get(
+
+            "history",
+
+            []
+
+        )
+
+        if "tty" in line.lower()
+
+    ]
+
+
+# ============================================================
+
+def get_active_user_count():
+
+    return len(
+
+        RAW_DATA["users"].get(
+
+            "current",
+
+            []
+
+        )
+
+    )
+
+
+# ============================================================
+
+def get_login_history_count():
+
+    return len(
+
+        RAW_DATA["users"].get(
+
+            "history",
+
+            []
+
+        )
+
+    )
+
+
 # ============================================================
 
 def find_user(username):
+
+    logger.info(
+
+        f"Searching user: {username}"
+
+    )
 
     username = username.lower()
 
     results = []
 
-    for entry in get_login_history():
+    for line in RAW_DATA["users"].get(
 
-        if username in entry["message"].lower():
+        "history",
 
-            results.append(entry)
+        []
 
-    for entry in get_logged_users():
+    ):
 
-        if username in entry["message"].lower():
+        if username in line.lower():
 
-            results.append(entry)
+            results.append(line)
+
+    for line in RAW_DATA["users"].get(
+
+        "current",
+
+        []
+
+    ):
+
+        if username in line.lower():
+
+            results.append(line)
 
     return results
 
 
 # ============================================================
-# User Statistics
-# ============================================================
 
 def get_user_statistics():
 
+    logger.info(
+
+        "Getting user statistics..."
+
+    )
+
     return {
-
-        "login_history":
-
-            len(
-
-                get_login_history()
-
-            ),
 
         "logged_users":
 
+            get_active_user_count(),
+
+        "login_history":
+
+            get_login_history_count(),
+
+        "cron_logs":
+
             len(
 
-                get_logged_users()
+                RAW_DATA["cron"]
 
             ),
 
-        "login_events":
+        "application_logs":
 
             len(
 
-                get_login_events()
-
-            ),
-
-        "logout_events":
-
-            len(
-
-                get_logout_events()
+                RAW_DATA["applications"]
 
             ),
 
@@ -2288,150 +2506,121 @@ def get_user_statistics():
 
             ),
 
-        "cron_events":
+        "local_logins":
 
             len(
 
-                get_cron_logs()
+                get_local_login_events()
 
             )
 
     }
 
+
+# ============================================================
+
+def user_summary():
+
+    return {
+
+        "logged_users":
+
+            get_active_user_count(),
+
+        "login_history":
+
+            get_login_history_count(),
+
+        "cron":
+
+            len(
+
+                RAW_DATA["cron"]
+
+            ),
+
+        "applications":
+
+            len(
+
+                RAW_DATA["applications"]
+
+            )
+
+    }
+
+
 # ============================================================
 # Log File Statistics
+#
+# NO I/O
+#
+# Uses:
+#
+# RAW_DATA["statistics"]
+#
 # ============================================================
 
 def get_log_file_statistics():
 
-    logger.info(
-        "Collecting log file statistics..."
-    )
+    logger.info("Getting log file statistics...")
 
-    statistics = []
-
-    for log_type in COMMON_LOG_FILES:
-
-        path = find_log_file(log_type)
-
-        exists = path is not None
-
-        if exists:
-
-            size = path.stat().st_size
-
-        else:
-
-            size = 0
-
-        statistics.append({
-
-            "name":
-
-                log_type,
-
-            "path":
-
-                str(path)
-
-                if path
-
-                else None,
-
-            "exists":
-
-                exists,
-
-            "size_bytes":
-
-                size,
-
-            "size_mb":
-
-                bytes_to_mb(size),
-
-            "last_modified":
-
-                get_last_modified(path)
-
-                if path
-
-                else None,
-
-            "readable":
-
-                os.access(path, os.R_OK)
-
-                if path
-
-                else False
-
-        })
-
-    return statistics
+    return RAW_DATA["statistics"]
 
 
-# ============================================================
-# Existing Log Files
 # ============================================================
 
 def get_existing_log_files():
 
-    return [
+    logger.info("Getting existing log files...")
 
-        log
+    return {
 
-        for log in get_log_file_statistics()
+        name: info
 
-        if log["exists"]
+        for name, info in RAW_DATA["statistics"].items()
 
-    ]
+        if info["exists"]
+
+    }
 
 
-# ============================================================
-# Missing Log Files
 # ============================================================
 
 def get_missing_log_files():
 
-    return [
+    logger.info("Getting missing log files...")
 
-        log
+    return {
 
-        for log in get_log_file_statistics()
+        name: info
 
-        if not log["exists"]
+        for name, info in RAW_DATA["statistics"].items()
 
-    ]
+        if not info["exists"]
+
+    }
 
 
-# ============================================================
-# Empty Log Files
 # ============================================================
 
 def get_empty_log_files():
 
-    return [
+    logger.info("Getting empty log files...")
 
-        log
+    return {
 
-        for log in get_log_file_statistics()
+        name: info
 
-        if (
+        for name, info in RAW_DATA["statistics"].items()
 
-            log["exists"]
+        if info["exists"]
 
-            and
+        and info["size"] == 0
 
-            log["size_bytes"] == 0
-
-        )
-
-    ]
+    }
 
 
-# ============================================================
-# Large Log Files
 # ============================================================
 
 def get_large_log_files(
@@ -2440,19 +2629,79 @@ def get_large_log_files(
 
 ):
 
-    return [
+    logger.info("Getting large log files...")
 
-        log
+    minimum_bytes = minimum_size_mb * 1024 * 1024
 
-        for log in get_log_file_statistics()
+    return {
 
-        if log["size_mb"] >= minimum_size_mb
+        name: info
 
-    ]
+        for name, info in RAW_DATA["statistics"].items()
+
+        if info["exists"]
+
+        and info["size"] >= minimum_bytes
+
+    }
 
 
 # ============================================================
-# Recently Modified Log Files
+
+def get_total_log_size():
+
+    logger.info("Getting total log size...")
+
+    total = sum(
+
+        info["size"]
+
+        for info in RAW_DATA["statistics"].values()
+
+        if info["exists"]
+
+    )
+
+    return {
+
+        "bytes": total,
+
+        "mb": bytes_to_mb(total)
+
+    }
+
+
+# ============================================================
+
+def get_largest_log_file():
+
+    logger.info("Getting largest log file...")
+
+    existing = get_existing_log_files()
+
+    if not existing:
+
+        return None
+
+    name = max(
+
+        existing,
+
+        key=lambda key:
+
+        existing[key]["size"]
+
+    )
+
+    return {
+
+        "name": name,
+
+        **existing[name]
+
+    }
+
+
 # ============================================================
 
 def get_recent_log_files(
@@ -2461,83 +2710,39 @@ def get_recent_log_files(
 
 ):
 
+    logger.info("Getting recent log files...")
+
+    recent = {}
+
     now = time.time()
 
-    recent = []
+    limit = hours * 3600
 
-    for log in get_existing_log_files():
+    for name, info in RAW_DATA["statistics"].items():
 
-        modified = os.path.getmtime(
+        if not info["exists"]:
 
-            log["path"]
+            continue
 
-        )
+        try:
 
-        elapsed = (
+            modified = datetime.fromisoformat(
 
-            now -
+                info["modified"]
 
-            modified
+            ).timestamp()
 
-        ) / 3600
+        except Exception:
 
-        if elapsed <= hours:
+            continue
 
-            recent.append(log)
+        if now - modified <= limit:
+
+            recent[name] = info
 
     return recent
 
 
-# ============================================================
-# Largest Log File
-# ============================================================
-
-def get_largest_log_file():
-
-    files = get_existing_log_files()
-
-    if not files:
-
-        return None
-
-    return max(
-
-        files,
-
-        key=lambda x:
-
-        x["size_bytes"]
-
-    )
-
-
-# ============================================================
-# Total Log Size
-# ============================================================
-
-def get_total_log_size():
-
-    total = 0
-
-    for log in get_existing_log_files():
-
-        total += log["size_bytes"]
-
-    return {
-
-        "total_size_bytes":
-
-            total,
-
-        "total_size_mb":
-
-            bytes_to_mb(total)
-
-    }
-
-
-# ============================================================
-# Find Log File
 # ============================================================
 
 def find_log_statistics(
@@ -2546,22 +2751,41 @@ def find_log_statistics(
 
 ):
 
-    log_name = log_name.lower()
+    logger.info(
 
-    for log in get_log_file_statistics():
+        f"Finding statistics for {log_name}"
 
-        if log["name"].lower() == log_name:
+    )
 
-            return log
+    return RAW_DATA["statistics"].get(
 
-    return None
+        log_name
+
+    )
 
 
 # ============================================================
-# Log Statistics Summary
+
+def has_missing_logs():
+
+    return any(
+
+        not info["exists"]
+
+        for info in RAW_DATA["statistics"].values()
+
+    )
+
+
 # ============================================================
 
-def get_log_statistics():
+def log_statistics_summary():
+
+    logger.info(
+
+        "Getting log statistics summary..."
+
+    )
 
     return {
 
@@ -2569,7 +2793,7 @@ def get_log_statistics():
 
             len(
 
-                COMMON_LOG_FILES
+                RAW_DATA["statistics"]
 
             ),
 
@@ -2589,19 +2813,19 @@ def get_log_statistics():
 
             ),
 
-        "large_logs":
-
-            len(
-
-                get_large_log_files()
-
-            ),
-
         "empty_logs":
 
             len(
 
                 get_empty_log_files()
+
+            ),
+
+        "large_logs":
+
+            len(
+
+                get_large_log_files()
 
             ),
 
@@ -2613,43 +2837,62 @@ def get_log_statistics():
 
             ),
 
-        "largest_log":
+        "total_size_mb":
 
-            get_largest_log_file(),
-
-        "total_size":
-
-            get_total_log_size()
+            get_total_log_size()["mb"]
 
     }
 
+
 # ============================================================
-# Build Complete Snapshot
+
+def get_statistics_summary():
+
+    return {
+
+        "kernel":
+
+            get_kernel_statistics(),
+
+        "authentication":
+
+            get_authentication_statistics(),
+
+        "services":
+
+            get_service_statistics(),
+
+        "users":
+
+            get_user_statistics(),
+
+        "logs":
+
+            log_statistics_summary()
+
+    }
+
+
+# ============================================================
+# Snapshot Builder
+#
+# NO I/O
+#
+# Everything comes from RAW_DATA through
+# the collector functions.
 # ============================================================
 
 def get_logs_snapshot():
 
-    logger.info(
-        "Building complete logs snapshot..."
-    )
+    logger.info("Building logs snapshot...")
 
     snapshot = {
 
-        # ====================================================
-        # Snapshot Information
-        # ====================================================
+        "timestamp": current_timestamp(),
 
-        "timestamp":
+        "hostname": hostname(),
 
-            datetime.now().isoformat(),
-
-        "hostname":
-
-            socket.gethostname(),
-
-        "environment":
-
-            get_environment(),
+        "environment": RAW_DATA["environment"],
 
         # ====================================================
         # Kernel
@@ -2661,27 +2904,27 @@ def get_logs_snapshot():
 
                 get_system_journal_logs(),
 
-            "logs":
+            "kernel_logs":
 
                 get_kernel_logs(),
 
-            "boot":
+            "boot_logs":
 
                 get_boot_logs(),
 
-            "oom":
+            "oom_killer":
 
                 get_oom_killer_logs(),
 
-            "filesystem":
+            "filesystem_errors":
 
                 get_filesystem_error_logs(),
 
-            "hardware":
+            "hardware_errors":
 
                 get_hardware_error_logs(),
 
-            "network":
+            "network_errors":
 
                 get_network_error_logs(),
 
@@ -2749,13 +2992,17 @@ def get_logs_snapshot():
 
                 get_service_logs(),
 
+            "failed":
+
+                get_failed_services(),
+
             "running":
 
                 get_running_services(),
 
-            "failed":
+            "restart_events":
 
-                get_failed_services(),
+                get_service_restart_events(),
 
             "started":
 
@@ -2764,10 +3011,6 @@ def get_logs_snapshot():
             "stopped":
 
                 get_stopped_services(),
-
-            "restarted":
-
-                get_service_restart_events(),
 
             "reloaded":
 
@@ -2793,25 +3036,25 @@ def get_logs_snapshot():
 
         "users": {
 
-            "login_history":
-
-                get_login_history(),
-
             "logged_users":
 
                 get_logged_users(),
 
-            "sessions":
+            "login_sessions":
 
                 get_login_sessions(),
 
-            "login_events":
+            "login_history":
 
-                get_login_events(),
+                get_login_history(),
 
-            "logout_events":
+            "cron":
 
-                get_logout_events(),
+                get_cron_logs(),
+
+            "applications":
+
+                get_application_logs(),
 
             "root_logins":
 
@@ -2820,10 +3063,6 @@ def get_logs_snapshot():
             "remote_logins":
 
                 get_remote_login_events(),
-
-            "cron":
-
-                get_cron_logs(),
 
             "statistics":
 
@@ -2837,7 +3076,7 @@ def get_logs_snapshot():
 
         "log_files": {
 
-            "files":
+            "statistics":
 
                 get_log_file_statistics(),
 
@@ -2865,17 +3104,23 @@ def get_logs_snapshot():
 
                 get_largest_log_file(),
 
-            "statistics":
+            "summary":
 
-                get_log_statistics()
+                log_statistics_summary()
 
-        }
+        },
+
+        # ====================================================
+        # Overall Statistics
+        # ====================================================
+
+        "summary":
+
+            get_statistics_summary()
 
     }
 
-    logger.info(
-        "Logs snapshot created successfully."
-    )
+    logger.info("Logs snapshot created.")
 
     return snapshot
 
@@ -2886,96 +3131,171 @@ def get_logs_snapshot():
 
 def get_snapshot_summary():
 
-    snapshot = get_logs_snapshot()
+    logger.info("Building snapshot summary...")
 
     return {
 
         "timestamp":
 
-            snapshot["timestamp"],
+            current_timestamp(),
 
         "hostname":
 
-            snapshot["hostname"],
+            hostname(),
 
         "environment":
 
-            snapshot["environment"],
+            RAW_DATA["environment"].get(
+
+                "environment",
+
+                "Unknown"
+
+            ),
 
         "kernel_logs":
 
-            snapshot["kernel"]["statistics"]["kernel_logs"],
+            len(
 
-        "boot_logs":
+                get_kernel_logs()
 
-            snapshot["kernel"]["statistics"]["boot_logs"],
+            ),
 
-        "oom_events":
+        "journal_logs":
 
-            snapshot["kernel"]["statistics"]["oom_events"],
+            len(
 
-        "filesystem_errors":
+                get_system_journal_logs()
 
-            snapshot["kernel"]["statistics"]["filesystem_errors"],
+            ),
 
-        "hardware_errors":
+        "authentication_logs":
 
-            snapshot["kernel"]["statistics"]["hardware_errors"],
+            len(
 
-        "network_errors":
+                get_auth_logs()
 
-            snapshot["kernel"]["statistics"]["network_errors"],
-
-        "failed_logins":
-
-            snapshot["authentication"]["statistics"]["failed_logins"],
-
-        "successful_logins":
-
-            snapshot["authentication"]["statistics"]["successful_logins"],
+            ),
 
         "security_events":
 
-            snapshot["authentication"]["statistics"]["security_events"],
+            len(
+
+                get_security_events()
+
+            ),
+
+        "failed_logins":
+
+            len(
+
+                get_failed_logins()
+
+            ),
 
         "failed_services":
 
-            snapshot["services"]["statistics"]["failed_services"],
+            len(
 
-        "running_services":
+                get_failed_services()
 
-            snapshot["services"]["statistics"]["running_services"],
+            ),
 
         "logged_users":
 
-            snapshot["users"]["statistics"]["logged_users"],
+            len(
 
-        "cron_events":
+                get_logged_users()
 
-            snapshot["users"]["statistics"]["cron_events"],
+            ),
 
-        "existing_log_files":
+        "cron_logs":
 
-            snapshot["log_files"]["statistics"]["existing_logs"],
+            len(
 
-        "missing_log_files":
+                get_cron_logs()
 
-            snapshot["log_files"]["statistics"]["missing_logs"]
+            ),
+
+        "application_logs":
+
+            len(
+
+                get_application_logs()
+
+            ),
+
+        "existing_logs":
+
+            len(
+
+                get_existing_log_files()
+
+            ),
+
+        "missing_logs":
+
+            len(
+
+                get_missing_log_files()
+
+            )
 
     }
 
+
 # ============================================================
+# Print Snapshot
+# ============================================================
+
+def print_snapshot():
+
+    print(
+
+        json.dumps(
+
+            get_logs_snapshot(),
+
+            indent=4
+
+        )
+
+    )
+
+
+# ============================================================
+# Print Summary
+# ============================================================
+
+def print_summary():
+
+    print(
+
+        json.dumps(
+
+            get_snapshot_summary(),
+
+            indent=4
+
+        )
+
+    )
+
+
+
+
+    # ============================================================
 # Temporary Test Output
 #
-# NOTE
+# NOTE:
 #
-# This function is ONLY for testing.
+# This is ONLY for testing.
 #
-# It is NOT part of the final architecture.
-#
-# After verification simply comment out
+# Remove or comment out
 #
 #     write_test_log(snapshot)
+#
+# after verification.
 #
 # ============================================================
 
@@ -2983,11 +3303,11 @@ def write_test_log(snapshot):
 
     try:
 
-        output_file = BASE_DIR / "log.txt"
+        output = BASE_DIR / "log.txt"
 
         with open(
 
-            output_file,
+            output,
 
             "w",
 
@@ -2995,155 +3315,21 @@ def write_test_log(snapshot):
 
         ) as file:
 
-            file.write("=" * 80 + "\n")
-
-            file.write("KAISP Universal Linux Log Collector\n")
-
-            file.write("=" * 80 + "\n\n")
-
             file.write(
 
-                f"Timestamp   : {snapshot['timestamp']}\n"
+                json.dumps(
+
+                    snapshot,
+
+                    indent=4
+
+                )
 
             )
-
-            file.write(
-
-                f"Hostname    : {snapshot['hostname']}\n"
-
-            )
-
-            file.write(
-
-                f"Environment : {snapshot['environment']}\n\n"
-
-            )
-
-            # ====================================================
-            # Kernel
-            # ====================================================
-
-            file.write("=" * 80 + "\n")
-
-            file.write("KERNEL\n")
-
-            file.write("=" * 80 + "\n")
-
-            for item in snapshot["kernel"]["logs"]:
-
-                file.write(item["message"] + "\n")
-
-            file.write("\n")
-
-            # ====================================================
-            # Authentication
-            # ====================================================
-
-            file.write("=" * 80 + "\n")
-
-            file.write("AUTHENTICATION\n")
-
-            file.write("=" * 80 + "\n")
-
-            for item in snapshot["authentication"]["logs"]:
-
-                file.write(item["message"] + "\n")
-
-            file.write("\n")
-
-            # ====================================================
-            # Services
-            # ====================================================
-
-            file.write("=" * 80 + "\n")
-
-            file.write("SERVICES\n")
-
-            file.write("=" * 80 + "\n")
-
-            for item in snapshot["services"]["logs"]:
-
-                file.write(item["message"] + "\n")
-
-            file.write("\n")
-
-            # ====================================================
-            # Users
-            # ====================================================
-
-            file.write("=" * 80 + "\n")
-
-            file.write("USERS\n")
-
-            file.write("=" * 80 + "\n")
-
-            for item in snapshot["users"]["logged_users"]:
-
-                file.write(item["message"] + "\n")
-
-            file.write("\n")
-
-            # ====================================================
-            # Log Files
-            # ====================================================
-
-            file.write("=" * 80 + "\n")
-
-            file.write("LOG FILES\n")
-
-            file.write("=" * 80 + "\n")
-
-            for log in snapshot["log_files"]["files"]:
-
-                file.write(
-
-                    f"{log['name']}\n"
-
-                )
-
-                file.write(
-
-                    f"  Exists : {log['exists']}\n"
-
-                )
-
-                file.write(
-
-                    f"  Path   : {log['path']}\n"
-
-                )
-
-                file.write(
-
-                    f"  Size   : {log['size_mb']} MB\n\n"
-
-                )
-
-            # ====================================================
-            # Summary
-            # ====================================================
-
-            file.write("=" * 80 + "\n")
-
-            file.write("SUMMARY\n")
-
-            file.write("=" * 80 + "\n")
-
-            summary = get_snapshot_summary()
-
-            for key, value in summary.items():
-
-                file.write(
-
-                    f"{key:25}: {value}\n"
-
-                )
-
-            file.write("\n")
 
         logger.info(
 
-            "Temporary test log written to log.txt"
+            "Temporary log.txt updated."
 
         )
 
@@ -3156,17 +3342,76 @@ def write_test_log(snapshot):
         )
 
 
-        # ============================================================
-# Continuous Monitoring
+# ============================================================
+# Health Check
 # ============================================================
 
-def monitor_logs_continuously(interval=5):
+def health_check():
 
     logger.info(
 
-        f"Starting Linux Log Monitor "
+        "Running health check..."
 
-        f"(interval={interval}s)"
+    )
+
+    try:
+
+        refresh_sources()
+
+        snapshot = get_logs_snapshot()
+
+        return {
+
+            "healthy": True,
+
+            "timestamp":
+
+                current_timestamp(),
+
+            "hostname":
+
+                hostname(),
+
+            "environment":
+
+                RAW_DATA["environment"],
+
+            "snapshot_created":
+
+                snapshot is not None
+
+        }
+
+    except Exception as e:
+
+        logger.exception(
+
+            f"Health check failed: {e}"
+
+        )
+
+        return {
+
+            "healthy": False,
+
+            "error": str(e)
+
+        }
+
+
+# ============================================================
+# Monitor
+# ============================================================
+
+def monitor_logs_continuously(
+
+        interval=10
+
+):
+
+    logger.info(
+
+        f"Monitoring every {interval} seconds."
 
     )
 
@@ -3174,17 +3419,15 @@ def monitor_logs_continuously(interval=5):
 
         try:
 
+            refresh_sources()
+
             snapshot = get_logs_snapshot()
 
-            # ====================================================
-            # TEMPORARY
-            #
-            # ONLY FOR TESTING
-            #
-            # Remove or comment later.
-            # ====================================================
+            # ---------------------------------------------
+            # Temporary testing only
+            # ---------------------------------------------
 
-            write_test_log(snapshot)
+            #write_test_log(snapshot)       ########################################################################################logger
 
             logger.info(
 
@@ -3204,7 +3447,7 @@ def monitor_logs_continuously(interval=5):
 
             logger.info(
 
-                "Linux Log Monitor stopped."
+                "Collector stopped."
 
             )
 
@@ -3214,7 +3457,7 @@ def monitor_logs_continuously(interval=5):
 
             logger.exception(
 
-                f"Monitoring failed: {e}"
+                f"Monitoring error: {e}"
 
             )
 
@@ -3222,101 +3465,10 @@ def monitor_logs_continuously(interval=5):
 
 
 # ============================================================
-# Print Snapshot
-# ============================================================
-
-def print_snapshot():
-
-    snapshot = get_logs_snapshot()
-
-    print(
-
-        json.dumps(
-
-            snapshot,
-
-            indent=4
-
-        )
-
-    )
-
-
-# ============================================================
-# Print Summary
-# ============================================================
-
-def print_summary():
-
-    summary = get_snapshot_summary()
-
-    print(
-
-        json.dumps(
-
-            summary,
-
-            indent=4
-
-        )
-
-    )
-
-
-# ============================================================
-# Health Check
-# ============================================================
-
-def health_check():
-
-    try:
-
-        module_information()
-
-        get_logs_snapshot()
-
-        return {
-
-            "healthy": True,
-
-            "timestamp":
-
-                datetime.now().isoformat(),
-
-            "hostname":
-
-                socket.gethostname(),
-
-            "environment":
-
-                get_environment()
-
-        }
-
-    except Exception as e:
-
-        logger.exception(
-
-            f"Health check failed: {e}"
-
-        )
-
-        return {
-
-            "healthy": False,
-
-            "error":
-
-                str(e)
-
-        }
-
-
-# ============================================================
 # Main
 # ============================================================
 
-if __name__ == "__main__":
+def main():
 
     logger.info(
 
@@ -3326,7 +3478,7 @@ if __name__ == "__main__":
 
     logger.info(
 
-        "Universal Linux Log Collector Started"
+        "KAISP Universal Log Collector"
 
     )
 
@@ -3340,7 +3492,7 @@ if __name__ == "__main__":
 
         json.dumps(
 
-            module_information(),
+            get_environment_information(),
 
             indent=4
 
@@ -3348,13 +3500,13 @@ if __name__ == "__main__":
 
     )
 
-    health = health_check()
+    status = health_check()
 
     print(
 
         json.dumps(
 
-            health,
+            status,
 
             indent=4
 
@@ -3362,7 +3514,7 @@ if __name__ == "__main__":
 
     )
 
-    if health["healthy"]:
+    if status["healthy"]:
 
         print(
 
@@ -3378,10 +3530,21 @@ if __name__ == "__main__":
 
         )
 
+        return
+
     print_summary()
 
     monitor_logs_continuously(
 
-        interval=5
+        interval=10
 
     )
+
+
+# ============================================================
+# Entry Point
+# ============================================================
+
+if __name__ == "__main__":
+
+    main()
