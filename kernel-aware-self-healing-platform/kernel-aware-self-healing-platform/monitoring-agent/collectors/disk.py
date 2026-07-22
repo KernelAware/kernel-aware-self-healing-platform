@@ -5,11 +5,14 @@ import logging #This library records messages about what the program is doing.
 import socket   #This library deals with networking and machine identity.
 from datetime import datetime   #This library works with dates and times.
 
+from pathlib import Path
+
 
 ## Logging Configuration
+BASE_DIR = Path(__file__).resolve().parent
 
 logging.basicConfig(
-    filename="app.txt",    #to store logs in a txt file, witout this default is the terminal
+    #filename= BASE_DIR / "disk_log.txt",    #to store logs in a txt file, witout this default is the terminal
     level=logging.INFO,    #Record messages that are INFO level or more important   Python records INFO WARNING ERROR CRITICAL but ignores DEBUG
     format="%(asctime)s | %(levelname)s | %(message)s"  #use ths format for the log messages
     #Current Date and Time | Log Level | Message
@@ -832,37 +835,3 @@ def get_disk_stats_snapshot():
         }
     return snapshot
 
-
-# Continuous Disk Monitoring
-def monitor_disk_continuously(interval=5):
-    logger.info(
-        f"Disk monitoring started "
-        f"(every {interval} seconds)"
-    )
-
-    while True:
-        try:
-            snapshot = get_disk_stats_snapshot()
-
-            logger.info(
-                f"Disk snapshot collected at "
-                "\n%s",
-                json.dumps(snapshot, indent=4)
-            )
-
-            time.sleep(interval)
-
-        except KeyboardInterrupt:
-            logger.info("Disk monitoring stopped.")
-            break
-
-        except Exception as e:
-            logger.error(
-                f"Disk monitoring failed: {e}"
-            )
-            time.sleep(interval)
-
-
-# Testing
-if __name__ == "__main__":
-    monitor_disk_continuously(interval=5)

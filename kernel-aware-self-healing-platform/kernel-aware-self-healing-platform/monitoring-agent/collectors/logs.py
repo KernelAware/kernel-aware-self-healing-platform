@@ -15,10 +15,10 @@ from datetime import datetime
 
 BASE_DIR = Path(__file__).resolve().parent
 
-LOG_FILE = BASE_DIR / "app.txt"
+LOG_FILE = BASE_DIR / "logs.txt"
 
 logging.basicConfig(
-#   filename=str(LOG_FILE),      ##################################################################################################  logger to file
+    #filename=str(LOG_FILE),      ##################################################################################################  logger to file
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s",
     force=True
@@ -1335,659 +1335,396 @@ def get_logged_users():
 
 
 def get_cron_logs():
-
     logger.info("Getting cron logs...")
 
     return RAW_DATA["cron"]
 
 
-# ============================================================
-
 def get_application_logs():
-
     logger.info("Getting application logs...")
 
     return RAW_DATA["applications"]
 
 
-# ============================================================
-
 def get_root_login_events():
-
     logger.info("Getting root login events...")
 
     return [
-
         line
-
         for line in RAW_DATA["users"].get(
-
             "history",
-
             []
-
         )
-
         if "root" in line.lower()
-
     ]
 
-
-# ============================================================
 
 def get_remote_login_events():
-
     logger.info("Getting remote login events...")
-
     keywords = (
-
         "ssh",
-
         "pts/",
-
         "from"
-
     )
 
     return [
-
         line
-
         for line in RAW_DATA["users"].get(
-
             "history",
-
             []
-
         )
-
         if any(
-
             keyword in line.lower()
-
             for keyword in keywords
-
         )
-
     ]
 
-
-# ============================================================
 
 def get_local_login_events():
-
     logger.info("Getting local login events...")
-
     return [
-
         line
-
         for line in RAW_DATA["users"].get(
-
             "history",
-
             []
-
         )
-
         if "tty" in line.lower()
-
     ]
 
 
-# ============================================================
-
 def get_active_user_count():
-
     return len(
-
         RAW_DATA["users"].get(
-
             "current",
-
             []
-
         )
-
     )
 
-
-# ============================================================
 
 def get_login_history_count():
-
     return len(
-
         RAW_DATA["users"].get(
-
             "history",
-
             []
-
         )
-
     )
 
-
-# ============================================================
 
 def find_user(username):
-
     logger.info(
-
         f"Searching user: {username}"
-
     )
-
     username = username.lower()
-
     results = []
-
     for line in RAW_DATA["users"].get(
-
         "history",
-
         []
-
     ):
 
         if username in line.lower():
-
             results.append(line)
 
     for line in RAW_DATA["users"].get(
-
         "current",
-
         []
-
     ):
 
         if username in line.lower():
-
             results.append(line)
 
     return results
 
 
-# ============================================================
-
 def get_user_statistics():
-
     logger.info(
-
         "Getting user statistics..."
-
     )
 
     return {
-
         "logged_users":
-
             get_active_user_count(),
 
         "login_history":
-
             get_login_history_count(),
 
         "cron_logs":
-
             len(
-
                 RAW_DATA["cron"]
-
             ),
 
         "application_logs":
-
             len(
-
                 RAW_DATA["applications"]
-
             ),
 
         "root_logins":
-
             len(
-
                 get_root_login_events()
-
             ),
 
         "remote_logins":
-
             len(
-
                 get_remote_login_events()
-
             ),
 
         "local_logins":
-
             len(
-
                 get_local_login_events()
-
             )
-
     }
 
 
-# ============================================================
-
 def user_summary():
-
     return {
-
         "logged_users":
-
             get_active_user_count(),
 
         "login_history":
-
             get_login_history_count(),
 
         "cron":
-
             len(
-
                 RAW_DATA["cron"]
-
             ),
 
         "applications":
-
             len(
-
                 RAW_DATA["applications"]
-
             )
-
     }
 
 
-# ============================================================
 # Log File Statistics
-#
 # NO I/O
-#
 # Uses:
-#
 # RAW_DATA["statistics"]
-#
-# ============================================================
 
 def get_log_file_statistics():
-
     logger.info("Getting log file statistics...")
 
     return RAW_DATA["statistics"]
 
 
-# ============================================================
-
 def get_existing_log_files():
-
     logger.info("Getting existing log files...")
 
     return {
-
         name: info
-
         for name, info in RAW_DATA["statistics"].items()
-
         if info["exists"]
-
     }
 
 
-# ============================================================
-
 def get_missing_log_files():
-
     logger.info("Getting missing log files...")
 
     return {
-
         name: info
-
         for name, info in RAW_DATA["statistics"].items()
-
         if not info["exists"]
-
     }
 
 
-# ============================================================
-
 def get_empty_log_files():
-
     logger.info("Getting empty log files...")
 
     return {
-
         name: info
-
         for name, info in RAW_DATA["statistics"].items()
-
         if info["exists"]
-
         and info["size"] == 0
-
     }
 
 
-# ============================================================
-
-def get_large_log_files(
-
-        minimum_size_mb=100
-
-):
-
+def get_large_log_files(minimum_size_mb=100):
     logger.info("Getting large log files...")
-
     minimum_bytes = minimum_size_mb * 1024 * 1024
 
     return {
-
         name: info
-
         for name, info in RAW_DATA["statistics"].items()
-
         if info["exists"]
-
         and info["size"] >= minimum_bytes
-
     }
 
 
-# ============================================================
-
 def get_total_log_size():
-
     logger.info("Getting total log size...")
-
     total = sum(
-
         info["size"]
-
         for info in RAW_DATA["statistics"].values()
-
         if info["exists"]
-
     )
 
     return {
-
         "bytes": total,
-
         "mb": bytes_to_mb(total)
-
     }
 
 
-# ============================================================
-
 def get_largest_log_file():
-
     logger.info("Getting largest log file...")
-
     existing = get_existing_log_files()
-
     if not existing:
-
         return None
 
     name = max(
-
         existing,
-
         key=lambda key:
-
         existing[key]["size"]
-
     )
 
     return {
-
         "name": name,
-
         **existing[name]
-
     }
 
 
-# ============================================================
-
-def get_recent_log_files(
-
-        hours=24
-
-):
-
+def get_recent_log_files(hours=24):
     logger.info("Getting recent log files...")
-
     recent = {}
-
     now = time.time()
-
     limit = hours * 3600
 
     for name, info in RAW_DATA["statistics"].items():
-
         if not info["exists"]:
-
             continue
 
         try:
-
             modified = datetime.fromisoformat(
-
                 info["modified"]
-
             ).timestamp()
 
         except Exception:
-
             continue
 
         if now - modified <= limit:
-
             recent[name] = info
 
     return recent
 
 
-# ============================================================
-
 def find_log_statistics(
-
         log_name
-
-):
-
+    ):
     logger.info(
-
         f"Finding statistics for {log_name}"
-
     )
 
     return RAW_DATA["statistics"].get(
-
         log_name
-
     )
 
-
-# ============================================================
 
 def has_missing_logs():
-
     return any(
-
         not info["exists"]
-
         for info in RAW_DATA["statistics"].values()
-
     )
 
 
-# ============================================================
-
 def log_statistics_summary():
-
     logger.info(
-
         "Getting log statistics summary..."
-
     )
 
     return {
-
         "configured_logs":
-
             len(
-
                 RAW_DATA["statistics"]
-
             ),
 
         "existing_logs":
-
             len(
-
                 get_existing_log_files()
-
             ),
 
         "missing_logs":
-
             len(
-
                 get_missing_log_files()
-
             ),
 
         "empty_logs":
-
             len(
-
                 get_empty_log_files()
-
             ),
 
         "large_logs":
-
             len(
-
                 get_large_log_files()
-
             ),
 
         "recent_logs":
-
             len(
-
                 get_recent_log_files()
-
             ),
 
         "total_size_mb":
-
             get_total_log_size()["mb"]
-
     }
 
 
-# ============================================================
-
 def get_statistics_summary():
-
     return {
-
         "kernel":
-
             get_kernel_statistics(),
 
         "authentication":
-
             get_authentication_statistics(),
 
         "services":
-
             get_service_statistics(),
 
         "users":
-
             get_user_statistics(),
 
         "logs":
-
             log_statistics_summary()
-
     }
 
 
-# ============================================================
 # Snapshot Builder
-#
+
 # NO I/O
-#
 # Everything comes from RAW_DATA through
 # the collector functions.
-# ============================================================
+
 
 def get_logs_snapshot():
-
     logger.info("Building logs snapshot...")
-
     snapshot = {
+        "timestamp": 
+            current_timestamp(),
 
-        "timestamp": current_timestamp(),
-
-        "hostname": hostname(),
+        "hostname": 
+            hostname(),
 
         "environment": RAW_DATA["environment"],
 
-        # ====================================================
-        # Kernel
-        # ====================================================
-
         "kernel": {
-
             "journal":
-
                 get_system_journal_logs(),
 
             "kernel_logs":
-
                 get_kernel_logs(),
 
             "boot_logs":
-
                 get_boot_logs(),
 
             "oom_killer":
-
                 get_oom_killer_logs(),
 
             "filesystem_errors":
-
                 get_filesystem_error_logs(),
 
             "hardware_errors":
-
                 get_hardware_error_logs(),
 
             "network_errors":
-
                 get_network_error_logs(),
 
             "statistics":
-
                 get_kernel_statistics()
-
         },
 
         # ====================================================
@@ -1995,47 +1732,35 @@ def get_logs_snapshot():
         # ====================================================
 
         "authentication": {
-
             "logs":
-
                 get_auth_logs(),
 
             "ssh":
-
                 get_ssh_logs(),
 
             "failed_logins":
-
                 get_failed_logins(),
 
             "successful_logins":
-
                 get_successful_logins(),
 
             "sudo":
-
                 get_sudo_logs(),
 
             "permission_denied":
-
                 get_permission_denied_logs(),
 
             "privilege_escalation":
-
                 get_privilege_escalation_logs(),
 
             "authentication_failures":
-
                 get_authentication_failures(),
 
             "security_events":
-
                 get_security_events(),
 
             "statistics":
-
                 get_authentication_statistics()
-
         },
 
         # ====================================================
@@ -2043,47 +1768,35 @@ def get_logs_snapshot():
         # ====================================================
 
         "services": {
-
             "logs":
-
                 get_service_logs(),
 
             "failed":
-
                 get_failed_services(),
 
             "running":
-
                 get_running_services(),
 
             "restart_events":
-
                 get_service_restart_events(),
 
             "started":
-
                 get_started_services(),
 
             "stopped":
-
                 get_stopped_services(),
 
             "reloaded":
-
                 get_reloaded_services(),
 
             "failures":
-
                 get_service_failures(),
 
             "status_changes":
-
                 get_service_status_changes(),
 
             "statistics":
-
                 get_service_statistics()
-
         },
 
         # ====================================================
@@ -2091,39 +1804,29 @@ def get_logs_snapshot():
         # ====================================================
 
         "users": {
-
             "logged_users":
-
                 get_logged_users(),
 
             "login_sessions":
-
                 get_login_sessions(),
 
             "login_history":
-
                 get_login_history(),
 
             "cron":
-
                 get_cron_logs(),
 
             "applications":
-
                 get_application_logs(),
 
             "root_logins":
-
                 get_root_login_events(),
 
             "remote_logins":
-
                 get_remote_login_events(),
 
             "statistics":
-
                 get_user_statistics()
-
         },
 
         # ====================================================
@@ -2131,39 +1834,29 @@ def get_logs_snapshot():
         # ====================================================
 
         "log_files": {
-
             "statistics":
-
                 get_log_file_statistics(),
 
             "existing":
-
                 get_existing_log_files(),
 
             "missing":
-
                 get_missing_log_files(),
 
             "empty":
-
                 get_empty_log_files(),
 
             "large":
-
                 get_large_log_files(),
 
             "recent":
-
                 get_recent_log_files(),
 
             "largest":
-
                 get_largest_log_file(),
 
             "summary":
-
                 log_statistics_summary()
-
         },
 
         # ====================================================
@@ -2171,11 +1864,8 @@ def get_logs_snapshot():
         # ====================================================
 
         "summary":
-
             get_statistics_summary()
-
     }
-
     logger.info("Logs snapshot created.")
 
     return snapshot
@@ -2186,117 +1876,75 @@ def get_logs_snapshot():
 # ============================================================
 
 def get_snapshot_summary():
-
     logger.info("Building snapshot summary...")
 
     return {
-
         "timestamp":
-
             current_timestamp(),
 
         "hostname":
-
             hostname(),
 
         "environment":
-
             RAW_DATA["environment"].get(
-
                 "environment",
-
                 "Unknown"
-
             ),
 
         "kernel_logs":
-
             len(
-
                 get_kernel_logs()
-
             ),
 
         "journal_logs":
-
             len(
-
                 get_system_journal_logs()
-
             ),
 
         "authentication_logs":
-
             len(
-
                 get_auth_logs()
-
             ),
 
         "security_events":
-
             len(
-
                 get_security_events()
-
             ),
 
         "failed_logins":
-
             len(
-
                 get_failed_logins()
-
             ),
 
         "failed_services":
-
             len(
-
                 get_failed_services()
-
             ),
 
         "logged_users":
-
             len(
-
                 get_logged_users()
-
             ),
 
         "cron_logs":
-
             len(
-
                 get_cron_logs()
-
             ),
 
         "application_logs":
-
             len(
-
                 get_application_logs()
-
             ),
 
         "existing_logs":
-
             len(
-
                 get_existing_log_files()
-
             ),
 
         "missing_logs":
-
             len(
-
                 get_missing_log_files()
-
             )
-
     }
 
 
@@ -2305,17 +1953,11 @@ def get_snapshot_summary():
 # ============================================================
 
 def print_snapshot():
-
     print(
-
         json.dumps(
-
             get_logs_snapshot(),
-
             indent=4
-
         )
-
     )
 
 
@@ -2324,77 +1966,40 @@ def print_snapshot():
 # ============================================================
 
 def print_summary():
-
     print(
-
         json.dumps(
-
             get_snapshot_summary(),
-
             indent=4
-
         )
-
     )
 
 
-
-
-    # ============================================================
+# ============================================================
 # Temporary Test Output
-#
-# NOTE:
-#
 # This is ONLY for testing.
-#
 # Remove or comment out
-#
-#     write_test_log(snapshot)
-#
-# after verification.
-#
+# write_test_log(snapshot)
 # ============================================================
 
+
 def write_test_log(snapshot):
-
     try:
-
         output = BASE_DIR / "log.txt"
-
-        with open(
-
-            output,
-
-            "w",
-
-            encoding="utf-8"
-
-        ) as file:
-
+        with open(output,"w",encoding="utf-8") as file:
             file.write(
-
                 json.dumps(
-
                     snapshot,
-
                     indent=4
-
                 )
-
             )
 
         logger.info(
-
             "Temporary log.txt updated."
-
         )
 
     except Exception as e:
-
         logger.exception(
-
             f"Unable to write test log: {e}"
-
         )
 
 
@@ -2403,55 +2008,37 @@ def write_test_log(snapshot):
 # ============================================================
 
 def health_check():
-
     logger.info(
-
         "Running health check..."
-
     )
 
     try:
-
         refresh_sources()
-
         snapshot = get_logs_snapshot()
 
         return {
-
             "healthy": True,
-
             "timestamp":
-
                 current_timestamp(),
 
             "hostname":
-
                 hostname(),
 
             "environment":
-
                 RAW_DATA["environment"],
 
             "snapshot_created":
-
                 snapshot is not None
-
         }
 
     except Exception as e:
-
         logger.exception(
-
             f"Health check failed: {e}"
-
         )
 
         return {
-
             "healthy": False,
-
             "error": str(e)
-
         }
 
 
@@ -2459,64 +2046,38 @@ def health_check():
 # Monitor
 # ============================================================
 
-def monitor_logs_continuously(
-
-        interval=10
-
-):
-
+def monitor_logs_continuously(interval=10):
     logger.info(
-
         f"Monitoring every {interval} seconds."
-
     )
 
     while True:
-
         try:
-
             refresh_sources()
-
             snapshot = get_logs_snapshot()
-
             # ---------------------------------------------
             # Temporary testing only
-            # ---------------------------------------------
-
+            # --------------------------------------------
             #write_test_log(snapshot)       ########################################################################################logger
 
             logger.info(
-
                 json.dumps(
-
                     get_snapshot_summary(),
-
                     indent=4
-
                 )
-
             )
-
             time.sleep(interval)
 
         except KeyboardInterrupt:
-
             logger.info(
-
                 "Collector stopped."
-
             )
-
             break
 
         except Exception as e:
-
             logger.exception(
-
                 f"Monitoring error: {e}"
-
             )
-
             time.sleep(interval)
 
 
@@ -2525,82 +2086,54 @@ def monitor_logs_continuously(
 # ============================================================
 
 def main():
-
     logger.info(
-
         "=" * 60
-
     )
 
     logger.info(
-
         "KAISP Universal Log Collector"
-
     )
 
     logger.info(
-
         "=" * 60
-
     )
 
     print(
-
         json.dumps(
-
             get_environment_information(),
-
             indent=4
-
         )
-
     )
-
     status = health_check()
-
     print(
-
         json.dumps(
-
             status,
-
             indent=4
-
         )
-
     )
 
     if status["healthy"]:
-
         print(
-
             "\nHealth Check : PASSED\n"
-
         )
 
     else:
-
         print(
-
             "\nHealth Check : FAILED\n"
-
         )
 
         return
 
     print_summary()
+    print_snapshot()
 
     monitor_logs_continuously(
-
         interval=10
-
     )
-
 
 # ============================================================
 # Entry Point
 # ============================================================
 
 if __name__ == "__main__":
-
     main()

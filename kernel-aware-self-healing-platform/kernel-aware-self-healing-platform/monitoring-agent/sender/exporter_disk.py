@@ -1,5 +1,7 @@
 # Collect the data from the collectors and then set the data to the prometheus format
 
+import json
+
 from prometheus_client import Gauge
 from prometheus_client import generate_latest
 
@@ -229,6 +231,10 @@ disk_per_busy_percentage = Gauge(
 def update_disk_metrics():
 
     disk = get_disk_stats_snapshot()
+
+    print(
+        json.dumps(disk, indent=4)
+    )
 
     # ============================================================
     # Partition Information
