@@ -232,9 +232,9 @@ def update_disk_metrics():
 
     disk = get_disk_stats_snapshot()
 
-    print(
-        json.dumps(disk, indent=4)
-    )
+  #  print(
+   #     json.dumps(disk, indent=4)
+    #)
 
     # ============================================================
     # Partition Information
