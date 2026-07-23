@@ -56,19 +56,20 @@ def update_memory_metrics():
 
     data = get_memory_metrics()
 
+    print(data)
+
     # RAM
     memory_total.set(data["memory"]["total_bytes"])
     memory_available.set(data["memory"]["available_bytes"])
     memory_used.set(data["memory"]["used_bytes"])
     memory_free.set(data["memory"]["free_bytes"])
-    memory_usage_percent.set(
-        data["memory"]["usage_percent"]
-    )
+    memory_usage_percent.set(data["memory"]["usage_percent"])
 
     # Swap
     swap_total.set(data["swap"]["total_bytes"])
     swap_used.set(data["swap"]["used_bytes"])
     swap_free.set(data["swap"]["free_bytes"])
-    swap_usage_percent.set(
-        data["swap"]["usage_percent"]
-    )
+    swap_usage_percent.set(data["swap"]["usage_percent"])
+
+if __name__ == "__main__":
+    update_memory_metrics()

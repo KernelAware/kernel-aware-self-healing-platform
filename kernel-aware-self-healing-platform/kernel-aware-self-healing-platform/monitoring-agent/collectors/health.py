@@ -4,7 +4,7 @@ import subprocess
 import logging
 import time
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelt
 
 # Setup logging
 logging.basicConfig(
