@@ -31,3 +31,13 @@ export const api = {
     return { success: true, message: `Interface ${interfaceName} re-initialized` }
   }
 }
+export async function queryPrometheus(query) {
+
+  const response = await fetch(
+    `http://localhost:9090/api/v1/query?query=${encodeURIComponent(query)}`
+  )
+
+  const json = await response.json()
+
+  return json.data.result
+}
