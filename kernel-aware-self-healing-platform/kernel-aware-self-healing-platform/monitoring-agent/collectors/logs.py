@@ -15,7 +15,7 @@ from datetime import datetime
 
 BASE_DIR = Path(__file__).resolve().parent
 
-LOG_FILE = BASE_DIR / "logs.txt"
+LOG_FILE = BASE_DIR / "Monitoring_Agent_logs.txt"
 
 logging.basicConfig(
     #filename=str(LOG_FILE),      ##################################################################################################  logger to file
@@ -26,9 +26,6 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-logger.info("=" * 60)
-logger.info("KAISP Universal Log Collector Started")
-logger.info("=" * 60)
 
 # Configuration
 DEFAULT_LOG_LINES = 200
@@ -1679,7 +1676,7 @@ def get_statistics_summary():
             get_user_statistics(),
 
         "logs":
-            log_statistics_summary()
+            log_statistics_summary(),
     }
 
 
@@ -1689,6 +1686,40 @@ def get_statistics_summary():
 # Everything comes from RAW_DATA through
 # the collector functions.
 
+def printW(what):
+    try:
+        output = BASE_DIR / "lglogs.txt"
+    
+        with open(output, "w", encoding="utf-8") as file:
+            json.dump(
+                what,
+                file,
+                indent=4
+            )
+    
+    except Exception as e:
+        logger.exception(
+            f"Unable to write lglogs.txt: {e}"
+        )
+
+# ============================================================
+# Log Snapshot
+# ============================================================
+
+def log_snapshot(snapshot):
+    try:
+        logger.info(
+            "\n%s",
+            json.dumps(
+                snapshot,
+                indent=4
+            )
+        )
+
+    except Exception as e:
+        logger.exception(
+            f"Failed to log snapshot: {e}"
+        )
 
 def get_logs_snapshot():
     logger.info("Building logs snapshot...")
@@ -1867,7 +1898,6 @@ def get_logs_snapshot():
             get_statistics_summary()
     }
     logger.info("Logs snapshot created.")
-
     return snapshot
 
 
@@ -1878,7 +1908,7 @@ def get_logs_snapshot():
 def get_snapshot_summary():
     logger.info("Building snapshot summary...")
 
-    return {
+    summery = {
         "timestamp":
             current_timestamp(),
 
@@ -1946,62 +1976,7 @@ def get_snapshot_summary():
                 get_missing_log_files()
             )
     }
-
-
-# ============================================================
-# Print Snapshot
-# ============================================================
-
-def print_snapshot():
-    print(
-        json.dumps(
-            get_logs_snapshot(),
-            indent=4
-        )
-    )
-
-
-# ============================================================
-# Print Summary
-# ============================================================
-
-def print_summary():
-    print(
-        json.dumps(
-            get_snapshot_summary(),
-            indent=4
-        )
-    )
-
-
-# ============================================================
-# Temporary Test Output
-# This is ONLY for testing.
-# Remove or comment out
-# write_test_log(snapshot)
-# ============================================================
-
-
-def write_test_log(snapshot):
-    try:
-        output = BASE_DIR / "log.txt"
-        with open(output,"w",encoding="utf-8") as file:
-            file.write(
-                json.dumps(
-                    snapshot,
-                    indent=4
-                )
-            )
-
-        logger.info(
-            "Temporary log.txt updated."
-        )
-
-    except Exception as e:
-        logger.exception(
-            f"Unable to write test log: {e}"
-        )
-
+    return summery
 
 # ============================================================
 # Health Check
@@ -2045,7 +2020,7 @@ def health_check():
 # ============================================================
 # Monitor
 # ============================================================
-
+"""
 def monitor_logs_continuously(interval=10):
     logger.info(
         f"Monitoring every {interval} seconds."
@@ -2079,12 +2054,12 @@ def monitor_logs_continuously(interval=10):
                 f"Monitoring error: {e}"
             )
             time.sleep(interval)
-
+"""
 
 # ============================================================
 # Main
 # ============================================================
-
+"""
 def main():
     logger.info(
         "=" * 60
@@ -2137,3 +2112,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    """

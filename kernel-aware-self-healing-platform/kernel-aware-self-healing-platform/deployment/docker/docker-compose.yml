@@ -15,6 +15,9 @@ services:
     image: grafana/loki
     ports:
       - "3100:3100"
+    volumes:
+      - ../../loki/config/loki.yml:/etc/loki/config.yml:ro
+    command: -config.file=/etc/loki/config.yml
 
   dashboard:
     build:
