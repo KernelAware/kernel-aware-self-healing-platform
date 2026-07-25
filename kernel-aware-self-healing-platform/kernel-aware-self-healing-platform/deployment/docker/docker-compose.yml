@@ -5,6 +5,8 @@ services:
       - ../../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   grafana:
     image: grafana/grafana
@@ -20,15 +22,7 @@ services:
     ports:
       - "3100:3100"
 
-  monitering-agent:
-    build: ../../monitoring-agent
-    container_name: monitoring-agent
 
-    ports:
-      - "8001:8001"
-
-    volumes:
-      - ./data:/app/data
 
   dashboard:
     build:
