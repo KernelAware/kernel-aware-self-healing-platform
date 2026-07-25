@@ -41,6 +41,7 @@ def metrics():
     Collect the latest system metrics and expose them
     in Prometheus-compatible format.
     """
+    # print(">>> Prometheus requested metrics")
 
     # Collect and update network metrics
     update_network_metrics()
