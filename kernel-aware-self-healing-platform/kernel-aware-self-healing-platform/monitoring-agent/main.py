@@ -1,5 +1,7 @@
 from fastapi import FastAPI
+from fastapi.responses import Response
 from sender.exporter_network import update_network_metrics
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 import threading
 import time
@@ -20,6 +22,9 @@ def collect_metrix():
 
 @app.get("/metrics")
 def metrics():
-    return last_metrix
+    return Response(
+        content=generate_latest(),
+        media_type=CONTENT_TYPE_LATEST
+    )
 
 threading.Thread(target=collect_metrix, daemon=True).start()
