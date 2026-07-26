@@ -3,7 +3,7 @@ global:
   evaluation_interval: 1m
 
 scrape_configs:
-  - job_name: "monitering-agent"
+  - job_name: "monitoring-agent"
     metrics_path: /metrics
     static_configs:
       - targets:
