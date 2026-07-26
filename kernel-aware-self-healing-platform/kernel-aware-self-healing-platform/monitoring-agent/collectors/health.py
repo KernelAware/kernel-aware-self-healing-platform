@@ -555,7 +555,7 @@ def get_hardware_sensors():
 
 def collect():
     """
-    MAIN FUNCTION - called by main.py every 15 seconds.
+    MAIN FUNCTION - called by main.py every 5 seconds.
 
     Collects ALL raw hardware health metrics from Linux kernel
     and returns them as one complete snapshot.

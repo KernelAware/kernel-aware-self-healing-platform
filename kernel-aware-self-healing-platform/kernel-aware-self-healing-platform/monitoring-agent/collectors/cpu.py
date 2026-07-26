@@ -120,7 +120,7 @@ def get_cpu_frequency():
 
 def collect():
     """
-    MAIN FUNCTION - called by main.py every 15 seconds.
+    MAIN FUNCTION - called by main.py every 5 seconds.
 
     Collects all raw CPU metrics from the Linux kernel
     and returns them as one complete snapshot.
