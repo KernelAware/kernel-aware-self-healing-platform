@@ -6,6 +6,8 @@ import SwapUsageBar from '@/components/memory/SwapUsageBar'
 import MemoryHistoryGraph from '@/components/memory/MemoryHistoryGraph'
 import DiskUsageTable from '@/components/disk/DiskUsageTable'
 import DiskIOGraph from '@/components/disk/DiskIOGraph'
+import DiskBusyTime from '@/components/disk/DiskBusyTime'
+import DiskReadWriteSize from '@/components/disk/DiskReadWriteSize'
 
 export default function MemoryDiskPage() {
   return (
@@ -39,6 +41,15 @@ export default function MemoryDiskPage() {
         <div className="grid grid-cols-1 gap-4">
           <DiskUsageTable />
         </div>
+
+        <div className="grid grid-cols-1 gap-4">
+          <DiskBusyTime />
+        </div>
+        
+        <div className="grid grid-cols-1 gap-4">
+          <DiskReadWriteSize />
+        </div>
+
       </div>
     </>
   )
