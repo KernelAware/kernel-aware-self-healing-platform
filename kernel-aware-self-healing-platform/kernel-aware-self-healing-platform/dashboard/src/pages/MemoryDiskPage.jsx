@@ -12,6 +12,7 @@ import DiskReadWriteCount from '@/components/disk/DiskReadWriteCount'
 import DiskReadWriteIOPS from '@/components/disk/DiskReadWriteIOPS'
 import DiskReadWriteLatency from '@/components/disk/DiskReadWriteLatency'
 import DiskReadWriteSpeed from '@/components/disk/DiskReadWriteSpead'
+import DiskReadWriteTime from '@/components/disk/DiskReadWriteTime'
 
 export default function MemoryDiskPage() {
   return (
@@ -37,6 +38,14 @@ export default function MemoryDiskPage() {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <SwapUsageBar />
         </div>
+
+        <div className="mt-8">
+          <PageHeader className="whitespace-nowrap"
+            title="Disk Viewer"
+            description="Unified kernel, service, and container streaming with Prometheus and Grafana. View disk I/O, read/write speed, latency, and more."
+          />
+        </div>
+        
 
         <div className="grid grid-cols-1 gap-4">
           <DiskIOGraph />
@@ -68,6 +77,10 @@ export default function MemoryDiskPage() {
 
         <div className="grid grid-cols-1 gap-4">
           <DiskReadWriteSpeed />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4">
+          <DiskReadWriteTime />
         </div>
 
       </div>
