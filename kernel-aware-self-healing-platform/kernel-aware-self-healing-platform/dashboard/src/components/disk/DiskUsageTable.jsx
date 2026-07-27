@@ -16,7 +16,7 @@ export default function DiskUsageTable() {
       <div className="p-2 space-y-10">
         <div className="overflow-hidden rounded-lg border border-border/60 bg-background shadow-sm">
           <iframe
-            src="http://localhost:3000/d-solo/adqmnxx/disk-metrics?orgId=1&from=now-30m&to=now&timezone=browser&refresh=5s&panelId=panel-3" width="450" height="1020" frameborder="0"
+            src="http://localhost:3000/d-solo/adqmnxx/disk-metrics?orgId=1&from=now-30m&to=now&timezone=browser&refresh=5s&panelId=panel-3" width="450" height="1040" frameborder="0"
             className="w-full max-w-full"
             title="Disk Metrics"
           />
