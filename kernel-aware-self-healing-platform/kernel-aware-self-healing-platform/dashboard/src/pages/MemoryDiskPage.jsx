@@ -30,10 +30,15 @@ export default function MemoryDiskPage() {
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <SwapUsageBar />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4">
           <DiskIOGraph />
         </div>
 
-        <DiskUsageTable />
+        <div className="grid grid-cols-1 gap-4">
+          <DiskUsageTable />
+        </div>
       </div>
     </>
   )
