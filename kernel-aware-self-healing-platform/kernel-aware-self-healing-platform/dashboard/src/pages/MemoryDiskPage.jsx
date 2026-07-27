@@ -9,6 +9,7 @@ import DiskIOGraph from '@/components/disk/DiskIOGraph'
 import DiskBusyTime from '@/components/disk/DiskBusyTime'
 import DiskReadWriteSize from '@/components/disk/DiskReadWriteSize'
 import DiskReadWriteCount from '@/components/disk/DiskReadWriteCount'
+import DiskReadWriteIOPS from '@/components/disk/DiskReadWriteIOPS'
 
 export default function MemoryDiskPage() {
   return (
@@ -53,6 +54,10 @@ export default function MemoryDiskPage() {
 
         <div className="grid grid-cols-1 gap-4">
           <DiskReadWriteCount />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4">
+          <DiskReadWriteIOPS />
         </div>
 
       </div>
