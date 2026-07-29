@@ -24,7 +24,9 @@ export default function NetworkPage() {
 
         <NetworkTrafficGraph />
 
+        {/* Change the grid wrapper or the ConnectionsTable container */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {/* Left Panel takes 1 column */}
           <Panel>
             <PanelHeader title="Interface Diagnostics" icon={Radio} />
             <div className="flex flex-col gap-3 p-4 pt-0">
@@ -55,7 +57,10 @@ export default function NetworkPage() {
             </div>
           </Panel>
 
-          <ConnectionsTable />
+          {/* Right Panel spans the remaining 2 columns */}
+          <div className="lg:col-span-2">
+            <ConnectionsTable />
+          </div>
         </div>
       </div>
     </>

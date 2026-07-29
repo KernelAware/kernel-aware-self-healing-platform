@@ -1,5 +1,8 @@
 # Collect the data from the collectors and then set the data to the prometheus format
 
+import re
+import psutil
+
 from prometheus_client import Gauge
 from prometheus_client import Counter
 from prometheus_client import generate_latest
@@ -78,6 +81,47 @@ network_processes = Gauge(
     "Number of processes using network connections"
 )
 
+network_connection_info = Gauge(
+    "network_connection_info",
+    "Active network connection information",
+    [
+        "connection",
+        "port",
+        "ip",
+        "state",
+        "process"
+    ]
+)
+
+network_process_rate = Gauge(
+    "network_process_network_rate_bytes_per_second",
+    "Network traffic rate per process",
+    [
+        "process"
+    ]
+)
+
+def parse_address(address):
+
+    if not address or address == "()":
+        return "unknown", "unknown"
+
+    ip_match = re.search(
+        r"ip='([^']+)'",
+        address
+    )
+
+    port_match = re.search(
+        r"port=(\d+)",
+        address
+    )
+
+    ip = ip_match.group(1) if ip_match else "unknown"
+
+    port = port_match.group(1) if port_match else "unknown"
+
+    return ip, port
+
 def update_network_metrics():
 
     network = get_network_stats_snapshot()
@@ -135,15 +179,68 @@ def update_network_metrics():
             data["mtu"]
         )
 
-        # Connections
-        network_active_connections.set(
-            len(network["connections"])
+    # Connections
+    connections = network["connections"]
+
+    network_active_connections.set(
+        len(connections)
+    )
+
+    network_connection_info.clear()
+
+    for conn in connections:
+
+        if conn["status"] != "ESTABLISHED":
+            continue
+
+        remote_ip, remote_port = parse_address(
+            conn["remote_address"]
         )
 
-        # Processes
-        network_processes.set(
-            len(network["network_processes"])
+        try:
+            if conn["pid"]:
+                process = psutil.Process(
+                    conn["pid"]
+                )
+
+                process_name = process.name()
+
+                io = process.io_counters()
+
+                process_bytes = (
+                        io.read_bytes +
+                        io.write_bytes
+                )
+
+            else:
+                process_name = "unknown"
+                rate = 0
+
+        except:
+
+            process_name = "unknown"
+            rate = 0
+
+        connection_id = (
+            f"{remote_ip}:{remote_port}:{process_name}"
         )
+
+        network_connection_info.labels(
+            connection=connection_id,
+            port=remote_port,
+            ip=remote_ip,
+            state=conn["status"],
+            process=process_name
+        ).set(1)
+
+        network_process_rate.labels(
+            process=process_name
+        ).set(process_bytes)
+
+    # Processes
+    network_processes.set(
+        len(network["network_processes"])
+    )
 
     return generate_latest().decode("utf-8")
 
