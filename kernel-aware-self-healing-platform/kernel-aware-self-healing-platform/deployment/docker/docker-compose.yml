@@ -10,26 +10,48 @@ services:
     image: grafana/grafana
     ports:
       - "3000:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
     environment:
       - GF_SECURITY_ALLOW_EMBEDDING=true
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
 
+    volumes:
+      - grafana-data:/var/lib/grafana
+
   loki:
     image: grafana/loki
     ports:
       - "3100:3100"
 
-  monitoring-agent:
-    build: ../../monitoring-agent
-    container_name: monitoring-agent
+#  monitoring-agent:
+#    build: ../../monitoring-agent
+#    container_name: monitoring-agent
+#
+#    ports:
+#      - "8001:8001"
+#
+#    volumes:
+#      - ./data:/app/data
 
-    ports:
-      - "8001:8001"
-
-    volumes:
-      - ./data:/app/data
+#  monitoring-agent:
+#    build: ../../monitoring-agent
+#    container_name: monitoring-agent
+#
+#    ports:
+#      - "8001:8001"
+#
+#    volumes:
+#      - ./data:/app/data
+#
+#      # Host information
+#      - /proc:/host/proc:ro
+#      - /sys:/host/sys:ro
+#      - /:/hostfs:ro
+#
+#    pid: host
 
   dashboard:
     build:
@@ -39,3 +61,6 @@ services:
     ports:
       - "8080:80"
     restart: unless-stopped
+
+volumes:
+    grafana-data:

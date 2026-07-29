@@ -2,9 +2,9 @@ from fastapi import FastAPI, Response
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 # Import metric updater functions
-from exporter import update_network_metrics
-from exporter_memory import update_memory_metrics
-
+from sender.exporter_network import update_network_metrics
+from sender.exporter_memory import update_memory_metrics
+from sender.exporter_health import update_health_metrics
 
 # Create FastAPI application
 app = FastAPI(
@@ -48,6 +48,9 @@ def metrics():
 
     # Collect and update memory metrics
     update_memory_metrics()
+
+    # Collect and update health metrics
+    update_health_metrics()
 
     # Generate all registered Prometheus metrics
     prometheus_data = generate_latest()
