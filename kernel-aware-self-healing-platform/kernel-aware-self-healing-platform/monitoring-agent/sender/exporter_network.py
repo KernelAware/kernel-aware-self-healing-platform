@@ -160,7 +160,6 @@ def update_network_metrics():
         network["network_io"]["drops_out"]
     )
 
-    # Interfaces
     for interface, data in network["interfaces"].items():
         network_interface_up.labels(
             interface=interface

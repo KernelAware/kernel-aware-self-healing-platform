@@ -1,24 +1,45 @@
+from fastapi import FastAPI, Response
+from sender.exporter_network import update_network_metrics
+from sender.exporter_cpu import update_cpu_metrics
 from fastapi import FastAPI
 from fastapi.responses import Response
-from sender.exporter_network import update_network_metrics
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from collectors.process import initialize_cpu_measurement
+
+from sender.exporter_network import update_network_metrics
+from sender.exporter_process import update_process_metrics
+from sender.exporter_service import update_service_metrics
 
 import threading
 import time
 
 app = FastAPI()
 
-last_metrix= {}
 
-def collect_metrix():
-    global last_metrix
-    last_metrix = {}
+def collect_metrics():
 
+    initialize_cpu_measurement()
+    time.sleep(2)
     while True:
         Network_Metrics = update_network_metrics()
-        print(Network_Metrics)
+        cpu_metrics = update_cpu_metrics()
+
+        last_metrix = cpu_metrics
+
+        update_network_metrics()
+
+        update_process_metrics()
+
+        update_service_metrics()
 
         time.sleep(1)
+
+
+threading.Thread(
+    target=collect_metrics,
+    daemon=True
+).start()
+
 
 @app.get("/metrics")
 def metrics():
@@ -26,5 +47,3 @@ def metrics():
         content=generate_latest(),
         media_type=CONTENT_TYPE_LATEST
     )
-
-threading.Thread(target=collect_metrix, daemon=True).start()
