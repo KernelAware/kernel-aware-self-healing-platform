@@ -1,3 +1,6 @@
+from fastapi import FastAPI, Response
+from sender.exporter_network import update_network_metrics
+from sender.exporter_cpu import update_cpu_metrics
 from fastapi import FastAPI
 from fastapi.responses import Response
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
@@ -18,6 +21,10 @@ def collect_metrics():
     initialize_cpu_measurement()
     time.sleep(2)
     while True:
+        Network_Metrics = update_network_metrics()
+        cpu_metrics = update_cpu_metrics()
+
+        last_metrix = cpu_metrics
 
         update_network_metrics()
 

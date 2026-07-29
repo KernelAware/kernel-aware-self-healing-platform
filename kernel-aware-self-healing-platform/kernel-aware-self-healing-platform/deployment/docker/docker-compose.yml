@@ -28,7 +28,7 @@ services:
       dockerfile: Dockerfile
     container_name: kernel-aware-dashboard
     ports:
-      - "2020:80"
+      - "8080:80"
     restart: unless-stopped
 
 volumes:
