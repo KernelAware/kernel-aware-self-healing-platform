@@ -1,0 +1,6 @@
+# macOS system files
+.DS_Store
+
+# Postman files
+infrastructure/.postman/
+infrastructure/postman/

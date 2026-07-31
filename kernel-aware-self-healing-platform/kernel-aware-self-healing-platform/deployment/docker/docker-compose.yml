@@ -5,13 +5,17 @@ services:
       - ../../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   grafana:
     image: grafana/grafana
     ports:
       - "3000:3000"
+    environment:
+      - GF_SECURITY_ALLOW_EMBEDDING=true
     volumes:
-      - ../../grafana/grafana.ini:/etc/grafana/grafana.ini
+      - grafana-data:/var/lib/grafana
 
   loki:
     image: grafana/loki
@@ -29,3 +33,6 @@ services:
     ports:
       - "8080:80"
     restart: unless-stopped
+
+volumes:
+  grafana-data:

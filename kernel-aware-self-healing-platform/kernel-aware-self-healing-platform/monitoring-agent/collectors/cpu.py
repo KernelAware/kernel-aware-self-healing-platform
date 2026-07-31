@@ -115,27 +115,77 @@ def get_cpu_frequency():
         logger.error(f"CPU frequency collection failed: {e}")
         return {}
 
+# ─── 5. CPU Times ─────────────────────────────────────────────
 
-# ─── 5. collect() ─────────────────────────────────────────────
+def get_cpu_times():
+    try:
+        times = psutil.cpu_times_percent(interval=1)
+        data = {
+            "user":   times.user,
+            "system": times.system,
+            "idle":   times.idle,
+            "iowait": getattr(times, 'iowait', 0.0),
+            "steal":  getattr(times, 'steal', 0.0)
+        }
+        logger.info(f"CPU Times collected: {data}")
+        return data
+    except Exception as e:
+        logger.error(f"CPU times collection failed: {e}")
+        return {}
+
+
+# ─── 6. CPU Stats ─────────────────────────────────────────────
+
+def get_cpu_stats():
+    try:
+        stats = psutil.cpu_stats()
+        data = {
+            "ctx_switches":    stats.ctx_switches,
+            "interrupts":      stats.interrupts,
+            "soft_interrupts": stats.soft_interrupts
+        }
+        logger.info(f"CPU Stats collected: {data}")
+        return data
+    except Exception as e:
+        logger.error(f"CPU stats collection failed: {e}")
+        return {}
+
+
+# ─── 7. Top CPU Processes ─────────────────────────────────────
+
+def get_top_cpu_processes(limit=5):
+    try:
+        processes = []
+        for proc in psutil.process_iter([
+            'pid', 'name', 'memory_percent', 'status'
+        ]):
+            try:
+                cpu = proc.cpu_percent(interval=0.1)
+                if cpu > 0:
+                    processes.append({
+                        'pid':            proc.pid,
+                        'name':           proc.name(),
+                        'cpu_percent':    cpu,
+                        'memory_percent': proc.memory_percent(),
+                        'status':         proc.status()
+                    })
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+        processes.sort(
+            key=lambda x: x['cpu_percent'],
+            reverse=True
+        )
+        logger.info(f"Top processes collected: {len(processes)}")
+        return processes[:limit]
+    except Exception as e:
+        logger.error(f"Top processes collection failed: {e}")
+        return []
+
+
+# ───── collect() ─────────────────────────────────────────────
 
 def collect():
-    """
-    MAIN FUNCTION - called by main.py every 5 seconds.
 
-    Collects all raw CPU metrics from the Linux kernel
-    and returns them as one complete snapshot.
-
-    This raw data is then forwarded to:
-    → Kafka  (Data Pipeline Layer)
-    → Prometheus (Time Series Storage)
-    → Grafana (Visualization)
-
-    NO anomaly detection here.
-    NO self-healing triggers here.
-    ONLY raw data collection.
-
-    Returns: dict
-    """
     try:
         logger.info("Starting CPU data collection...")
 
@@ -144,7 +194,10 @@ def collect():
             "usage":     get_cpu_usage(),
             "cores":     get_cpu_cores(),
             "load":      get_cpu_load(),
-            "frequency": get_cpu_frequency()
+            "frequency": get_cpu_frequency(),
+            "times": get_cpu_times(),
+            "stats": get_cpu_stats(),
+            "processes": get_top_cpu_processes()
         }
 
         logger.info(
