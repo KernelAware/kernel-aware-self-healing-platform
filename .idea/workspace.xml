@@ -5,17 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="80a84349-3319-409f-8a10-f0aa2f6eb13e" name="Changes" comment="make all relate to disply process and service on grfana and react dashboard">
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/grafana/dashboards/process.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/ContextSwitches.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/ContextSwitches.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/CurrentFrequency.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/CurrentFrequency.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/HardwareInterrupts.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/HardwareInterrupts.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/LogicalCores.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/LogicalCores.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/MaxFrequency.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/MaxFrequency.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/MinFrequency.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/MinFrequency.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/PerformanceOverview.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/PerformanceOverview.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/PhysicalCores.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/PhysicalCores.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/SoftInterrupts.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/SoftInterrupts.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -55,61 +46,61 @@
 }</component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.2964725292385806" />
-      <entry key="MS500" value="3.2926933372253857" />
-      <entry key="S2" value="5.561320323281519" />
-      <entry key="S5" value="6.361215790271903" />
-      <entry key="S10" value="6.668845297579624" />
-      <entry key="S30" value="6.886877171846484" />
-      <entry key="S60" value="6.9449003224868235" />
-      <entry key="M2" value="7.1565610373886805" />
-      <entry key="M5" value="10.001809949781283" />
-      <entry key="M10" value="15.589361313455296" />
-      <entry key="M15" value="20.697261274728508" />
-      <entry key="M30" value="33.67626937704089" />
-      <entry key="H1" value="56.31367250708934" />
-      <entry key="H2" value="94.06863788495224" />
-      <entry key="H4" value="152.5114045803252" />
-      <entry key="D1" value="757.8098781590912" />
-      <entry key="W1" value="1410.3628066752178" />
+      <entry key="MS100" value="1.3763129764560398" />
+      <entry key="MS500" value="1.9566072257682383" />
+      <entry key="S2" value="4.368415870017982" />
+      <entry key="S5" value="6.529693389052365" />
+      <entry key="S10" value="7.628269280634795" />
+      <entry key="S30" value="8.520034622444209" />
+      <entry key="S60" value="9.167895297049334" />
+      <entry key="M2" value="11.409196113547724" />
+      <entry key="M5" value="17.752283841621168" />
+      <entry key="M10" value="25.468800102909398" />
+      <entry key="M15" value="31.58960399210978" />
+      <entry key="M30" value="45.980642516463895" />
+      <entry key="H1" value="69.58441496677733" />
+      <entry key="H2" value="108.06619081049314" />
+      <entry key="H4" value="167.13344027768972" />
+      <entry key="D1" value="772.9076774330259" />
+      <entry key="W1" value="1426.8589879613191" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
       <entry key="MS500" value="0.0" />
       <entry key="S2" value="0.0" />
-      <entry key="S5" value="3.192848682793264E-297" />
-      <entry key="S10" value="5.6505297833278085E-149" />
-      <entry key="S30" value="3.838901292574126E-50" />
-      <entry key="S60" value="1.9984872325770133E-25" />
-      <entry key="M2" value="5.055050278425791E-13" />
-      <entry key="M5" value="1.668125191201609E-5" />
-      <entry key="M10" value="0.005672209726178079" />
-      <entry key="M15" value="0.04001798542748986" />
-      <entry key="M30" value="0.3126236876719266" />
-      <entry key="H1" value="1.2914397942897182" />
-      <entry key="H2" value="3.6285390971017697" />
-      <entry key="H4" value="7.451619875714722" />
-      <entry key="D1" value="42.67180173544567" />
-      <entry key="W1" value="84.4847858305264" />
+      <entry key="S5" value="6.9416469E-316" />
+      <entry key="S10" value="2.634700535990413E-158" />
+      <entry key="S30" value="2.976831888526483E-53" />
+      <entry key="S60" value="5.565126747772424E-27" />
+      <entry key="M2" value="8.435528954787948E-14" />
+      <entry key="M5" value="8.150483588740106E-6" />
+      <entry key="M10" value="0.0039648763555130626" />
+      <entry key="M15" value="0.03151907525889542" />
+      <entry key="M30" value="0.277447620442746" />
+      <entry key="H1" value="1.2166165666406015" />
+      <entry key="H2" value="3.5218559418953537" />
+      <entry key="H4" value="7.341259616914605" />
+      <entry key="D1" value="42.56581588797612" />
+      <entry key="W1" value="84.4547769275685" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="1.171368107612515" />
-      <entry key="MS500" value="3.2081639941530495" />
-      <entry key="S2" value="5.512129572022033" />
-      <entry key="S5" value="6.336928582019511" />
-      <entry key="S10" value="6.65578229454659" />
-      <entry key="S30" value="6.882302320529803" />
-      <entry key="S60" value="6.942583809440476" />
-      <entry key="M2" value="7.155372652464283" />
-      <entry key="M5" value="10.001203571954251" />
-      <entry key="M10" value="15.594500460434524" />
-      <entry key="M15" value="20.73664590912945" />
-      <entry key="M30" value="33.98783157581447" />
-      <entry key="H1" value="57.603262735669944" />
-      <entry key="H2" value="97.69461156988636" />
-      <entry key="H4" value="159.96037874266628" />
-      <entry key="D1" value="800.4794677414812" />
-      <entry key="W1" value="1494.8469827062597" />
+      <entry key="MS100" value="1.3361492233927024" />
+      <entry key="MS500" value="1.9434063278468212" />
+      <entry key="S2" value="4.359135839047011" />
+      <entry key="S5" value="6.5240535501496995" />
+      <entry key="S10" value="7.624973446535447" />
+      <entry key="S30" value="8.518804036682114" />
+      <entry key="S60" value="9.167151005089943" />
+      <entry key="M2" value="11.408527861106595" />
+      <entry key="M5" value="17.75168251720466" />
+      <entry key="M10" value="25.472201785805627" />
+      <entry key="M15" value="31.62048649914998" />
+      <entry key="M30" value="46.25707321401172" />
+      <entry key="H1" value="70.79925005053272" />
+      <entry key="H2" value="111.58553679878572" />
+      <entry key="H4" value="174.47208327149636" />
+      <entry key="D1" value="815.4712849647018" />
+      <entry key="W1" value="1511.3131550630987" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -120,35 +111,35 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python.app.executor&quot;: &quot;Run&quot;,
-    &quot;Python.exporter.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;Python.process.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
-    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;develop&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/pasindu/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.app.executor": "Run",
+    "Python.exporter.executor": "Run",
+    "Python.main.executor": "Run",
+    "Python.process.executor": "Run",
+    "Python.test.executor": "Run",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "develop",
+    "ignore.virus.scanning.warn.message": "true",
+    "junie.onboarding.icon.badge.shown": "true",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/home/pasindu/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/grafana/dashboards",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent" />
@@ -301,7 +292,15 @@
       <option name="project" value="LOCAL" />
       <updated>1785315941515</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="make all relate to disply process and service on grfana and react dashboard">
+      <option name="closed" value="true" />
+      <created>1785476723144</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1785476723144</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
