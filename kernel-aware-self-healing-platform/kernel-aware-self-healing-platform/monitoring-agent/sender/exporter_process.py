@@ -58,7 +58,7 @@ process_uptime = Gauge(
 
 
 process_threads = Gauge(
-    "Number of process threads",
+    "process_threads",
     "Number of threads used by process",
     ["pid", "name"]
 )

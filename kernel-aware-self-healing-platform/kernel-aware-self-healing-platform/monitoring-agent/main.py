@@ -25,6 +25,9 @@ def collect_metrics():
     initialize_cpu_measurement()
     time.sleep(2)
     while True:
+        update_process_metrics()
+
+        update_service_metrics()
 
         update_network_metrics()
 
@@ -37,10 +40,6 @@ def collect_metrics():
         update_cpu_metrics()
 
         update_network_metrics()
-
-        update_process_metrics()
-
-        update_service_metrics()
 
         time.sleep(1)
 
