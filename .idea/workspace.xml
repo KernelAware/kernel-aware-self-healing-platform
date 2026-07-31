@@ -4,28 +4,18 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="80a84349-3319-409f-8a10-f0aa2f6eb13e" name="Changes" comment="make docker.yml file for run grafana , loki ,promithese">
-      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/process/serviceStatus.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/process/totalProcesses.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/process/total_servieses.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/exporter_process.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/exporter_service.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/kernel-aware-self-healing-platform.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/kernel-aware-self-healing-platform.iml" afterDir="false" />
+    <list default="true" id="80a84349-3319-409f-8a10-f0aa2f6eb13e" name="Changes" comment="make all relate to disply process and service on grfana and react dashboard">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/process/ProcessesTable.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/process/ProcessesTable.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/process/ServicesTable.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/process/ServicesTable.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/pages/ProcessPage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/pages/ProcessPage.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/deployment/docker/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/deployment/docker/docker-compose.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure/app.log" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure/app.log" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure/database.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure/model.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure/model.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/Dockerfile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/collectors/process.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/collectors/process.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/collectors/service.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/collectors/service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/ContextSwitches.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/ContextSwitches.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/CurrentFrequency.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/CurrentFrequency.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/HardwareInterrupts.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/HardwareInterrupts.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/LogicalCores.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/LogicalCores.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/MaxFrequency.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/MaxFrequency.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/MinFrequency.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/MinFrequency.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/PerformanceOverview.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/PerformanceOverview.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/PhysicalCores.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/PhysicalCores.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/SoftInterrupts.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/cpu/SoftInterrupts.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/.gitkeep" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/components/process/ProcessesStatus.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/exporter_network.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/exporter_network.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/prometheus/prometheus.yml" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/prometheus/prometheus.yml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -46,7 +36,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="feature/dashboard" />
+        <entry key="$PROJECT_DIR$" value="main" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -65,61 +55,61 @@
 }</component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.2603567859367852" />
-      <entry key="MS500" value="2.6388442249130204" />
-      <entry key="S2" value="3.5635719169212443" />
-      <entry key="S5" value="3.815813082266657" />
-      <entry key="S10" value="3.9062180337686563" />
-      <entry key="S30" value="3.968365231936736" />
-      <entry key="S60" value="3.992057828234777" />
-      <entry key="M2" value="4.225791432691419" />
-      <entry key="M5" value="5.815279233755933" />
-      <entry key="M10" value="7.8627399598861984" />
-      <entry key="M15" value="9.485465744898782" />
-      <entry key="M30" value="16.078738975933454" />
-      <entry key="H1" value="34.96158483587626" />
-      <entry key="H2" value="69.08301416286767" />
-      <entry key="H4" value="123.49400520239219" />
-      <entry key="D1" value="726.3603426298333" />
-      <entry key="W1" value="1366.042924604682" />
+      <entry key="MS100" value="1.2964725292385806" />
+      <entry key="MS500" value="3.2926933372253857" />
+      <entry key="S2" value="5.561320323281519" />
+      <entry key="S5" value="6.361215790271903" />
+      <entry key="S10" value="6.668845297579624" />
+      <entry key="S30" value="6.886877171846484" />
+      <entry key="S60" value="6.9449003224868235" />
+      <entry key="M2" value="7.1565610373886805" />
+      <entry key="M5" value="10.001809949781283" />
+      <entry key="M10" value="15.589361313455296" />
+      <entry key="M15" value="20.697261274728508" />
+      <entry key="M30" value="33.67626937704089" />
+      <entry key="H1" value="56.31367250708934" />
+      <entry key="H2" value="94.06863788495224" />
+      <entry key="H4" value="152.5114045803252" />
+      <entry key="D1" value="757.8098781590912" />
+      <entry key="W1" value="1410.3628066752178" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
       <entry key="MS500" value="0.0" />
-      <entry key="S2" value="2.7149553395816613E-300" />
-      <entry key="S5" value="1.4910941830539145E-120" />
-      <entry key="S10" value="1.2211036742458386E-60" />
-      <entry key="S30" value="1.0692881043026103E-20" />
-      <entry key="S60" value="1.0547396515189708E-10" />
-      <entry key="M2" value="1.1613080245419117E-5" />
-      <entry key="M5" value="0.01467970810003189" />
-      <entry key="M10" value="0.16826611579302875" />
-      <entry key="M15" value="0.3834877375022612" />
-      <entry key="M30" value="0.9677652229479349" />
-      <entry key="H1" value="2.272208758230073" />
-      <entry key="H2" value="4.813032999976076" />
-      <entry key="H4" value="8.582112606786044" />
-      <entry key="D1" value="43.68827526458428" />
-      <entry key="W1" value="84.76939183386992" />
+      <entry key="S2" value="0.0" />
+      <entry key="S5" value="3.192848682793264E-297" />
+      <entry key="S10" value="5.6505297833278085E-149" />
+      <entry key="S30" value="3.838901292574126E-50" />
+      <entry key="S60" value="1.9984872325770133E-25" />
+      <entry key="M2" value="5.055050278425791E-13" />
+      <entry key="M5" value="1.668125191201609E-5" />
+      <entry key="M10" value="0.005672209726178079" />
+      <entry key="M15" value="0.04001798542748986" />
+      <entry key="M30" value="0.3126236876719266" />
+      <entry key="H1" value="1.2914397942897182" />
+      <entry key="H2" value="3.6285390971017697" />
+      <entry key="H4" value="7.451619875714722" />
+      <entry key="D1" value="42.67180173544567" />
+      <entry key="W1" value="84.4847858305264" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="1.2043521847348648" />
-      <entry key="MS500" value="2.6092740787898783" />
-      <entry key="S2" value="3.5527644426762324" />
-      <entry key="S5" value="3.8111057233946934" />
-      <entry key="S10" value="3.9037949608244515" />
-      <entry key="S30" value="3.9675415866073234" />
-      <entry key="S60" value="3.991641042023732" />
-      <entry key="M2" value="4.225547306850892" />
-      <entry key="M5" value="5.829563985385592" />
-      <entry key="M10" value="8.029944795048234" />
-      <entry key="M15" value="9.867474261580579" />
-      <entry key="M30" value="17.044538780032017" />
-      <entry key="H1" value="37.231084821879456" />
-      <entry key="H2" value="73.89289699479774" />
-      <entry key="H4" value="132.07319286257527" />
-      <entry key="D1" value="770.0463728806159" />
-      <entry key="W1" value="1450.811707406173" />
+      <entry key="MS100" value="1.171368107612515" />
+      <entry key="MS500" value="3.2081639941530495" />
+      <entry key="S2" value="5.512129572022033" />
+      <entry key="S5" value="6.336928582019511" />
+      <entry key="S10" value="6.65578229454659" />
+      <entry key="S30" value="6.882302320529803" />
+      <entry key="S60" value="6.942583809440476" />
+      <entry key="M2" value="7.155372652464283" />
+      <entry key="M5" value="10.001203571954251" />
+      <entry key="M10" value="15.594500460434524" />
+      <entry key="M15" value="20.73664590912945" />
+      <entry key="M30" value="33.98783157581447" />
+      <entry key="H1" value="57.603262735669944" />
+      <entry key="H2" value="97.69461156988636" />
+      <entry key="H4" value="159.96037874266628" />
+      <entry key="D1" value="800.4794677414812" />
+      <entry key="W1" value="1494.8469827062597" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -145,7 +135,7 @@
     &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
     &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
     &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;develop&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
     &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
     &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
@@ -303,7 +293,15 @@
       <option name="project" value="LOCAL" />
       <updated>1784096472627</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="make all relate to disply process and service on grfana and react dashboard">
+      <option name="closed" value="true" />
+      <created>1785315941515</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1785315941515</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -316,6 +314,7 @@
     <MESSAGE value="make folder structure" />
     <MESSAGE value="make example infastrure" />
     <MESSAGE value="make docker.yml file for run grafana , loki ,promithese" />
-    <option name="LAST_COMMIT_MESSAGE" value="make docker.yml file for run grafana , loki ,promithese" />
+    <MESSAGE value="make all relate to disply process and service on grfana and react dashboard" />
+    <option name="LAST_COMMIT_MESSAGE" value="make all relate to disply process and service on grfana and react dashboard" />
   </component>
 </project>

@@ -1,10 +1,6 @@
-from fastapi import FastAPI, Response
-from sender.exporter_network import update_network_metrics
 from sender.exporter_cpu import update_cpu_metrics
 from fastapi import FastAPI
 from fastapi.responses import Response
-from prometheus_client import generate_latest
-from sender.exporter_network import update_network_metrics
 from sender.exporter_disk import update_disk_metrics
 from sender.exporter_logs import update_logs_metrics
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
@@ -29,26 +25,16 @@ def collect_metrics():
     initialize_cpu_measurement()
     time.sleep(2)
     while True:
-        try:
-            update_network_metrics()
-        except Exception as exc:
-            logger.exception("Network metrics update failed: %s", exc)
 
-        try:
-            update_disk_metrics()
-        except Exception as exc:
-            logger.exception("Disk metrics update failed: %s", exc)
+        update_network_metrics()
 
-        try:
-            update_logs_metrics()
-        except Exception as exc:
-            logger.exception("Log metrics update failed: %s", exc)
+        update_disk_metrics()
 
-        last_metrix = generate_latest().decode("utf-8")
-        Network_Metrics = update_network_metrics()
-        cpu_metrics = update_cpu_metrics()
+        update_logs_metrics()
 
-        last_metrix = cpu_metrics
+        update_network_metrics()
+
+        update_cpu_metrics()
 
         update_network_metrics()
 
