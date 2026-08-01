@@ -56,7 +56,7 @@ def update_memory_metrics():
 
     data = get_memory_metrics()
 
-    print(data)
+    # print(data)
 
     # RAM
     memory_total.set(data["memory"]["total_bytes"])
