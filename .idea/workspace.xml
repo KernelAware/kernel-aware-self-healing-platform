@@ -4,10 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="80a84349-3319-409f-8a10-f0aa2f6eb13e" name="Changes" comment="make docker.yml file for run grafana , loki ,promithese">
+    <list default="true" id="80a84349-3319-409f-8a10-f0aa2f6eb13e" name="Changes" comment="make all relate to disply process and service on grfana and react dashboard">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/docker-compose.yml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/deployment/docker/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/deployment/docker/docker-compose.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/grafana/dashboards/.gitkeep" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/exporter_process.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/exporter_process.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -20,15 +21,15 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="Python Script" />
         <option value="Dockerfile" />
+        <option value="Python Script" />
       </list>
     </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="feature/dashboard" />
+        <entry key="$PROJECT_DIR$" value="main" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -47,61 +48,61 @@
 }</component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.0000002732666324" />
-      <entry key="MS500" value="1.1103878146964625" />
-      <entry key="S2" value="4.293995303742802" />
-      <entry key="S5" value="10.471169357018706" />
-      <entry key="S10" value="17.356610896623295" />
-      <entry key="S30" value="29.44812057676064" />
-      <entry key="S60" value="37.54878561165108" />
-      <entry key="M2" value="46.95439236302444" />
-      <entry key="M5" value="71.74351498114264" />
-      <entry key="M10" value="104.43707689520109" />
-      <entry key="M15" value="126.99453647477908" />
-      <entry key="M30" value="176.6851210756803" />
-      <entry key="H1" value="245.91475088383396" />
-      <entry key="H2" value="327.4532560235325" />
-      <entry key="H4" value="419.93751051664566" />
-      <entry key="D1" value="673.9911402235812" />
-      <entry key="W1" value="791.8753181934791" />
+      <entry key="MS100" value="1.2356149169898611" />
+      <entry key="MS500" value="3.050474027946551" />
+      <entry key="S2" value="8.170424551140272" />
+      <entry key="S5" value="12.561940755830971" />
+      <entry key="S10" value="14.92259033658366" />
+      <entry key="S30" value="16.880527411675153" />
+      <entry key="S60" value="17.42754269572125" />
+      <entry key="M2" value="17.710509411337284" />
+      <entry key="M5" value="17.88449414837218" />
+      <entry key="M10" value="18.14058807762875" />
+      <entry key="M15" value="19.204952486899966" />
+      <entry key="M30" value="27.104838252428717" />
+      <entry key="H1" value="48.98764478413672" />
+      <entry key="H2" value="90.12189288657376" />
+      <entry key="H4" value="154.53969204314538" />
+      <entry key="D1" value="765.2993525718852" />
+      <entry key="W1" value="1438.0075075887764" />
     </decayedCancelled>
     <decayedSelected>
-      <entry key="MS100" value="1.3569724222973086E-78" />
-      <entry key="MS500" value="2.670018093060949E-16" />
-      <entry key="S2" value="1.2782875264251696E-4" />
-      <entry key="S5" value="0.02771095036426812" />
-      <entry key="S10" value="0.16646662299059917" />
-      <entry key="S30" value="0.558339494993477" />
-      <entry key="S60" value="0.8327589929522194" />
-      <entry key="M2" value="1.1848811205324663" />
-      <entry key="M5" value="1.9666262322282373" />
-      <entry key="M10" value="3.0768738242393714" />
-      <entry key="M15" value="3.920697787767001" />
-      <entry key="M30" value="5.456284135566879" />
-      <entry key="H1" value="7.501525644452346" />
-      <entry key="H2" value="11.961943946880336" />
-      <entry key="H4" value="20.00859960126977" />
-      <entry key="D1" value="45.71145687035809" />
-      <entry key="W1" value="56.739160941185695" />
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="0.0" />
+      <entry key="S5" value="0.0" />
+      <entry key="S10" value="9.851934546434214E-285" />
+      <entry key="S30" value="2.1446235072501316E-95" />
+      <entry key="S60" value="4.7236035066633425E-48" />
+      <entry key="M2" value="2.4576017558715194E-24" />
+      <entry key="M5" value="4.976718228215705E-10" />
+      <entry key="M10" value="3.098200259958268E-5" />
+      <entry key="M15" value="0.001241156917943171" />
+      <entry key="M30" value="0.05505637545475506" />
+      <entry key="H1" value="0.5419597480664926" />
+      <entry key="H2" value="2.3505973420496855" />
+      <entry key="H4" value="5.997550443064512" />
+      <entry key="D1" value="41.155528524116185" />
+      <entry key="W1" value="84.04924607636492" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.003448309961441688" />
-      <entry key="MS500" value="0.4299896837137021" />
-      <entry key="S2" value="4.031506048677295" />
-      <entry key="S5" value="10.363362486893344" />
-      <entry key="S10" value="17.419414108750235" />
-      <entry key="S30" value="29.938699507228574" />
-      <entry key="S60" value="38.331019367318724" />
-      <entry key="M2" value="48.09949904808789" />
-      <entry key="M5" value="73.68259255395488" />
-      <entry key="M10" value="107.49356693863933" />
-      <entry key="M15" value="130.8984197272225" />
-      <entry key="M30" value="182.12995002232503" />
-      <entry key="H1" value="253.40839611658555" />
-      <entry key="H2" value="339.40891146404283" />
-      <entry key="H4" value="439.94069841581495" />
-      <entry key="D1" value="719.7003648227803" />
-      <entry key="W1" value="848.6140759988631" />
+      <entry key="MS100" value="1.211355478253202" />
+      <entry key="MS500" value="3.0356036842561767" />
+      <entry key="S2" value="8.156816893339796" />
+      <entry key="S5" value="12.552881954591003" />
+      <entry key="S10" value="14.917080105630689" />
+      <entry key="S30" value="16.87841877869898" />
+      <entry key="S60" value="17.42645035882204" />
+      <entry key="M2" value="17.70995340630234" />
+      <entry key="M5" value="17.884269305123063" />
+      <entry key="M10" value="18.14050185105279" />
+      <entry key="M15" value="19.20609328175817" />
+      <entry key="M30" value="27.15965513811779" />
+      <entry key="H1" value="49.52879208674512" />
+      <entry key="H2" value="92.4708055750294" />
+      <entry key="H4" value="160.5351000807808" />
+      <entry key="D1" value="806.4527451206043" />
+      <entry key="W1" value="1522.0561466552695" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -112,36 +113,38 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python.app.executor&quot;: &quot;Run&quot;,
-    &quot;Python.exporter.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;Python.process.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
-    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/pasindu/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.app.executor": "Run",
+    "Python.exporter.executor": "Run",
+    "Python.main.executor": "Run",
+    "Python.process.executor": "Run",
+    "Python.test.executor": "Run",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "develop",
+    "ignore.virus.scanning.warn.message": "true",
+    "junie.onboarding.icon.badge.shown": "true",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/home/pasindu/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/grafana/dashboards",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/grafana/dashboards" />
       <recent name="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent" />
       <recent name="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure" />
     </key>
@@ -260,7 +263,55 @@
       <option name="project" value="LOCAL" />
       <updated>1784092585405</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="make docker.yml file for run grafana , loki ,promithese">
+      <option name="closed" value="true" />
+      <created>1784093136494</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1784093136494</updated>
+    </task>
+    <task id="LOCAL-00010" summary="make docker.yml file for run grafana , loki ,promithese">
+      <option name="closed" value="true" />
+      <created>1784096135796</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1784096135796</updated>
+    </task>
+    <task id="LOCAL-00011" summary="make docker.yml file for run grafana , loki ,promithese">
+      <option name="closed" value="true" />
+      <created>1784096472627</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1784096472627</updated>
+    </task>
+    <task id="LOCAL-00012" summary="make all relate to disply process and service on grfana and react dashboard">
+      <option name="closed" value="true" />
+      <created>1785315941515</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1785315941515</updated>
+    </task>
+    <task id="LOCAL-00013" summary="make all relate to disply process and service on grfana and react dashboard">
+      <option name="closed" value="true" />
+      <created>1785476723144</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1785476723144</updated>
+    </task>
+    <task id="LOCAL-00014" summary="make all relate to disply process and service on grfana and react dashboard">
+      <option name="closed" value="true" />
+      <created>1785511740769</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1785511740769</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -273,6 +324,7 @@
     <MESSAGE value="make folder structure" />
     <MESSAGE value="make example infastrure" />
     <MESSAGE value="make docker.yml file for run grafana , loki ,promithese" />
-    <option name="LAST_COMMIT_MESSAGE" value="make docker.yml file for run grafana , loki ,promithese" />
+    <MESSAGE value="make all relate to disply process and service on grfana and react dashboard" />
+    <option name="LAST_COMMIT_MESSAGE" value="make all relate to disply process and service on grfana and react dashboard" />
   </component>
 </project>

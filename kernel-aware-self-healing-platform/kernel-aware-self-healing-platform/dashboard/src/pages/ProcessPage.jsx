@@ -2,7 +2,11 @@ import React from 'react'
 import { ListFilter, Zap } from 'lucide-react'
 import { PageHeader, ActionButton, Panel, ProgressBar, CircularGauge } from '@/components/kit'
 import ServicesTable from '@/components/process/ServicesTable'
-import ProcessesTable from '@/components/process/ProcessesTable'
+import ProcessesTable from '../components/process/ProcessesTable'
+import T0talProcesses from "../components/process/totalProcesses.jsx";
+import Total_servieses from "../components/process/total_servieses.jsx";
+import ProcessesStatus from "../components/process/ProcessesStatus.jsx";
+import ServiceStatus from "../components/process/serviceStatus.jsx";
 
 export default function ProcessPage() {
   return (
@@ -19,39 +23,45 @@ export default function ProcessPage() {
       />
 
       <div className="space-y-4">
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <ServicesTable />
-
-          <div className="flex flex-col gap-4">
-            <Panel className="p-4">
-              <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Worker Threads Utilization</p>
-              <p className="mt-2 text-4xl font-bold text-primary">84.2%</p>
-              <div className="mt-4 space-y-3">
-                <div>
-                  <div className="mb-1 flex justify-between font-mono text-[11px]"><span className="text-muted-foreground">User Execution</span><span className="text-foreground">62%</span></div>
-                  <ProgressBar value={62} tone="success" />
-                </div>
-                <div>
-                  <div className="mb-1 flex justify-between font-mono text-[11px]"><span className="text-muted-foreground">Kernel Execution</span><span className="text-foreground">22.2%</span></div>
-                  <ProgressBar value={22} tone="info" />
-                </div>
+       <div
+          className="grid grid-cols-1 gap-4 lg:grid-cols-3"
+          style={{
+            display: "flex",
+            flexDirection: "row",
+          }}
+        >
+          <div className="flex flex-col gap-4" style={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            width: "100%",
+          }}>
+            <Panel className="p-4" style={{display:"flex" ,flexDirection: "column"}}>
+              <div>
+                <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Processes Info Summery</p>
+              </div>
+              <div style={{display:"flex" , flexDirection: "row ",justifyContent: "space-between",gap:"3px",
+            width: "100%",}}>
+                  <div style={{flex:1}}><T0talProcesses/></div>
+                  <div style={{flex:2}}><ProcessesStatus/></div>
               </div>
             </Panel>
 
-            <Panel className="p-4">
-              <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Heuristic Health Score</p>
-              <div className="mt-2 flex items-center gap-4">
-                <CircularGauge value={94} tone="success" size={90} />
-                <div>
-                  <p className="font-mono text-sm text-primary">Status: Excellent</p>
-                  <p className="mt-1 text-xs text-muted-foreground text-pretty">Based on 142 service telemetry points and kernel performance metrics.</p>
-                </div>
+            <Panel className="p-4" style={{display:"flex" ,flexDirection: "column"}}>
+              <div>
+                <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Processes Info Summery</p>
+              </div>
+              <div style={{display:"flex" , flexDirection: "row ",justifyContent: "space-between",gap:"3px",
+            width: "100%",}}>
+                  <div style={{flex:1}}><Total_servieses/></div>
+                  <div style={{flex:2}}><ServiceStatus/></div>
               </div>
             </Panel>
           </div>
         </div>
-
         <ProcessesTable />
+        <ServicesTable/>
       </div>
     </>
   )
