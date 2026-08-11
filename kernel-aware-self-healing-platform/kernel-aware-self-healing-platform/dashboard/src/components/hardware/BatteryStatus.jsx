@@ -4,23 +4,21 @@ import { Panel, PanelHeader, ProgressBar } from '@/components/kit'
 
 export default function BatteryStatus() {
   return (
-    <Panel>
-      <PanelHeader title="Power Unit (PSU)" icon={Zap} />
-      <div className="p-4 pt-0">
-        <div className="flex items-center justify-between font-mono text-xs">
-          <span className="text-muted-foreground">Current Load</span>
-          <span className="text-foreground">412W</span>
-        </div>
-        <ProgressBar value={52} tone="info" className="my-3" />
-        <div className="grid grid-cols-2 gap-2">
-          {[['Efficiency', '94.2%'], ['Input Volts', '230.1V']].map(([k, v]) => (
-            <div key={k} className="rounded-md border border-border bg-secondary/30 p-3">
-              <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{k}</p>
-              <p className="mt-1 font-mono text-sm text-primary">{v}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </Panel>
+      <Panel>
+          <div className="flex gap-4">
+            <iframe
+              src="http://localhost:3000/d-solo/adkfxpq/core-temparature?orgId=1&from=now-5m&to=now&refresh=5s&showCategory=Panel%20links&panelId=panel-4"
+              className="flex-1 h-62.5 w-50"
+              frameBorder="0"
+            />
+
+            <iframe
+              src="http://localhost:3000/d-solo/adkfxpq/core-temparature?orgId=1&from=now-5m&to=now&refresh=5s&showCategory=Panel%20links&panelId=panel-5"
+              className="flex-1 h-62.5 w-50"
+              frameBorder="0"
+            />
+          </div>
+
+      </Panel>
   )
 }
