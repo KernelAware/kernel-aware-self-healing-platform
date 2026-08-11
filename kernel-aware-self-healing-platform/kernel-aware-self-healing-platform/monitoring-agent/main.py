@@ -9,6 +9,8 @@ from collectors.process import initialize_cpu_measurement
 from sender.exporter_network import update_network_metrics
 from sender.exporter_process import update_process_metrics
 from sender.exporter_service import update_service_metrics
+from sender.exporter_memory import update_memory_metrics
+from sender.exporter_health import update_health_metrics
 
 import logging
 import threading
@@ -40,8 +42,10 @@ def collect_metrics():
         update_cpu_metrics()
 
         update_network_metrics()
+        
+        update_memory_metrics()
 
-        time.sleep(1)
+        update_health_metrics()
 
 
 threading.Thread(
