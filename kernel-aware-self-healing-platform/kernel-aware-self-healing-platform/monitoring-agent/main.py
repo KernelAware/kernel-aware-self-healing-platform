@@ -1,61 +1,62 @@
-from fastapi import FastAPI, Response
+from sender.exporter_cpu import update_cpu_metrics
+from fastapi import FastAPI
+from fastapi.responses import Response
+from sender.exporter_disk import update_disk_metrics
+from sender.exporter_logs import update_logs_metrics
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from collectors.process import initialize_cpu_measurement
 
-# Import metric updater functions
 from sender.exporter_network import update_network_metrics
+from sender.exporter_process import update_process_metrics
+from sender.exporter_service import update_service_metrics
 from sender.exporter_memory import update_memory_metrics
 from sender.exporter_health import update_health_metrics
 
-# Create FastAPI application
-app = FastAPI(
-    title="Kernel-Aware Monitoring Agent",
-    description="Monitoring agent for collecting and exposing Linux system metrics",
-    version="1.0.0"
-)
+import logging
+import threading
+import time
+
+app = FastAPI()
+logger = logging.getLogger(__name__)
+
+last_metrix = ""
 
 
-@app.get("/")
-def root():
-    """
-    Basic endpoint to check whether the monitoring agent is running.
-    """
-    return {
-        "status": "running",
-        "service": "Kernel-Aware Monitoring Agent"
-    }
+def collect_metrics():
+
+    initialize_cpu_measurement()
+    time.sleep(2)
+    while True:
+        update_process_metrics()
+
+        update_service_metrics()
+
+        update_network_metrics()
+
+        update_disk_metrics()
+
+        update_logs_metrics()
+
+        update_network_metrics()
+
+        update_cpu_metrics()
+
+        update_network_metrics()
+        
+        update_memory_metrics()
+
+        update_health_metrics()
 
 
-@app.get("/health")
-def health():
-    """
-    Health check endpoint.
-    """
-    return {
-        "status": "healthy"
-    }
+threading.Thread(
+    target=collect_metrics,
+    daemon=True
+).start()
 
 
 @app.get("/metrics")
 def metrics():
-    """
-    Collect the latest system metrics and expose them
-    in Prometheus-compatible format.
-    """
-    # print(">>> Prometheus requested metrics")
-
-    # Collect and update network metrics
-    update_network_metrics()
-
-    # Collect and update memory metrics
-    update_memory_metrics()
-
-    # Collect and update health metrics
-    update_health_metrics()
-
-    # Generate all registered Prometheus metrics
-    prometheus_data = generate_latest()
-
     return Response(
-        content=prometheus_data,
+        content=generate_latest(),
         media_type=CONTENT_TYPE_LATEST
     )
