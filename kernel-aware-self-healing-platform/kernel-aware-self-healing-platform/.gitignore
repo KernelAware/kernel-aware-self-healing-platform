@@ -4,3 +4,11 @@
 # Postman files
 infrastructure/.postman/
 infrastructure/postman/
+
+network.cpython-314.pyc
+cpu.cpython-314.pyc
+process.cpython-314.pyc
+service.cpython-314.pyc
+
+monitoring-agent/sender/__pycache__/
+monitoring-agent/__pycache__/
