@@ -198,6 +198,8 @@ def update_network_metrics():
         )
 
         try:
+            process_bytes = 0
+
             if conn["pid"]:
                 process = psutil.Process(
                     conn["pid"]
@@ -214,12 +216,10 @@ def update_network_metrics():
 
             else:
                 process_name = "unknown"
-                rate = 0
 
-        except:
-
+        except Exception:
             process_name = "unknown"
-            rate = 0
+            process_bytes = 0
 
         connection_id = (
             f"{remote_ip}:{remote_port}:{process_name}"
