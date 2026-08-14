@@ -67,8 +67,8 @@ function Toggle({ checked, onChange }) {
 }
 function TagPill({ label, onRemove }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded bg-secondary/70 border border-border px-2 py-0.5 font-mono text-[11px] text-foreground">
-      {label}<button onClick={onRemove} className="text-muted-foreground hover:text-foreground cursor-pointer ml-0.5"><X className="size-2.5" /></button>
+    <span className="inline-flex items-center gap-1.5 rounded-md bg-[#162026] border border-white/5 px-2 py-1 font-mono text-[12px] text-foreground">
+      {label}<button onClick={onRemove} className="text-muted-foreground hover:text-foreground cursor-pointer"><X className="size-3" /></button>
     </span>
   )
 }
@@ -99,7 +99,7 @@ function SelectBox({ value, options, onChange, className }) {
 }
 function WizardProgress({ current }) {
   return (
-    <div className="flex items-center justify-between py-8 px-2 overflow-x-auto relative mb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+    <div className="flex items-center justify-between pt-2 pb-6 px-6 overflow-x-auto relative mb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
       {STEP_DEFS.map((s, i) => {
         const done = s.num < current
         const active = s.num === current
@@ -120,7 +120,7 @@ function WizardProgress({ current }) {
               </span>
             </div>
             {i < STEP_DEFS.length - 1 && (
-              <div className={cn("flex-1 h-px min-w-[20px] -mt-5 transition-colors", 
+              <div className={cn("flex-1 h-px min-w-[20px] transition-colors", 
                 done ? "bg-primary/50" : "bg-border"
               )} />
             )}
@@ -137,20 +137,7 @@ function StepNav({ current, onBack, onNext, nextLabel = "Next" }) {
       <button onClick={onBack} className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card px-5 font-mono text-xs text-foreground hover:bg-secondary transition-colors cursor-pointer">
         <ArrowLeft className="size-3.5" /> Back
       </button>
-      <div className="flex items-center gap-0.5 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        {STEP_DEFS.map((s, i) => {
-          const done = s.num < current; const active = s.num === current
-          return (
-            <React.Fragment key={s.num}>
-              {i > 0 && <div className={cn("h-px w-3 shrink-0", done ? "bg-primary/60" : "bg-border")} />}
-              <div className={cn("flex size-6 items-center justify-center rounded-full border font-mono text-[10px] font-bold shrink-0",
-                active ? "border-primary bg-primary text-primary-foreground" : done ? "border-primary/60 bg-primary/15 text-primary" : "border-border bg-card text-muted-foreground")}>
-                {done ? <Check className="size-3" /> : s.num}
-              </div>
-            </React.Fragment>
-          )
-        })}
-      </div>
+      <div className="flex-1"></div>
       <button onClick={onNext} className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-5 font-mono text-xs font-bold text-primary-foreground hover:bg-primary/90 shadow-glow-primary transition-colors cursor-pointer">
         {nextLabel} <ArrowRight className="size-3.5" />
       </button>
@@ -176,92 +163,72 @@ function Step1({ form, setForm, onNext, onCancel }) {
     <div className="flex gap-6 items-start">
       <div className="flex-1 min-w-0">
         <Panel className="p-6">
-          <div className="mb-6"><p className="font-mono text-[14px] uppercase tracking-widest text-primary font-bold">1. BASIC INFORMATION</p><p className="text-[13px] text-muted-foreground mt-1">Define the basic details for your rule.</p></div>
+          <div className="mb-6"><p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">1. BASIC INFORMATION</p><p className="text-xs text-muted-foreground mt-0.5">Define the basic details for your rule.</p></div>
           <div className="space-y-6">
             <div>
-              <label className="block font-mono text-[12px] text-muted-foreground mb-2">Rule Name <span className="text-destructive">*</span></label>
+              <label className="block font-mono text-[11px] text-foreground mb-1.5">Rule Name <span className="text-destructive">*</span></label>
               <input type="text" value={form.ruleName} maxLength={100} onChange={e => setForm(f => ({ ...f, ruleName: e.target.value }))}
-                className="w-full rounded-md border border-white/5 bg-[#090e11] px-3 py-2.5 font-mono text-[13px] text-foreground focus:border-primary/50 focus:outline-none" placeholder="e.g. High Host CPU" />
-              <div className="flex justify-between mt-1.5">
-                <span className="font-mono text-[11px] text-muted-foreground">A human-readable name for this rule.</span>
-                <span className="font-mono text-[11px] text-muted-foreground">{form.ruleName.length} / 100</span>
+                className="w-full rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground focus:border-ring focus:outline-none" placeholder="e.g. High Host CPU" />
+              <div className="flex justify-between mt-1">
+                <span className="font-mono text-[10px] text-muted-foreground">A human-readable name for this rule.</span>
+                <span className="font-mono text-[10px] text-muted-foreground">{form.ruleName.length} / 100</span>
               </div>
             </div>
             <div>
-              <label className="block font-mono text-[12px] text-muted-foreground mb-2">Description</label>
+              <label className="block font-mono text-[11px] text-foreground mb-1.5">Description</label>
               <textarea value={form.description} maxLength={255} rows={3} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                className="w-full resize-none rounded-md border border-white/5 bg-[#090e11] px-3 py-2.5 font-mono text-[13px] text-foreground focus:border-primary/50 focus:outline-none" />
-              <div className="flex justify-end mt-1.5"><span className="font-mono text-[11px] text-muted-foreground">{form.description.length} / 255</span></div>
+                className="w-full resize-none rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground focus:border-ring focus:outline-none" />
+              <div className="flex justify-end"><span className="font-mono text-[10px] text-muted-foreground">{form.description.length} / 255</span></div>
             </div>
             <div className="grid grid-cols-3 gap-5">
               <div>
-                <label className="block font-mono text-[12px] text-muted-foreground mb-2">Status</label>
-                <div className="flex items-center gap-3 rounded-md border border-white/5 bg-[#090e11] px-3 h-[42px]">
+                <label className="block font-mono text-[11px] text-foreground mb-1.5">Status</label>
+                <div className="flex items-center gap-2.5 rounded-md border border-border bg-card px-3 h-[42px]">
                   <Toggle checked={form.enabled} onChange={v => setForm(f => ({ ...f, enabled: v }))} />
-                  <span className="font-mono text-[13px] text-foreground">{form.enabled ? "Enabled" : "Disabled"}</span>
+                  <span className="font-mono text-xs text-foreground">{form.enabled ? "Enabled" : "Disabled"}</span>
                 </div>
-                <p className="mt-1.5 font-mono text-[11px] text-muted-foreground">Enable or disable this rule.</p>
+                <p className="mt-1 font-mono text-[10px] text-muted-foreground">Enable or disable this rule.</p>
               </div>
               <div>
-                <label className="block font-mono text-[12px] text-muted-foreground mb-2">Priority <span className="text-destructive">*</span></label>
+                <label className="block font-mono text-[11px] text-foreground mb-1.5">Priority <span className="text-destructive">*</span></label>
                 <div className="relative">
                   <span className={cn("pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 inline-block size-2 rounded-full", PMAP[form.priority] || "bg-muted-foreground")} />
                   <select value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}
-                    className="w-full appearance-none rounded-md border border-white/5 bg-[#090e11] pl-8 pr-8 py-2.5 font-mono text-[13px] text-foreground focus:border-primary/50 focus:outline-none cursor-pointer h-[42px]">
+                    className="w-full appearance-none rounded-md border border-border bg-card pl-8 pr-8 py-2.5 font-mono text-xs text-foreground focus:border-ring focus:outline-none cursor-pointer h-[42px]">
                     {["Critical","High","Medium","Low"].map(p => <option key={p} className="bg-card">{p}</option>)}
                   </select>
-                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
                 </div>
-                <p className="mt-1.5 font-mono text-[11px] text-muted-foreground">Select the rule priority.</p>
+                <p className="mt-1 font-mono text-[10px] text-muted-foreground">Select the rule priority.</p>
               </div>
               <div>
-                <label className="block font-mono text-[12px] text-muted-foreground mb-2">Rule Owner <span className="text-destructive">*</span></label>
+                <label className="block font-mono text-[11px] text-foreground mb-1.5">Rule Owner <span className="text-destructive">*</span></label>
                 <div className="relative">
                   <select value={form.owner} onChange={e => setForm(f => ({ ...f, owner: e.target.value }))}
-                    className="w-full appearance-none rounded-md border border-white/5 bg-[#090e11] px-3 pr-8 py-2.5 font-mono text-[13px] text-foreground focus:border-primary/50 focus:outline-none cursor-pointer h-[42px]">
+                    className="w-full appearance-none rounded-md border border-border bg-card px-3 pr-8 py-2.5 font-mono text-xs text-foreground focus:border-ring focus:outline-none cursor-pointer h-[42px]">
                     {["Admin","DevOps","SRE Team","Security"].map(o => <option key={o} className="bg-card">{o}</option>)}
                   </select>
-                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
                 </div>
-                <p className="mt-1.5 font-mono text-[11px] text-muted-foreground">Who owns this rule.</p>
+                <p className="mt-1 font-mono text-[10px] text-muted-foreground">Who owns this rule.</p>
               </div>
             </div>
             <div>
-              <label className="block font-mono text-[12px] text-muted-foreground mb-2">Tags (Optional)</label>
-              <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-white/5 bg-[#090e11] px-3 py-2 min-h-[42px]">
+              <label className="block font-mono text-[11px] text-foreground mb-1.5">Tags (Optional)</label>
+              <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 min-h-[42px]">
                 {form.tags.map(t => <TagPill key={t} label={t} onRemove={() => removeTag(t)} />)}
                 <input value={form.tagInput} onChange={e => setForm(f => ({ ...f, tagInput: e.target.value }))}
                   onKeyDown={e => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addTag(form.tagInput) } }}
                   onBlur={() => { if (form.tagInput.trim()) addTag(form.tagInput) }}
-                  placeholder="" className="flex-1 min-w-[80px] bg-transparent font-mono text-[13px] text-foreground focus:outline-none" />
-                <ChevronDown className="ml-auto size-4 text-muted-foreground shrink-0" />
+                  placeholder="" className="flex-1 min-w-[80px] bg-transparent font-mono text-xs text-foreground focus:outline-none" />
+                <ChevronDown className="ml-auto size-3.5 text-muted-foreground shrink-0" />
               </div>
-              <p className="mt-1.5 font-mono text-[11px] text-muted-foreground">Add tags to categorize this rule.</p>
+              <p className="mt-1 font-mono text-[10px] text-muted-foreground">Add tags to categorize this rule.</p>
             </div>
           </div>
           <div className="mt-8 flex items-center justify-between">
-            <button onClick={onCancel} className="h-10 rounded-md border border-border bg-transparent px-6 font-mono text-[13px] text-foreground hover:bg-white/5 transition-colors cursor-pointer">Cancel</button>
-            <button onClick={onNext} className="inline-flex h-10 items-center gap-2 rounded-md border border-primary bg-transparent px-6 font-mono text-[13px] text-primary hover:bg-primary/10 transition-colors cursor-pointer">Next <ArrowRight className="size-4" /></button>
-          </div>
-        </Panel>
-      </div>
-      <div className="w-[280px] shrink-0">
-        <Panel className="p-5">
-          <p className="mb-5 font-mono text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">RULE SUMMARY (PREVIEW)</p>
-          <div className="space-y-4">
-            {SUMMARY_ITEMS.map(item => { const Icon = item.icon; return (
-              <div key={item.label} className="flex items-start gap-3">
-                <Icon className={cn("size-4 mt-0.5 shrink-0", item.ic)} />
-                <div><p className="font-mono text-[12px] font-medium text-foreground leading-tight">{item.label}</p><p className={cn("font-mono text-[11px] leading-tight mt-1", item.vc)}>{item.value}</p></div>
-              </div>
-            )})}
-          </div>
-          <div className="mt-6 flex gap-3 rounded-md border border-transparent bg-[#090e11] p-4">
-            <BarChart3 className="size-5 text-cyan-500 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-mono text-[11px] font-bold uppercase tracking-wider text-cyan-500 mb-1">ESTIMATED IMPACT</p>
-              <p className="font-mono text-[11px] text-muted-foreground leading-relaxed">This rule will impact 0 hosts<br/>and monitor 0 resources</p>
-            </div>
+            <button onClick={onCancel} className="h-9 rounded-md border border-white/10 bg-[#0d151a] px-5 font-mono text-[13px] text-foreground hover:bg-white/5 transition-colors cursor-pointer">Cancel</button>
+            <button onClick={onNext} className="inline-flex h-9 items-center gap-2 rounded-md border border-primary/50 bg-primary/10 px-5 font-mono text-[13px] text-primary hover:bg-primary/20 transition-colors cursor-pointer">Next <ArrowRight className="size-4" /></button>
           </div>
         </Panel>
       </div>
@@ -791,7 +758,7 @@ export default function PolicyPage() {
           <button key={t.id} onClick={() => { setActiveTab(t.id); if (t.id === "create-rule") setStep(1); }}
             className={cn("flex items-center gap-1.5 px-4 py-2.5 font-mono text-[12px] tracking-wide whitespace-nowrap transition-colors cursor-pointer border-b-2 -mb-px", activeTab === t.id ? "text-primary border-primary" : "text-muted-foreground border-transparent hover:text-foreground")}>
             {t.label}
-            {t.badge != null && <span className="flex size-4 items-center justify-center rounded-full bg-primary/20 text-[9px] font-bold text-primary">{t.badge}</span>}
+            {t.badge != null && <span className="flex size-4 items-center justify-center rounded-full bg-red-900/80 text-[9px] font-bold text-red-200">{t.badge}</span>}
           </button>
         ))}
       </div>
