@@ -18,6 +18,8 @@ export default function Step3({ form, setForm }) {
                 return { ...base, metric: "Disk Usage Percentage", targetType: "Partition (Mount Point)", aggregation: "Average (60s)", condMetric: "Disk Usage %", condThreshold: "", recoveryThreshold: "", condInterval: "Every 30 seconds", actionType: "alert", diskMetricCategory: "Disk", mountPoint: "/ (Root)" };
               } else if (src.id === "memory") {
                 return { ...base, metric: "system_memory_usage_percent", targetType: "Host", aggregation: "Average (Avg)", condMetric: "system_memory_usage_percent", condThreshold: "", recoveryThreshold: "", condInterval: "Every 30 seconds", actionType: "alert", memoryCategory: "ram", memoryMetric: "system_memory_usage_percent" };
+              } else if (src.id === "hardware") {
+                return { ...base, metric: "hardware_cpu_package_temperature_celsius", targetType: "Host", aggregation: "Average (Avg)", condMetric: "hardware_cpu_package_temperature_celsius", condThreshold: "", recoveryThreshold: "", condInterval: "Every 30 seconds", actionType: "alert", hardwareCategory: "CPU Temperature", hardwareMetric: "hardware_cpu_package_temperature_celsius" };
               } else if (src.id === "cpu") {
                 return { ...base, metric: "CPU Usage", targetType: "Host", aggregation: "Average (Avg)", condMetric: "CPU Usage (%)", condThreshold: "", recoveryThreshold: "", condInterval: "Every 30 seconds", actionType: "create-incident" };
               }
