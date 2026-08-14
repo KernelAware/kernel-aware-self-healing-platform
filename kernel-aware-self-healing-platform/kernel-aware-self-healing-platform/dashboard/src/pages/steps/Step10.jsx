@@ -1,8 +1,11 @@
-import { Info } from "lucide-react"
 import { Panel } from "@/components/kit"
 import { SelectBox } from "./wizardComponents"
+import { Info } from "lucide-react"
 
 export default function Step10({ form, setForm }) {
+  const isNetwork = form.monitorSource === "network";
+  const condUnit = isNetwork ? "errors/sec" : "%";
+
   return (
     <Panel className="p-6">
       <div className="mb-6"><p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">10. Verification & Recovery</p><p className="text-xs text-muted-foreground mt-0.5">How recovery is detected for this rule.</p></div>
@@ -14,11 +17,11 @@ export default function Step10({ form, setForm }) {
         <div>
           <label className="block font-mono text-xs font-semibold text-foreground mb-2">Recovery Condition</label>
           <div className="flex items-center gap-2 flex-wrap">
-            <SelectBox value="CPU Usage (%)" options={["CPU Usage (%)","Memory Usage (%)"]} onChange={() => {}} className="flex-1 min-w-[140px]" />
+            <SelectBox value={isNetwork ? "Error Rate (errors/sec)" : "CPU Usage (%)"} options={isNetwork ? ["Error Rate (errors/sec)", "Packet Loss (%)"] : ["CPU Usage (%)","Memory Usage (%)"]} onChange={() => {}} className="flex-1 min-w-[140px]" />
             <SelectBox value="Less Than (<)" options={["Less Than (<)","Greater Than (>)"]} onChange={() => {}} className="w-36" />
             <input type="number" value={form.recoveryThreshold} onChange={e => setForm(f => ({ ...f, recoveryThreshold: e.target.value }))}
               className="w-16 rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground text-center focus:border-ring focus:outline-none" />
-            <span className="font-mono text-xs text-muted-foreground">%</span>
+            <span className="font-mono text-xs text-muted-foreground">{condUnit}</span>
           </div>
         </div>
         <div>
@@ -28,7 +31,7 @@ export default function Step10({ form, setForm }) {
               className="w-16 rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground text-center focus:border-ring focus:outline-none" />
             <SelectBox value="Minutes" options={["Seconds","Minutes"]} onChange={() => {}} className="w-28" />
           </div>
-          <p className="mt-1 font-mono text-[10px] text-muted-foreground">Condition must be true for the duration to be marked as recovered.</p>
+          <p className="mt-1 font-mono text-[10px] text-muted-foreground">Condition must be met for the duration, the incident is marked as recovered.</p>
         </div>
       </div>
     </Panel>
