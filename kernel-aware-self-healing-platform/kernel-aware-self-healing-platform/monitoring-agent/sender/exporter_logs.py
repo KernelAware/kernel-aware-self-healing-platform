@@ -44,7 +44,7 @@ JOB_NAME = "kaisp_logs"
 
 LOKI_URL = (
     f"http://{MONITORING_SERVER}:{LOKI_PORT}"
-    "/loki/api/v1/push"
+    "/loki/routers/v1/push"
 )
 
 
