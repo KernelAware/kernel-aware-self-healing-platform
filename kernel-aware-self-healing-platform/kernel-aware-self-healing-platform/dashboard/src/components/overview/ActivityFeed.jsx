@@ -7,7 +7,7 @@ const activity = [
   { time: '14:04:48', tag: 'SELF_HEAL', tone: 'warning', text: 'Self-healing: Restarted nginx on node-12. Reason: Hung process detected' },
   { time: '14:04:22', tag: 'KERNEL_EV', tone: 'info', text: 'TCP Retransmission spike detected on eth0 (node-08)' },
   { time: '14:03:55', tag: 'SYSTEM_LOG', tone: 'muted', text: 'Cron job [daily_cleanup] completed successfully in 0.4s' },
-  { time: '14:03:10', tag: 'eBPF_PROBE', tone: 'success', text: 'New network profile generated for svc-billing-api' },
+  { time: '14:03:10', tag: 'eBPF_PROBE', tone: 'success', text: 'New network profile generated for svc-billing-routers' },
   { time: '14:02:45', tag: 'KERNEL_EV', tone: 'info', text: 'Memory pressure event in cgroup: /user.slice/user-1000.slice' },
 ]
 
