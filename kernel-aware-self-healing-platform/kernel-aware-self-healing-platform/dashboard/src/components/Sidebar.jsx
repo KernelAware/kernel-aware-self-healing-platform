@@ -12,7 +12,8 @@ import {
   ScrollText,
   ShieldCheck,
   FileText,
-  Settings
+  Settings,
+  FileCog
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 
@@ -26,6 +27,7 @@ const mainNav = [
   { label: 'Alerts & Incidents', href: '/alerts', icon: TriangleAlert },
   { label: 'Self-Healing Status', href: '/self-healing', icon: WandSparkles },
   { label: 'Logs Viewer', href: '/logs', icon: ScrollText },
+  { label: 'Policy & Rules Engine', href: '/policy', icon: FileCog },
   { label: 'System Settings', href: '/settings', icon: Settings },
 ]
 
