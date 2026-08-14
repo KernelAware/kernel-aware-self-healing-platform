@@ -25,7 +25,8 @@ export const MONITOR_SOURCES = [
 ]
 
 export const ACTION_TYPES = [
-  { id: "restart-service", title: "Restart Service", desc: "Restart a system service managed by the system.", bg: "bg-emerald-700", icon: RefreshCw },
+  { id: "alert", title: "Alert", desc: "Create incident and notify.", bg: "bg-emerald-700", icon: Shield },
+  { id: "restart-service", title: "Restart Service", desc: "Restart a system service managed by the system.", bg: "bg-blue-600", icon: RefreshCw },
   { id: "start-service", title: "Start Service", desc: "Start a stopped service managed by the system.", bg: "bg-blue-600", icon: Play },
   { id: "stop-service", title: "Stop Service", desc: "Stop a running service managed by the system.", bg: "bg-orange-700", icon: Square },
   { id: "kill-process", title: "Kill Process", desc: "Terminate a misbehaving process.", bg: "bg-red-700", icon: X },
@@ -42,16 +43,16 @@ export const ACTION_TYPES = [
 ]
 
 export const INITIAL_FORM = {
-  ruleName: "High Host CPU", description: "Detect sustained CPU pressure on production hosts\nand create an alert.",
-  enabled: true, priority: "High", owner: "Admin", tags: ["cpu","performance","auto-heal"], tagInput: "",
-  environment: "Production", region: "US-East-1", applyTo: "host-groups", hostGroups: ["Web Servers","App Servers"],
-  monitorSource: "cpu", metric: "CPU Usage", targetType: "Host", host: "web-01.prod.local", aggregation: "Average (Avg)",
-  condMetric: "CPU Usage (%)", condOperator: "Greater Than (>)", condThreshold: "90", condDuration: "5", condInterval: "Every 30 seconds", condOccurrences: "3", condOutOf: "5",
+  ruleName: "", description: "",
+  enabled: true, priority: "High", owner: "Admin", tags: [], tagInput: "",
+  environment: "Production", region: "US-East-1", applyTo: "host-groups", hostGroups: [],
+  monitorSource: "cpu", metric: "CPU Usage", targetType: "Host", host: "", interface: "eth0", direction: "Incoming", aggregation: "Average (Avg)",
+  condMetric: "CPU Usage (%)", condOperator: "Greater Than (>)", condThreshold: "", condDuration: "", condInterval: "Every 30 seconds", condOccurrences: "", condOutOf: "",
   severity: "high", actionType: "create-incident",
   autoExec: true, approvalRequired: "high-critical", allowedDuring: "always",
-  cooldownPeriod: "10", suppressDups: false, enableDedup: false,
-  recoveryThreshold: "80", recoveryDuration: "2",
-  notifyEvents: ["Incident detected","Condition recovered","Remediation started","Remediation successful"],
-  notifyChannels: ["email"], notifyRecipients: ["ops-team@company.com"],
+  cooldownPeriod: "", suppressDups: false, enableDedup: false,
+  recoveryThreshold: "", recoveryDuration: "",
+  notifyEvents: [],
+  notifyChannels: [], notifyRecipients: [],
   schedule: "always", suppressMaintenance: false,
 }

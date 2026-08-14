@@ -58,7 +58,15 @@ export default function Step13({ form, onCancel }) {
           <Panel className="p-4"><p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Monitor & Target</p>
             <div className="space-y-1.5 font-mono text-xs">
               <div className="flex gap-2"><span className="text-muted-foreground w-14 shrink-0">Metric:</span><span className="text-foreground">{form.metric}</span></div>
-              <div className="flex gap-2"><span className="text-muted-foreground w-14 shrink-0">Target:</span><span className="text-foreground">{form.host}</span></div>
+              {form.monitorSource === "network" ? (
+                <>
+                  <div className="flex gap-2"><span className="text-muted-foreground w-14 shrink-0">Target:</span><span className="text-foreground">{form.targetType}</span></div>
+                  <div className="flex gap-2"><span className="text-muted-foreground w-14 shrink-0">Interface:</span><span className="text-foreground">{form.interface}</span></div>
+                  <div className="flex gap-2"><span className="text-muted-foreground w-14 shrink-0">Direction:</span><span className="text-foreground">{form.direction}</span></div>
+                </>
+              ) : (
+                <div className="flex gap-2"><span className="text-muted-foreground w-14 shrink-0">Target:</span><span className="text-foreground">{form.host}</span></div>
+              )}
               <div className="flex gap-2"><span className="text-muted-foreground w-14 shrink-0">Aggr:</span><span className="text-foreground">{form.aggregation}</span></div>
             </div>
           </Panel>
@@ -66,7 +74,10 @@ export default function Step13({ form, onCancel }) {
         <Panel className="p-4">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Rule Logic</p>
           <p className="font-mono text-xs text-foreground leading-relaxed">
-            When CPU Usage on <span className="text-primary">{form.host}</span> remains above {form.condThreshold}% for {form.condDuration} minutes, create a <span className="text-warning">{form.severity}</span> severity incident and notify <span className="text-primary">{form.notifyRecipients[0] || "configured operators"}</span>.
+            {form.monitorSource === "network" 
+              ? <>When Incoming Error Rate on <span className="text-primary">{form.interface}</span> remains above {form.condThreshold} errors/sec for {form.condDuration} minutes, create a <span className="text-warning">{form.severity}</span> severity incident and notify <span className="text-primary">{form.notifyRecipients[0] || "configured operators"}</span>.</>
+              : <>When CPU Usage on <span className="text-primary">{form.host}</span> remains above {form.condThreshold}% for {form.condDuration} minutes, create a <span className="text-warning">{form.severity}</span> severity incident and notify <span className="text-primary">{form.notifyRecipients[0] || "configured operators"}</span>.</>
+            }
           </p>
         </Panel>
         <div className="flex justify-end">
