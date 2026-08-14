@@ -12,46 +12,24 @@ const mounts = [
 export default function DiskUsageTable() {
   return (
     <Panel className="mt-4">
-      <PanelHeader title="File System Mounts & Partitions" icon={Database} action={<StatusBadge tone="success">Storage Health: Optimal</StatusBadge>} />
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-sm">
-          <thead>
-            <tr className="border-y border-border font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-              <th className="px-4 py-2.5 text-left font-medium">Mount Point</th>
-              <th className="px-4 py-2.5 text-left font-medium">Total Size</th>
-              <th className="px-4 py-2.5 text-left font-medium">Used</th>
-              <th className="px-4 py-2.5 text-left font-medium">Available</th>
-              <th className="px-4 py-2.5 text-left font-medium">Usage %</th>
-              <th className="px-4 py-2.5 text-right font-medium">Action</th>
-            </tr>
-          </thead>
-          <tbody className="font-mono text-xs">
-            {mounts.map((m) => {
-              const Icon = m.icon
-              return (
-                <tr key={m.point} className="border-b border-border/60 last:border-0 hover:bg-secondary/40">
-                  <td className="px-4 py-3">
-                    <span className="flex items-center gap-2 text-primary">
-                      <Icon className="size-4" />{m.point}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-foreground">{m.total}</td>
-                  <td className="px-4 py-3 text-foreground">{m.used}</td>
-                  <td className="px-4 py-3 text-foreground">{m.avail}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <ProgressBar value={m.pct} tone={m.tone} className="w-24" />
-                      <span className={m.tone === 'danger' ? 'text-destructive' : m.tone === 'warning' ? 'text-warning' : 'text-foreground'}>{m.pct}%</span>
-                    </div>
-                  </td>
-                  <td className={`px-4 py-3 text-right ${m.tone === 'danger' ? 'text-destructive' : 'text-accent'} hover:underline`}>
-                    <button className="cursor-pointer">{m.action}</button>
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+      <PanelHeader title="File System Mounts & Partitions" icon={Database}/>
+      <div className="p-2 space-y-10">
+        <div className="overflow-hidden rounded-lg border border-border/60 bg-background shadow-sm">
+          <iframe
+            src="http://localhost:3000/d-solo/adqmnxx/disk-metrics?orgId=1&from=now-30m&to=now&timezone=browser&refresh=5s&panelId=panel-3" width="450" height="500" frameborder="0"
+            className="w-full max-w-full"
+            title="Disk Metrics"
+          />
+        </div>
+
+
+        <div className="mt-2 overflow-hidden rounded-lg border border-border/60 bg-background shadow-sm">
+          <iframe
+            src="http://localhost:3000/d-solo/adqmnxx/disk-metrics?orgId=1&from=now-30m&to=now&timezone=browser&refresh=5s&panelId=panel-11" width="450" height="700" frameborder="0"
+            className="w-full max-w-full"
+            title="Disk Metrics Panel 2"
+          />
+        </div>
       </div>
     </Panel>
   )

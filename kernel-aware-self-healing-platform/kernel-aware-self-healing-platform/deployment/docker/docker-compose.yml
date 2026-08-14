@@ -5,26 +5,25 @@ services:
       - ../../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   grafana:
     image: grafana/grafana
     ports:
       - "3000:3000"
+    environment:
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+    volumes:
+      - grafana-data:/var/lib/grafana
 
   loki:
     image: grafana/loki
     ports:
       - "3100:3100"
-
-  monitering-agent:
-    build: ../../monitoring-agent
-    container_name: monitering-agent
-
-    ports:
-      - "8001:8001"
-
     volumes:
-      - ./data:/app/data
+      - ../../loki/config/loki.yml:/etc/loki/config.yml:ro
+    command: -config.file=/etc/loki/config.yml
 
   dashboard:
     build:
@@ -34,3 +33,6 @@ services:
     ports:
       - "8080:80"
     restart: unless-stopped
+
+volumes:
+  grafana-data:
