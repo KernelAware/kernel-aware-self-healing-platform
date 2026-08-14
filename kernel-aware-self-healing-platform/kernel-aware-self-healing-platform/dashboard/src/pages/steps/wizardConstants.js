@@ -48,7 +48,7 @@ export const INITIAL_FORM = {
   environment: "Production", region: "US-East-1", applyTo: "host-groups", hostGroups: [],
   monitorSource: "cpu", metric: "CPU Usage", targetType: "Host", host: "", interface: "eth0", direction: "Incoming", aggregation: "Average (Avg)",
   condMetric: "CPU Usage (%)", condOperator: "Greater Than (>)", condThreshold: "", condDuration: "", condInterval: "Every 30 seconds", condOccurrences: "", condOutOf: "",
-  severity: "high", actionType: "create-incident",
+  severity: "high", actionType: "create-incident", actionTypes: [],
   autoExec: true, approvalRequired: "high-critical", allowedDuring: "always",
   cooldownPeriod: "", suppressDups: false, enableDedup: false,
   recoveryThreshold: "", recoveryDuration: "",
