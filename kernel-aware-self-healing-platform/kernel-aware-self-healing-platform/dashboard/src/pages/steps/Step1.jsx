@@ -76,7 +76,7 @@ export default function Step1({ form, setForm, onNext, onCancel }) {
           </div>
           <div className="mt-8 flex items-center justify-between">
             <button onClick={onCancel} className="h-9 rounded-md border border-white/10 bg-[#0d151a] px-5 font-mono text-[13px] text-foreground hover:bg-white/5 transition-colors cursor-pointer">Cancel</button>
-            <button onClick={onNext} className="inline-flex h-9 items-center gap-2 rounded-md border border-primary/50 bg-primary/10 px-5 font-mono text-[13px] text-primary hover:bg-primary/20 transition-colors cursor-pointer">Next <ArrowRight className="size-4" /></button>
+            <button onClick={onNext} className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-5 font-mono text-xs font-bold text-primary-foreground hover:bg-primary/90 shadow-glow-primary transition-colors cursor-pointer">Next <ArrowRight className="size-3.5" /></button>
           </div>
         </Panel>
       </div>

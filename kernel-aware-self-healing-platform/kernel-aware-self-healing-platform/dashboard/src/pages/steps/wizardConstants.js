@@ -46,7 +46,7 @@ export const INITIAL_FORM = {
   ruleName: "", description: "",
   enabled: true, priority: "High", owner: "Admin", tags: [], tagInput: "",
   environment: "Production", region: "US-East-1", applyTo: "host-groups", hostGroups: [],
-  monitorSource: "cpu", metric: "CPU Usage", targetType: "Host", host: "", interface: "eth0", direction: "Incoming", aggregation: "Average (Avg)",
+  monitorSource: "cpu", metric: "CPU Usage", targetType: "Host", host: "", interface: "eth0", direction: "Incoming", aggregation: "Average (Avg)", mountPoint: "/ (Root)", diskMetricCategory: "Disk",
   condMetric: "CPU Usage (%)", condOperator: "Greater Than (>)", condThreshold: "", condDuration: "", condInterval: "Every 30 seconds", condOccurrences: "", condOutOf: "",
   severity: "high", actionType: "create-incident", actionTypes: [],
   autoExec: true, approvalRequired: "high-critical", allowedDuring: "always",
