@@ -557,7 +557,7 @@
 #     """
 #     MAIN FUNCTION - called by main.py every 15 seconds.
 #
-#     Collects ALL raw hardware health metrics from Linux kernel
+#     Collects ALL raw hardware health get_metrics from Linux kernel
 #     and returns them as one complete snapshot.
 #
 #     This raw data is then forwarded to:
