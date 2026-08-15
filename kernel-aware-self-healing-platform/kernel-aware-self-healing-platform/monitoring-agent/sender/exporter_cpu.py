@@ -1,4 +1,4 @@
-from prometheus_client import Gauge, Counter, generate_latest
+from get_metrics.prometheus_client import Gauge, Counter, generate_latest
 from collectors.cpu import collect
 
 # ─── CPU Usage ─────────────────────────────────────────────
