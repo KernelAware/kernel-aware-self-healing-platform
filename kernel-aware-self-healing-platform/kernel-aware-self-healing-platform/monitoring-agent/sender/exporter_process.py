@@ -1,4 +1,4 @@
-from prometheus_client import Gauge, generate_latest
+from get_metrics.prometheus_client import Gauge, generate_latest
 from collectors.process import collect_processes, get_process_summary
 
 
@@ -15,7 +15,7 @@ process_cpu = Gauge(
     ["pid", "name", "username"]
 )
 
-from prometheus_client import Gauge
+from get_metrics.prometheus_client import Gauge
 
 process_status = Gauge(
     "process_status",
