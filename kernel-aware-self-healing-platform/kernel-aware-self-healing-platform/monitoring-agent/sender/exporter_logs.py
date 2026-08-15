@@ -10,14 +10,13 @@
 #   collectors.logs
 # ============================================================
 
-import json
 import os
 import time
 import requests
 from pathlib import Path
 
-from prometheus_client import Gauge
-from prometheus_client import generate_latest
+from get_metrics.prometheus_client import Gauge
+from get_metrics.prometheus_client import generate_latest
 
 from collectors.logs import (
     refresh_sources,

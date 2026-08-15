@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.responses import Response
 from sender.exporter_disk import update_disk_metrics
 from sender.exporter_logs import update_logs_metrics
-from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from get_metrics.prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from collectors.process import initialize_cpu_measurement
 
 from sender.exporter_network import update_network_metrics
@@ -54,7 +54,7 @@ threading.Thread(
 ).start()
 
 
-@app.get("/metrics")
+@app.get("/get_metrics")
 def metrics():
     return Response(
         content=generate_latest(),
