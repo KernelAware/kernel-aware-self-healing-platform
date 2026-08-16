@@ -1,9 +1,7 @@
 # Collect the data from the collectors and then set the data to the prometheus format
 
-import json
-
-from prometheus_client import Gauge
-from prometheus_client import generate_latest
+from get_metrics.prometheus_client import Gauge
+from get_metrics.prometheus_client import generate_latest
 
 from collectors.disk import get_disk_stats_snapshot
 

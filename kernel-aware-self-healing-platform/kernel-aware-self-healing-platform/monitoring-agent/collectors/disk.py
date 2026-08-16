@@ -197,7 +197,7 @@ def get_disk_io_counters():
         return {}   # if fails return empty list
     
 
-# detailed IO metrics for each individual disk
+# detailed IO get_metrics for each individual disk
 """
     Returns
         {
