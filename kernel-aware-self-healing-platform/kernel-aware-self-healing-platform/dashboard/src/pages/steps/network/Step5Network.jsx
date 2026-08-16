@@ -48,7 +48,7 @@ export default function Step5Network({ form, setForm }) {
         <div className="rounded-md border border-primary/20 bg-primary/5 p-3">
           <p className="font-mono text-[10px] uppercase tracking-wider text-primary mb-1 font-bold">Condition Preview</p>
           <p className="font-mono text-xs text-foreground">
-            Incoming Error Rate > {form.condThreshold} errors/sec for {form.condDuration} minutes
+            Incoming Error Rate &gt; {form.condThreshold} errors/sec for {form.condDuration} minutes
           </p>
         </div>
       </div>
