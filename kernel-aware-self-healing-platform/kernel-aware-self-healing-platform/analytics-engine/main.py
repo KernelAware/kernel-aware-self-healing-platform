@@ -17,12 +17,12 @@ def health():
 
 def run_analysis():
     metrics = get_metrics()
-    rules = load_rules(metrics)
+    events= load_rules(metrics)
 
-    events = detect(metrics, rules)
+    incidents = detect(events)
 
-    for event in events:
-        incident = classify(event)
+    for incident in incidents:
+        incident = classify(incident)
         manage_incident(incident)
 
 
