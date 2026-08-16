@@ -1,66 +1,63 @@
-from database.connection import get_db_connection
+import requests
+
+PROMETHEUS_URL = "http://localhost:9090"
 
 
-def load_cpu_rules():
-    return load_rules_by_metric("cpu")
+def query_prometheus(query: str):
+    response = requests.get(
+        f"{PROMETHEUS_URL}/api/v1/query",
+        params={"query": query},
+        timeout=10,
+    )
 
-def load_memory_rules():
-    return load_rules_by_metric("memory")
+    response.raise_for_status()
 
-def load_disk_rules():
-    return load_rules_by_metric("disk")
+    data = response.json()
 
-def load_network_rules():
-    return load_rules_by_metric("network")
+    if data["status"] != "success":
+        raise RuntimeError("Prometheus query failed")
 
-def load_process_rules():
-    return load_rules_by_metric("process")
-
-def load_rules_by_metric(metric_type):
-    connection = get_db_connection()
-
-    try:
-        cursor = connection.cursor()
-
-        query = """
-            SELECT *
-            FROM rules
-            WHERE metric_type = %s
-            AND enabled = TRUE
-        """
-
-        cursor.execute(query, (metric_type,))
-        return cursor.fetchall()
-
-    finally:
-        cursor.close()
-        connection.close()
+    return data["data"]["result"]
 
 
-def load_rules(metrics):
+def get_cpu_metrics():
+    return query_prometheus(
+        'process_cpu_percent'
+    )
+
+
+def get_memory_metrics():
+    return query_prometheus(
+        'process_memory_rss_bytes'
+    )
+
+
+def get_disk_metrics():
+    return query_prometheus(
+        'disk_usage_percent'
+    )
+
+
+def get_network_metrics():
+    return query_prometheus(
+        'network_byte_sent_total'
+    )
+
+
+def get_process_metrics():
+    return query_prometheus(
+        'process_cpu_percent'
+    )
+
+
+def get_metrics():
+
+
+
     return {
-        "cpu": {
-            "metrics": metrics["cpu"],
-            "rules": load_cpu_rules(),
-        },
-
-        "memory": {
-            "metrics": metrics["memory"],
-            "rules": load_memory_rules(),
-        },
-
-        "disk": {
-            "metrics": metrics["disk"],
-            "rules": load_disk_rules(),
-        },
-
-        "network": {
-            "metrics": metrics["network"],
-            "rules": load_network_rules(),
-        },
-
-        "process": {
-            "metrics": metrics["process"],
-            "rules": load_process_rules(),
-        },
+        "cpu": get_cpu_metrics(),
+        "memory": get_memory_metrics(),
+        "disk": get_disk_metrics(),
+        "network": get_network_metrics(),
+        "process": get_process_metrics(),
     }
