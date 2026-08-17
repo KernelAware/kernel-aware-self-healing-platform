@@ -1,9 +1,8 @@
 import { Info } from "lucide-react"
 import { Panel } from "@/components/kit"
 import { cn } from "@/utils/cn"
-import { Checkbox } from "./wizardComponents"
-import { ACTION_TYPES } from "./wizardConstants"
-import Step7Process from "./process/step7Process.jsx";
+import { Checkbox } from "../wizardComponents"
+import { ACTION_TYPES } from "../wizardConstants"
 
 export default function Step7({ form, setForm }) {
   const selected = Array.isArray(form.actionTypes) ? form.actionTypes : (form.actionType ? [form.actionType] : [])
@@ -15,10 +14,9 @@ export default function Step7({ form, setForm }) {
       return { ...f, actionTypes: updated }
     })
   }
-  if (form.monitorSource === "process") return <Step7Process form={form} setForm={setForm} />
   return (
     <Panel className="p-6">
-      <div className="mb-5"><p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">7. Actions (What to Do)</p><p className="text-xs text-muted-foreground mt-0.5">Select the action type to perform when the condition is triggered.</p></div>
+      <div className="mb-5"><p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">7. Actions (What to Do )</p><p className="text-xs text-muted-foreground mt-0.5">Select the action type to perform when the condition is triggered.</p></div>
       <p className="font-mono text-[11px] text-foreground mb-3">Action Type <span className="text-destructive">*</span></p>
       <div className="grid grid-cols-3 gap-3">
         {ACTION_TYPES.map(a => { const Icon = a.icon; const sel = selected.includes(a.id); return (
