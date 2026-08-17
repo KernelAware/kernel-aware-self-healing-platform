@@ -42,17 +42,16 @@ export const ACTION_TYPES = [
   { id: "require-approval", title: "Require Approval", desc: "Pause execution and wait for manual approval.", bg: "bg-slate-600", icon: Users },
 ]
 
-export const ACTION_TYPES_process = [
+export const ACTION_TYPES_PROCESSES = [
   { id: "alert", title: "Alert", desc: "Create incident and notify.", bg: "bg-emerald-700", icon: Shield },
-  { id: "restart-service", title: "Restart Service", desc: "Restart a system service managed by the system.", bg: "bg-blue-600", icon: RefreshCw },
-  { id: "start-service", title: "Start Service", desc: "Start a stopped service managed by the system.", bg: "bg-blue-600", icon: Play },
-  { id: "stop-service", title: "Stop Service", desc: "Stop a running service managed by the system.", bg: "bg-orange-700", icon: Square },
-  { id: "kill-process", title: "Kill Process", desc: "Terminate a misbehaving process.", bg: "bg-red-700", icon: X },
+  { id: "restart-service", title: "Restart Service / process", desc: "Restart a system service managed by the system.", bg: "bg-blue-600", icon: RefreshCw },
+  { id: "start-service", title: "Start Service / process", desc: "Start a stopped service managed by the system.", bg: "bg-blue-600", icon: Play },
+  { id: "stop-service", title: "Stop Service / process", desc: "Stop a running service managed by the system.", bg: "bg-orange-700", icon: Square },
+  { id: "kill-process", title: "Kill Process / process", desc: "Terminate a misbehaving process.", bg: "bg-red-700", icon: X },
   { id: "run-automation", title: "Run Automation", desc: "Execute a predefined automation script.", bg: "bg-indigo-700", icon: Code },
   { id: "run-command", title: "Run Command", desc: "Execute a system command on the target host.", bg: "bg-slate-700", icon: Terminal },
   { id: "send-notification", title: "Send Notification", desc: "Send alert/notification to configured channels.", bg: "bg-amber-700", icon: Bell },
   { id: "create-incident", title: "Create Incident", desc: "Create an incident for tracking and manual investigation.", bg: "bg-blue-800", icon: Shield },
-  { id: "require-approval", title: "Require Approval", desc: "Pause execution and wait for manual approval.", bg: "bg-slate-600", icon: Users },
 ]
 
 export const INITIAL_FORM = {
@@ -62,7 +61,7 @@ export const INITIAL_FORM = {
   monitorSource: "cpu", metric: "CPU Usage", targetType: "Host", host: "", interface: "eth0", direction: "Incoming", aggregation: "Average (Avg)", mountPoint: "/ (Root)", diskMetricCategory: "Disk",
   condMetric: "CPU Usage (%)", condOperator: "Greater Than (>)", condThreshold: "", condDuration: "", condInterval: "Every 30 seconds", condOccurrences: "", condOutOf: "",
   severity: "high", actionType: "create-incident", actionTypes: [],
-  autoExec: true, approvalRequired: "high-critical", allowedDuring: "always",
+  autoExec: false, approvalRequired: "always", allowedDuring: "always",
   cooldownPeriod: "", suppressDups: false, enableDedup: false,
   recoveryThreshold: "", recoveryDuration: "",
   notifyEvents: [],
