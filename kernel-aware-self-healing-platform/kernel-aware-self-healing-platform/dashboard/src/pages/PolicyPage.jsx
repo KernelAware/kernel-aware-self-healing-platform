@@ -37,7 +37,10 @@ export default function PolicyPage() {
   const [step, setStep] = useState(1)
   const [form, setForm] = useState(INITIAL_FORM)
 
-  const handleNext = () => setStep(s => Math.min(13, s + 1))
+  const handleNext = () => setStep(s => {
+    console.log(form);
+    return Math.min(13, s + 1);
+  })
   const handleBack = () => { if (step === 1) setActiveTab("all-rules"); else setStep(s => Math.max(1, s - 1)) }
   const exitWizard = () => setActiveTab("all-rules")
 

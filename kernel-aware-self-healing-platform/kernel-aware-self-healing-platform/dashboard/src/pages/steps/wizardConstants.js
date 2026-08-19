@@ -54,17 +54,99 @@ export const ACTION_TYPES_PROCESSES = [
   { id: "create-incident", title: "Create Incident", desc: "Create an incident for tracking and manual investigation.", bg: "bg-blue-800", icon: Shield },
 ]
 
+
 export const INITIAL_FORM = {
-  ruleName: "", description: "",
-  enabled: true, priority: "High", owner: "Admin", tags: [], tagInput: "",
-  environment: "Production", region: "US-East-1", applyTo: "host-groups", hostGroups: [],
-  monitorSource: "cpu", metric: "CPU Usage", targetType: "Host", host: "", interface: "eth0", direction: "Incoming", aggregation: "Average (Avg)", mountPoint: "/ (Root)", diskMetricCategory: "Disk",
-  condMetric: "CPU Usage (%)", condOperator: "Greater Than (>)", condThreshold: "", condDuration: "", condInterval: "Every 30 seconds", condOccurrences: "", condOutOf: "",
-  severity: "high", actionType: "create-incident", actionTypes: [],
-  autoExec: false, approvalRequired: "always", allowedDuring: "always",
-  cooldownPeriod: "", suppressDups: false, enableDedup: false,
-  recoveryThreshold: "", recoveryDuration: "",
-  notifyEvents: [],
-  notifyChannels: [], notifyRecipients: [],
-  schedule: "always", suppressMaintenance: false,
+  ruleName: "",
+  enabled: false,
+  priority: "Medium",
+  owner: "Admin",
+  environment: "Production",
+  region: "US-East-1",
+  applyTo: "",
+  monitorSource: "",
+  targets: [],
+
+  /*
+   targets: [
+      {
+        type: "process",
+        name: "nginx",
+        host: "web-01.prod.local",
+        metrics: [
+          name:cpu_usage,
+          conditions: [
+            {
+              metric: "process_cpu_percent",
+              operator: ">",
+              threshold: 90,
+              duration: 300,
+              evaluationFrequency: 30,
+              requiredOccurrences: 5
+            }
+          ]
+        ]
+      }
+    ]
+  */
+
+  severity: "Warning",
+  actions: [],
+  /*
+    Example:
+
+    actions: [
+      {
+        type: "RESTART_SERVICE"
+      }
+    ]
+  */
+  safety: {
+    automaticExecution: false,
+    approvalRequired: "always",
+    allowedDuring: "Always",
+  },
+
+  retry: {
+    maxAttempts: 0,
+    cooldownMinutes: 0,
+    suppressDuplicates: true,
+  },
+
+  recovery: {
+    required: true,
+    metric: []
+  },
+
+  /*
+  {
+        metrics: [
+          {
+            name: "cpu_usage",
+            conditions: [
+              {
+                metric: "process_cpu_percent",
+                operator: ">",
+                threshold: 90,
+                duration: 300
+              }
+            ]
+          }
+        ]
+      }
+
+   */
+
+  notifications: {
+    events: [],
+    channels: [],
+    recipients: [],
+  },
+
+  schedule: {
+    activation: "Always Active",
+    timezone: "UTC",
+    days: [],
+    startTime: "",
+    endTime: "",
+  },
 }
