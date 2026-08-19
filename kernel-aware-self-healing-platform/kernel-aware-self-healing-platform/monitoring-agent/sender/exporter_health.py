@@ -1,4 +1,4 @@
-from get_metrics.prometheus_client import Gauge, Info
+from prometheus_client import Gauge, Info
 
 
 # ---------------- CPU ---------------- #
