@@ -6,16 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="80a84349-3319-409f-8a10-f0aa2f6eb13e" name="Changes" comment="make all relate to disply process and service on grfana and react dashboard">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/database/connection.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/database/connection.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/exporter_cpu.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/exporter_cpu.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/exporter_disk.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/exporter_disk.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/exporter_health.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/exporter_health.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/exporter_logs.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/exporter_logs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/exporter_memory.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/exporter_memory.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/exporter_network.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/exporter_network.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/exporter_process.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/exporter_process.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/exporter_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent/sender/exporter_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/pages/steps/process/step4Process.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/pages/steps/process/step4Process.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/pages/steps/process/step5process.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/pages/steps/process/step5process.jsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -36,7 +28,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="main" />
+        <entry key="$PROJECT_DIR$" value="develop" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -61,59 +53,59 @@
     <decayedCancelled>
       <entry key="MS100" value="1.0" />
       <entry key="MS500" value="1.0" />
-      <entry key="S2" value="1.0000000000001976" />
-      <entry key="S5" value="1.000008485869364" />
-      <entry key="S10" value="1.0033261901832937" />
-      <entry key="S30" value="1.2187749694832697" />
-      <entry key="S60" value="1.6645456177081883" />
-      <entry key="M2" value="2.3910160261300195" />
-      <entry key="M5" value="4.291506931820733" />
-      <entry key="M10" value="6.237810348116759" />
-      <entry key="M15" value="7.621817539801482" />
-      <entry key="M30" value="11.235406307560499" />
-      <entry key="H1" value="17.965535900200347" />
-      <entry key="H2" value="29.715250559324954" />
-      <entry key="H4" value="49.106253954809205" />
-      <entry key="D1" value="489.6668365356461" />
-      <entry key="W1" value="1734.2346260804206" />
+      <entry key="S2" value="1.0" />
+      <entry key="S5" value="1.0" />
+      <entry key="S10" value="1.0" />
+      <entry key="S30" value="1.0" />
+      <entry key="S60" value="1.0000000001094287" />
+      <entry key="M2" value="1.0000181186350254" />
+      <entry key="M5" value="1.0249600456071555" />
+      <entry key="M10" value="1.338552260019218" />
+      <entry key="M15" value="1.9848267057059963" />
+      <entry key="M30" value="4.911639018281351" />
+      <entry key="H1" value="12.301417442845217" />
+      <entry key="H2" value="27.4395464137794" />
+      <entry key="H4" value="52.464106838385476" />
+      <entry key="D1" value="477.69134695510456" />
+      <entry key="W1" value="1745.7449448936627" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
       <entry key="MS500" value="0.0" />
-      <entry key="S2" value="2.2313055173324533E-85" />
-      <entry key="S5" value="1.3785534698812217E-34" />
-      <entry key="S10" value="1.174118166915589E-17" />
-      <entry key="S30" value="2.272849099003938E-6" />
-      <entry key="S60" value="0.0015075971275919128" />
-      <entry key="M2" value="0.038827987120807636" />
-      <entry key="M5" value="0.27476961361713026" />
-      <entry key="M10" value="0.567919144549642" />
-      <entry key="M15" value="0.7775251079864597" />
-      <entry key="M30" value="1.2094284383495044" />
-      <entry key="H1" value="1.9016952637348707" />
-      <entry key="H2" value="3.3091916447350846" />
-      <entry key="H4" value="5.843132212584987" />
-      <entry key="D1" value="31.74220032842865" />
-      <entry key="W1" value="100.36123797535785" />
+      <entry key="S2" value="0.0" />
+      <entry key="S5" value="2.3968508813632076E-131" />
+      <entry key="S10" value="6.876678933721898E-66" />
+      <entry key="S30" value="3.0140292798610407E-22" />
+      <entry key="S60" value="2.4547389346707057E-11" />
+      <entry key="M2" value="7.006430071641576E-6" />
+      <entry key="M5" value="0.013149723149675182" />
+      <entry key="M10" value="0.16457783069639872" />
+      <entry key="M15" value="0.39725558095447994" />
+      <entry key="M30" value="1.0878175539997015" />
+      <entry key="H1" value="2.1451110555359527" />
+      <entry key="H2" value="3.7793783616997456" />
+      <entry key="H4" value="6.5512190472189324" />
+      <entry key="D1" value="32.64549779625517" />
+      <entry key="W1" value="102.94405381453348" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.9265880618903709" />
-      <entry key="MS500" value="0.9848664428955506" />
-      <entry key="S2" value="0.9961949481332513" />
-      <entry key="S5" value="0.9984847129316267" />
-      <entry key="S10" value="1.0025612007641798" />
-      <entry key="S30" value="1.2184345311119793" />
-      <entry key="S60" value="1.6655900802287749" />
-      <entry key="M2" value="2.4273374029668537" />
-      <entry key="M5" value="4.559851212079626" />
-      <entry key="M10" value="6.799521986543116" />
-      <entry key="M15" value="8.394053587022077" />
-      <entry key="M30" value="12.441253890872105" />
-      <entry key="H1" value="19.86476179414818" />
-      <entry key="H2" value="33.02232736409165" />
-      <entry key="H4" value="54.9474362829821" />
-      <entry key="D1" value="521.407000130527" />
-      <entry key="W1" value="1834.5950005515908" />
+      <entry key="MS100" value="0.5396141182522136" />
+      <entry key="MS500" value="0.8839275310636712" />
+      <entry key="S2" value="0.9696258054059442" />
+      <entry key="S5" value="0.9877377814862531" />
+      <entry key="S10" value="0.9938499793662287" />
+      <entry key="S30" value="0.9979457761760528" />
+      <entry key="S60" value="0.9989723601964174" />
+      <entry key="M2" value="0.9995108316313551" />
+      <entry key="M5" value="1.037701208669853" />
+      <entry key="M10" value="1.501831534360936" />
+      <entry key="M15" value="2.380104450975257" />
+      <entry key="M30" value="5.996770598983557" />
+      <entry key="H1" value="14.443774967941268" />
+      <entry key="H2" value="31.216393342985914" />
+      <entry key="H4" value="59.01305929957214" />
+      <entry key="D1" value="510.33475432763754" />
+      <entry key="W1" value="1848.6881109744886" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -140,7 +132,7 @@
     &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
     &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
     &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;develop&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;pasindu__dev&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
     &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
     &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
@@ -420,7 +412,23 @@
       <option name="project" value="LOCAL" />
       <updated>1786995246761</updated>
     </task>
-    <option name="localTasksCounter" value="26" />
+    <task id="LOCAL-00026" summary="make all relate to disply process and service on grfana and react dashboard">
+      <option name="closed" value="true" />
+      <created>1787155618639</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1787155618639</updated>
+    </task>
+    <task id="LOCAL-00027" summary="make all relate to disply process and service on grfana and react dashboard">
+      <option name="closed" value="true" />
+      <created>1787166678814</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1787166678814</updated>
+    </task>
+    <option name="localTasksCounter" value="28" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
