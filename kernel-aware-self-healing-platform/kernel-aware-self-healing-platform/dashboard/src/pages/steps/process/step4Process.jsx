@@ -109,35 +109,51 @@ export default function Step4Process({ form, setForm }) {
     }
   }, [])
 
-  const selectedTargets = Array.isArray(form.target)
-    ? form.target
+  const selectedTargets = Array.isArray(form.targets)
+    ? form.targets
     : []
 
   const selectedProcesses = PROCESSES.filter((process) =>
-    selectedTargets.includes(process.name)
+  selectedTargets.some(
+    target => target.type === "process" && target.name === process.name
   )
+)
 
   const filteredProcesses = PROCESSES.filter((process) =>
     process.name.toLowerCase().includes(processSearch.toLowerCase())
   )
 
   const handleProcessChange = (processName) => {
-    setForm((f) => {
-      const current = Array.isArray(f.target) ? f.target : []
+  setForm(f => {
+    const current = Array.isArray(f.targets) ? f.targets : []
 
-      if (current.includes(processName)) {
-        return {
-          ...f,
-          target: current.filter((name) => name !== processName),
-        }
-      }
+    const exists = current.some(
+      process => process.type === "process" && process.name === processName
+    )
 
+    if (exists) {
       return {
         ...f,
-        target: [...current, processName],
+        targets: current.filter(
+          process => !(process.type === "process" && process.name === processName)
+        )
       }
-    })
-  }
+    }
+
+    return {
+      ...f,
+      targets: [
+        ...current,
+        {
+          type: "process",
+          name: processName,
+          host: "web-01.prod.local",
+          metrics: []
+        }
+      ]
+    }
+  })
+}
 
   return (
     <Panel className="p-6">
@@ -191,7 +207,9 @@ export default function Step4Process({ form, setForm }) {
                   ) : (
 
                     filteredProcesses.map((process) => {
-                      const selected = selectedTargets.includes(process.name)
+                      const selected = selectedTargets.some(
+                        target => target.type === "process" && target.name === process.name
+                      )
 
                       return (
                         <button
@@ -235,32 +253,27 @@ export default function Step4Process({ form, setForm }) {
 
             </div>
 
-            {/* Selected Process Chips */}
-            {selectedTargets.length > 0 && (
-
+            {selectedTargets.filter(target => target.type === "process").length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
+                {selectedTargets
+                  .filter(target => target.type === "process")
+                  .map((target) => (
+                    <button
+                      key={target.name}
+                      type="button"
+                      onClick={() => handleProcessChange(target.name)}
+                      className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1.5 font-mono text-[10px] text-primary hover:bg-primary/20"
+                    >
+                      <span>
+                        {target.name}
+                      </span>
 
-                {selectedTargets.map((processName) => (
-
-                  <button
-                    key={processName}
-                    type="button"
-                    onClick={() => handleProcessChange(processName)}
-                    className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1.5 font-mono text-[10px] text-primary hover:bg-primary/20"
-                  >
-                    <span>
-                      {processName}
-                    </span>
-
-                    <span className="text-muted-foreground">
-                      ×
-                    </span>
-                  </button>
-
-                ))}
-
+                      <span className="text-muted-foreground">
+                        ×
+                      </span>
+                    </button>
+                  ))}
               </div>
-
             )}
 
             <p className="mt-1 font-mono text-[10px] text-muted-foreground">
