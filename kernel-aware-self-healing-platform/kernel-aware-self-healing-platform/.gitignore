@@ -18,6 +18,8 @@ env/
 node_modules/
 dist/
 .next/
+# macOS system files
+.DS_Store
 
 # =========================================================
 # Environment
@@ -50,3 +52,6 @@ __v0_jsx-dev-runtime.ts
 
 .DS_Store
 Thumbs.db
+# Postman files
+infrastructure/.postman/
+infrastructure/postman/
