@@ -1,4 +1,4 @@
-from get_metrics.prometheus_client import Gauge
+from prometheus_client import Gauge
 
 from collectors.memory import get_memory_metrics
 

@@ -3,9 +3,9 @@
 import re
 import psutil
 
-from get_metrics.prometheus_client import Gauge
-from get_metrics.prometheus_client import Counter
-from get_metrics.prometheus_client import generate_latest
+from prometheus_client import Gauge
+from prometheus_client import Counter
+from prometheus_client import generate_latest
 
 from collectors.network import get_network_stats_snapshot
 
