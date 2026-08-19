@@ -24,19 +24,6 @@ export default function Step2({ form, setForm }) {
             ))}
           </div>
         </div>
-        {form.applyTo === "host-groups" && (
-          <div>
-            <label className="block font-mono text-[11px] text-foreground mb-1.5">Host Groups <span className="text-destructive">*</span></label>
-            <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 min-h-[42px]">
-              {form.hostGroups.map(g => (
-                <span key={g} className="inline-flex items-center gap-1 rounded bg-secondary/70 border border-border px-2 py-0.5 font-mono text-[11px] text-foreground">
-                  {g}<button onClick={() => setForm(f => ({ ...f, hostGroups: f.hostGroups.filter(x => x !== g) }))} className="text-muted-foreground hover:text-foreground cursor-pointer ml-0.5"><X className="size-2.5" /></button>
-                </span>
-              ))}
-              <ChevronDown className="ml-auto size-3.5 text-muted-foreground shrink-0" />
-            </div>
-          </div>
-        )}
       </div>
     </Panel>
   )
