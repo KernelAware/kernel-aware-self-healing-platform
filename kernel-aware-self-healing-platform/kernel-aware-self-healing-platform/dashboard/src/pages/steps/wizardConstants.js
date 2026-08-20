@@ -101,7 +101,7 @@ export const INITIAL_FORM = {
     ]
   */
   safety: {
-    automaticExecution: false,
+    autoExec: false,
     approvalRequired: "always",
     allowedDuring: "Always",
   },
