@@ -5,13 +5,13 @@ import { Checkbox } from "../wizardComponents"
 import { ACTION_TYPES_PROCESSES } from "../wizardConstants"
 
 export default function Step7({ form, setForm }) {
-  const selected = Array.isArray(form.actionTypes) ? form.actionTypes : (form.actionType ? [form.actionType] : [])
+  const selected = Array.isArray(form.actions) ? form.actions : (form.actions ? [form.actions] : [])
 
   const toggle = (id) => {
     setForm(f => {
-      const current = Array.isArray(f.actionTypes) ? f.actionTypes : (f.actionType ? [f.actionType] : [])
+      const current = Array.isArray(f.actions) ? f.actions : (f.actions ? [f.actions] : [])
       const updated = current.includes(id) ? current.filter(x => x !== id) : [...current, id]
-      return { ...f, actionTypes: updated }
+      return { ...f, actions: updated }
     })
   }
   return (
