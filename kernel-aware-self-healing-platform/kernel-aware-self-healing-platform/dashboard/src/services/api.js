@@ -41,3 +41,14 @@ export async function queryPrometheus(query) {
 
   return json.data.result
 }
+
+export async function userRules(form){
+    const response = await fetch("https://example.org/post", {
+      method: "POST",
+      body: JSON.stringify(form)
+    });
+
+  const json = await response.json()
+
+  return json.data.result
+}
