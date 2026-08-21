@@ -3,6 +3,8 @@ import { Panel } from "@/components/kit"
 import { SelectBox, Checkbox } from "./wizardComponents"
 
 export default function Step9({ form, setForm }) {
+  const retry = form.retry || {}
+
   return (
     <Panel className="p-6">
       <div className="mb-6">
@@ -16,8 +18,6 @@ export default function Step9({ form, setForm }) {
       </div>
 
       <div className="space-y-5">
-
-        {/* INFO */}
         <div className="flex gap-2 rounded-md border border-primary/20 bg-primary/5 p-3">
           <Info className="size-4 text-primary shrink-0 mt-0.5" />
 
@@ -26,16 +26,15 @@ export default function Step9({ form, setForm }) {
             can be retried up to the configured maximum attempt count.
           </p>
         </div>
-      <div style={{ display: "flex", flexDirection: "row" , gap:"50px"}}>
-        {/* RETRY */}
-        <div>
-          <p className="font-mono text-xs font-semibold text-foreground mb-3">
-            Retry Configuration
-          </p>
 
-          <div className="space-y-3">
+        <div
+          className="flex flex-row gap-[50px]"
+        >
+          <div className="flex-1">
+            <p className="font-mono text-xs font-semibold text-foreground mb-3">
+              Retry Configuration
+            </p>
 
-            {/* MAX RETRY */}
             <div>
               <label className="block font-mono text-[11px] text-foreground mb-1.5">
                 Maximum Retry Attempts
@@ -45,11 +44,14 @@ export default function Step9({ form, setForm }) {
                 <input
                   type="number"
                   min="0"
-                  value={form.maxRetryAttempts}
+                  value={retry.maxAttempts ?? 0}
                   onChange={e =>
                     setForm(f => ({
                       ...f,
-                      maxRetryAttempts: e.target.value,
+                      retry: {
+                        ...f.retry,
+                        maxAttempts: e.target.value,
+                      },
                     }))
                   }
                   className="w-20 rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground text-center focus:border-ring focus:outline-none"
@@ -65,19 +67,13 @@ export default function Step9({ form, setForm }) {
                 after a failed attempt.
               </p>
             </div>
-
           </div>
-        </div>
 
-        {/* COOLDOWN */}
-        <div>
-          <p className="font-mono text-xs font-semibold text-foreground mb-3">
-            Cooldown
-          </p>
+          <div className="flex-1">
+            <p className="font-mono text-xs font-semibold text-foreground mb-3">
+              Cooldown
+            </p>
 
-          <div className="space-y-3">
-
-            {/* COOLDOWN PERIOD */}
             <div>
               <label className="block font-mono text-[11px] text-foreground mb-1.5">
                 Cooldown Period
@@ -87,25 +83,31 @@ export default function Step9({ form, setForm }) {
                 <input
                   type="number"
                   min="0"
-                  value={form.cooldownPeriod}
+                  value={retry.cooldownMinutes ?? 0}
                   onChange={e =>
                     setForm(f => ({
                       ...f,
-                      cooldownPeriod: e.target.value,
+                      retry: {
+                        ...f.retry,
+                        cooldownMinutes: e.target.value,
+                      },
                     }))
                   }
-                  className="w-16 rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground text-center focus:border-ring focus:outline-none"
+                  className="w-20 rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground text-center focus:border-ring focus:outline-none"
                 />
 
                 <SelectBox
-                  value={form.cooldownUnit || "Minutes"}
+                  value={retry.cooldownUnit || "Minutes"}
                   options={["Minutes", "Hours"]}
-                  onChange={v =>
+                  onChange={v => {
                     setForm(f => ({
                       ...f,
-                      cooldownUnit: v,
+                      retry: {
+                        ...f.retry,
+                        cooldownUnit: v,
+                      },
                     }))
-                  }
+                  }}
                   className="w-28"
                 />
               </div>
@@ -117,40 +119,41 @@ export default function Step9({ form, setForm }) {
             </div>
           </div>
         </div>
-      </div>
-      <div className="space-y-2 pt-1">
 
-              {[
-                {
-                  key: "suppressDups",
-                  label: "Suppress duplicate incidents during cooldown",
-                },
-                {
-                  key: "enableDedup",
-                  label: "Enable deduplication during cooldown",
-                },
-              ].map(opt => (
-                <label
-                  key={opt.key}
-                  className="flex items-center gap-2.5 cursor-pointer"
-                >
-                  <Checkbox
-                    checked={!!form[opt.key]}
-                    onClick={() =>
-                      setForm(f => ({
-                        ...f,
-                        [opt.key]: !f[opt.key],
-                      }))
-                    }
-                  />
+        <div className="space-y-2 pt-1">
+          {[
+            {
+              key: "suppressDuplicates",
+              label: "Suppress duplicate incidents during cooldown",
+            },
+            {
+              key: "enableDedup",
+              label: "Enable deduplication during cooldown",
+            },
+          ].map(opt => (
+            <label
+              key={opt.key}
+              className="flex items-center gap-2.5 cursor-pointer"
+            >
+              <Checkbox
+                checked={!!retry[opt.key]}
+                onClick={() =>
+                  setForm(f => ({
+                    ...f,
+                    retry: {
+                      ...f.retry,
+                      [opt.key]: !f.retry?.[opt.key],
+                    },
+                  }))
+                }
+              />
 
-                  <span className="font-mono text-xs text-foreground">
-                    {opt.label}
-                  </span>
-                </label>
-              ))}
-
-            </div>
+              <span className="font-mono text-xs text-foreground">
+                {opt.label}
+              </span>
+            </label>
+          ))}
+        </div>
       </div>
     </Panel>
   )
