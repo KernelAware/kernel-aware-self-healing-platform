@@ -18,7 +18,7 @@ const OPERATORS = [
   "Greater Than (>)",
 ]
 
-const getUnit = (metric) => {
+const getUnit = metric => {
   return metric === "Error Rate (errors/sec)"
     ? "errors/sec"
     : "%"
@@ -27,16 +27,17 @@ const getUnit = (metric) => {
 export default function Step10({ form, setForm }) {
   const isNetwork = form.monitorSource === "network"
 
-  const availableMetrics = (
-    isNetwork ? NETWORK_METRICS : DEFAULT_METRICS
-  ).filter(
-    metric =>
-      !(form.recoveryConditions || []).some(
-        condition => condition.metric === metric
-      )
-  )
+  const metricOptions = isNetwork
+    ? NETWORK_METRICS
+    : DEFAULT_METRICS
 
-  const conditions = form.recoveryConditions || []
+  const conditions = Array.isArray(form.recovery?.metric)
+    ? form.recovery.metric
+    : []
+
+  const availableMetrics = metricOptions.filter(
+    metric => !conditions.some(condition => condition.metric === metric)
+  )
 
   const addCondition = () => {
     if (availableMetrics.length === 0) return
@@ -45,90 +46,117 @@ export default function Step10({ form, setForm }) {
 
     setForm(f => ({
       ...f,
-      recoveryConditions: [
-        ...(f.recoveryConditions || []),
-        {
-          metric,
-          operator: "Less Than (<)",
-          threshold: "",
-          duration: "5",
-          durationUnit: "Minutes",
-        },
-      ],
+      recovery: {
+        ...f.recovery,
+        metric: [
+          ...(Array.isArray(f.recovery?.metric)
+            ? f.recovery.metric
+            : []),
+          {
+            metric,
+            operator: "Less Than (<)",
+            threshold: "",
+            duration: "5",
+            durationUnit: "Minutes",
+          },
+        ],
+      },
     }))
   }
 
   const updateCondition = (index, field, value) => {
     setForm(f => ({
       ...f,
-      recoveryConditions: (f.recoveryConditions || []).map(
-        (condition, i) =>
+      recovery: {
+        ...f.recovery,
+        metric: (Array.isArray(f.recovery?.metric)
+          ? f.recovery.metric
+          : []
+        ).map((condition, i) =>
           i === index
-            ? { ...condition, [field]: value }
+            ? {
+                ...condition,
+                [field]: value,
+              }
             : condition
-      ),
+        ),
+      },
     }))
   }
 
   const removeCondition = index => {
     setForm(f => ({
       ...f,
-      recoveryConditions: (f.recoveryConditions || []).filter(
-        (_, i) => i !== index
-      ),
+      recovery: {
+        ...f.recovery,
+        metric: (Array.isArray(f.recovery?.metric)
+          ? f.recovery.metric
+          : []
+        ).filter((_, i) => i !== index),
+      },
     }))
+  }
+
+  const getOperatorSymbol = operator => {
+    if (!operator) return ""
+
+    return operator
+      .replace("Less Than", "<")
+      .replace("Greater Than", ">")
+      .replace(/[()]/g, "")
+      .trim()
   }
 
   const getPreview = () => {
     if (conditions.length === 0) {
-      return "No recovery conditions configured."
+      return "No custom recovery verification configured. The system will use the opposite of the Step 5 conditions."
     }
 
     return conditions
       .map(condition => {
-        const operator = condition.operator
-          .replace("Less Than", "<")
-          .replace("Greater Than", ">")
-          .replace(/[()]/g, "")
-
+        const operator = getOperatorSymbol(condition.operator)
         const unit = getUnit(condition.metric)
 
         return `${condition.metric} ${operator} ${
           condition.threshold || "?"
         } ${unit} for ${
           condition.duration || "?"
-        } ${condition.durationUnit.toLowerCase()}`
+        } ${(condition.durationUnit || "minutes").toLowerCase()}`
       })
       .join(" AND ")
   }
 
   return (
     <Panel className="p-6">
-
-      {/* HEADER */}
       <div className="mb-6">
         <p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">
           10. Verification & Recovery
         </p>
 
         <p className="text-xs text-muted-foreground mt-0.5">
-          Define how recovery is verified for this rule.
+          Define how the system verifies that an incident has recovered.
         </p>
       </div>
 
       <div className="space-y-5">
 
-        {/* INFO */}
         <div className="flex gap-2 rounded-md border border-primary/20 bg-primary/5 p-3">
           <Info className="size-4 text-primary shrink-0 mt-0.5" />
 
-          <p className="font-mono text-[11px] text-foreground">
-            If no recovery verification is configured, the system automatically uses the opposite of the conditions
-              defined in Step 5 for recovery verification. When recovery verification is configured.
-          </p>
+          <div>
+            <p className="font-mono text-[11px] text-foreground leading-relaxed">
+              If no recovery verification is configured, the system
+              automatically uses the opposite of the conditions defined in
+              Step 5.
+            </p>
+
+            <p className="font-mono text-[10px] text-muted-foreground mt-1">
+              Add recovery conditions only when you want to explicitly define
+              different values for recovery verification.
+            </p>
+          </div>
         </div>
 
-        {/* RECOVERY PREVIEW */}
         <div className="rounded-md border border-primary/20 bg-primary/5 p-3">
           <p className="font-mono text-[10px] uppercase tracking-wider text-primary mb-1 font-bold">
             Recovery Preview
@@ -139,16 +167,16 @@ export default function Step10({ form, setForm }) {
           </p>
         </div>
 
-        {/* CONDITIONS */}
         <div>
           <div className="flex items-center justify-between mb-3">
             <div>
-              <label className="block font-mono text-xs font-semibold text-foreground">
-                Recovery Conditions
-              </label>
+              <p className="font-mono text-xs font-semibold text-foreground">
+                Recovery Verification
+              </p>
 
               <p className="font-mono text-[10px] text-muted-foreground mt-1">
-                All conditions must be satisfied to mark the incident as recovered.
+                All configured recovery conditions must be satisfied before
+                the incident is marked as recovered.
               </p>
             </div>
 
@@ -163,20 +191,23 @@ export default function Step10({ form, setForm }) {
             </button>
           </div>
 
-          {/* CONDITION LIST */}
           <div className="space-y-3">
-
             {conditions.length === 0 && (
               <div className="rounded-md border border-dashed border-border p-5 text-center">
                 <p className="font-mono text-[11px] text-muted-foreground">
-                  No recovery conditions added.
+                  No custom recovery conditions configured.
+                </p>
+
+                <p className="font-mono text-[10px] text-muted-foreground mt-1">
+                  Step 5 conditions will automatically be inverted for
+                  recovery verification.
                 </p>
 
                 <button
                   type="button"
                   onClick={addCondition}
                   disabled={availableMetrics.length === 0}
-                  className="mt-2 font-mono text-[10px] text-primary hover:underline disabled:opacity-40"
+                  className="mt-3 font-mono text-[10px] text-primary hover:underline disabled:opacity-40"
                 >
                   + Add recovery condition
                 </button>
@@ -185,14 +216,12 @@ export default function Step10({ form, setForm }) {
 
             {conditions.map((condition, index) => (
               <div
-                key={index}
+                key={`${condition.metric}-${index}`}
                 className="rounded-md border border-border bg-card p-4"
               >
-
-                {/* CONDITION HEADER */}
                 <div className="flex items-center justify-between mb-4">
                   <p className="font-mono text-[10px] uppercase tracking-wider text-primary font-bold">
-                    Condition {index + 1}
+                    Recovery Condition {index + 1}
                   </p>
 
                   <button
@@ -205,123 +234,129 @@ export default function Step10({ form, setForm }) {
                   </button>
                 </div>
 
-                {/* METRIC */}
-                <div className="mb-4">
-                  <label className="block font-mono text-[10px] text-muted-foreground mb-1.5">
-                    Metric
-                  </label>
+                <div className="grid grid-cols-3 gap-4">
 
-                  <SelectBox
-                    value={condition.metric}
-                    options={
-                      isNetwork
-                        ? NETWORK_METRICS
-                        : DEFAULT_METRICS
-                    }
-                    onChange={value =>
-                      updateCondition(
-                        index,
-                        "metric",
-                        value
-                      )
-                    }
-                    className="w-full"
-                  />
-                </div>
-
-                {/* OPERATOR + THRESHOLD */}
-                <div className="mb-4">
-                  <label className="block font-mono text-[10px] text-muted-foreground mb-1.5">
-                    Recovery Threshold
-                  </label>
-
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div>
+                    <label className="block font-mono text-[10px] text-muted-foreground mb-1.5">
+                      Metric
+                    </label>
 
                     <SelectBox
-                      value={condition.operator}
-                      options={OPERATORS}
+                      value={condition.metric}
+                      options={metricOptions}
                       onChange={value =>
                         updateCondition(
                           index,
-                          "operator",
+                          "metric",
                           value
                         )
                       }
-                      className="w-40"
+                      className="w-full"
                     />
-
-                    <input
-                      type="number"
-                      value={condition.threshold}
-                      onChange={e =>
-                        updateCondition(
-                          index,
-                          "threshold",
-                          e.target.value
-                        )
-                      }
-                      placeholder="80"
-                      className="w-20 rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground text-center focus:border-ring focus:outline-none"
-                    />
-
-                    <span className="font-mono text-xs text-muted-foreground">
-                      {getUnit(condition.metric)}
-                    </span>
-
-                  </div>
-                </div>
-
-                {/* DURATION */}
-                <div>
-                  <label className="block font-mono text-[10px] text-muted-foreground mb-1.5">
-                    Recovery Duration
-                  </label>
-
-                  <div className="flex items-center gap-2">
-
-                    <input
-                      type="number"
-                      min="1"
-                      value={condition.duration}
-                      onChange={e =>
-                        updateCondition(
-                          index,
-                          "duration",
-                          e.target.value
-                        )
-                      }
-                      className="w-20 rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground text-center focus:border-ring focus:outline-none"
-                    />
-
-                    <SelectBox
-                      value={condition.durationUnit}
-                      options={[
-                        "Seconds",
-                        "Minutes",
-                        "Hours",
-                      ]}
-                      onChange={value =>
-                        updateCondition(
-                          index,
-                          "durationUnit",
-                          value
-                        )
-                      }
-                      className="w-28"
-                    />
-
                   </div>
 
-                  <p className="mt-1 font-mono text-[10px] text-muted-foreground">
-                    The condition must remain satisfied for this duration
-                    before the incident is marked as recovered.
-                  </p>
+                  <div>
+                    <label className="block font-mono text-[10px] text-muted-foreground mb-1.5">
+                      Recovery Threshold
+                    </label>
+
+                    <div className="flex items-center gap-2">
+                      <SelectBox
+                        value={condition.operator}
+                        options={OPERATORS}
+                        onChange={value =>
+                          updateCondition(
+                            index,
+                            "operator",
+                            value
+                          )
+                        }
+                        className="w-40"
+                      />
+
+                      <input
+                        type="number"
+                        min="0"
+                        value={condition.threshold}
+                        onChange={e =>
+                          updateCondition(
+                            index,
+                            "threshold",
+                            e.target.value
+                          )
+                        }
+                        placeholder="80"
+                        className="w-20 rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground text-center focus:border-ring focus:outline-none"
+                      />
+
+                      <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">
+                        {getUnit(condition.metric)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-mono text-[10px] text-muted-foreground mb-1.5">
+                      Recovery Duration
+                    </label>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        value={condition.duration}
+                        onChange={e =>
+                          updateCondition(
+                            index,
+                            "duration",
+                            e.target.value
+                          )
+                        }
+                        className="w-20 rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground text-center focus:border-ring focus:outline-none"
+                      />
+
+                      <SelectBox
+                        value={condition.durationUnit}
+                        options={[
+                          "Seconds",
+                          "Minutes",
+                          "Hours",
+                        ]}
+                        onChange={value =>
+                          updateCondition(
+                            index,
+                            "durationUnit",
+                            value
+                          )
+                        }
+                        className="w-28"
+                      />
+                    </div>
+                  </div>
+
                 </div>
 
+                <p className="mt-3 font-mono text-[10px] text-muted-foreground">
+                  This condition must remain satisfied for the configured
+                  duration before the incident is marked as recovered.
+                </p>
               </div>
             ))}
-
           </div>
+        </div>
+
+        <div className="rounded-md border border-border bg-secondary/10 p-3">
+          <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+            Stored Recovery Configuration
+          </p>
+
+          <p className="font-mono text-[11px] text-foreground">
+            {conditions.length === 0
+              ? "recovery.metric = []"
+              : `recovery.metric = ${conditions.length} condition${
+                  conditions.length > 1 ? "s" : ""
+                }`}
+          </p>
         </div>
 
       </div>
