@@ -5,16 +5,20 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="80a84349-3319-409f-8a10-f0aa2f6eb13e" name="Changes" comment="make formm user data">
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/models/user_rules/rule_notification.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/models/user_rules/rule_recovery.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/repository/user_rules.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/routers/user_rules.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/schemas/user_rules.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/services/user_rule_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/kernel-aware-self-healing-platform.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/kernel-aware-self-healing-platform.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/routers/metrics.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/routers/metrics.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/pages/steps/Step11.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/pages/steps/Step11.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/pages/steps/Step12.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/pages/steps/Step12.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/pages/steps/Step13.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/pages/steps/Step13.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/pages/steps/Step8.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/pages/steps/Step8.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/pages/steps/Step9.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/pages/steps/Step9.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/pages/steps/process/step10process.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/pages/steps/process/step10process.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/pages/steps/process/step7Process.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/pages/steps/process/step7Process.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/pages/steps/wizardConstants.js" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/pages/steps/wizardConstants.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/database/connection.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/database/connection.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/models/rule.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/models/user_rules/rule.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/routers/metrics.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/schemas/.gitkeep" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/models/user_rules/rule_action.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/services/.gitkeep" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/models/user_rules/rule_metric.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/services/api.js" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/services/api.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -59,61 +63,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="0.0" />
-      <entry key="MS500" value="1.8438608614268081E-90" />
-      <entry key="S2" value="6.491124688338179E-23" />
-      <entry key="S5" value="2.436801271015962E-9" />
-      <entry key="S10" value="9.064810703802374E-5" />
-      <entry key="S30" value="0.12602176843009982" />
-      <entry key="S60" value="0.8928745645948216" />
-      <entry key="M2" value="2.5791486467434668" />
-      <entry key="M5" value="5.7954272504280375" />
-      <entry key="M10" value="9.10822887261499" />
-      <entry key="M15" value="11.098993016436586" />
-      <entry key="M30" value="13.986357853947629" />
-      <entry key="H1" value="16.85340434888565" />
-      <entry key="H2" value="24.133805155271038" />
-      <entry key="H4" value="44.23606164333141" />
-      <entry key="D1" value="438.0625667607914" />
-      <entry key="W1" value="1738.0148402626542" />
+      <entry key="MS100" value="1.0000010729393813" />
+      <entry key="MS500" value="1.0639904312767776" />
+      <entry key="S2" value="1.5029545707683072" />
+      <entry key="S5" value="1.7596464360698802" />
+      <entry key="S10" value="1.8716176312759263" />
+      <entry key="S30" value="1.9942387533839754" />
+      <entry key="S60" value="2.231022450860946" />
+      <entry key="M2" value="2.684971375281727" />
+      <entry key="M5" value="3.744705291256612" />
+      <entry key="M10" value="6.084640737928811" />
+      <entry key="M15" value="8.418409770443734" />
+      <entry key="M30" value="13.795667385433568" />
+      <entry key="H1" value="20.460112347179788" />
+      <entry key="H2" value="30.007548471204256" />
+      <entry key="H4" value="49.075000639037036" />
+      <entry key="D1" value="419.2535928585616" />
+      <entry key="W1" value="1740.0616105621195" />
     </decayedCancelled>
     <decayedSelected>
-      <entry key="MS100" value="1.0" />
-      <entry key="MS500" value="1.0" />
-      <entry key="S2" value="1.0" />
-      <entry key="S5" value="1.000000000075016" />
-      <entry key="S10" value="1.00000889151666" />
-      <entry key="S30" value="1.0285133360897025" />
-      <entry key="S60" value="1.2647905683298581" />
-      <entry key="M2" value="1.8740132623638495" />
-      <entry key="M5" value="3.081299501766258" />
-      <entry key="M10" value="4.223071317432854" />
-      <entry key="M15" value="4.8707102265900835" />
-      <entry key="M30" value="5.770030179157348" />
-      <entry key="H1" value="6.481660471985858" />
-      <entry key="H2" value="7.553359173687731" />
-      <entry key="H4" value="9.958105994835806" />
-      <entry key="D1" value="35.808495644571266" />
-      <entry key="W1" value="108.65675792696042" />
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="7.282695620545453E-77" />
+      <entry key="S2" value="9.702643304206685E-20" />
+      <entry key="S5" value="3.1741471590910533E-8" />
+      <entry key="S10" value="2.5035316534385756E-4" />
+      <entry key="S30" value="0.15143079009852542" />
+      <entry key="S60" value="0.9937564421030808" />
+      <entry key="M2" value="2.7497149872909756" />
+      <entry key="M5" value="5.27902774558885" />
+      <entry key="M10" value="6.866231536225112" />
+      <entry key="M15" value="7.67493756934232" />
+      <entry key="M30" value="8.875539881145174" />
+      <entry key="H1" value="10.09283511708468" />
+      <entry key="H2" value="12.071710074046452" />
+      <entry key="H4" value="15.448217846002581" />
+      <entry key="D1" value="42.657514168400944" />
+      <entry key="W1" value="117.78235345528921" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="6.07757867488509E-7" />
-      <entry key="MS500" value="0.05711446563933752" />
-      <entry key="S2" value="0.48886228060511633" />
-      <entry key="S5" value="0.7510599658006529" />
-      <entry key="S10" value="0.8667297893488112" />
-      <entry key="S30" value="1.1014392368757047" />
-      <entry key="S60" value="2.105467059525089" />
-      <entry key="M2" value="4.395799960612725" />
-      <entry key="M5" value="8.831847257485384" />
-      <entry key="M10" value="13.300322597856807" />
-      <entry key="M15" value="15.946102973311318" />
-      <entry key="M30" value="19.742619316429625" />
-      <entry key="H1" value="23.32732505806037" />
-      <entry key="H2" value="31.682491179348762" />
-      <entry key="H4" value="54.190907848389294" />
-      <entry key="D1" value="473.8688234371161" />
-      <entry key="W1" value="1846.6706638128935" />
+      <entry key="MS100" value="0.9592651414480885" />
+      <entry key="MS500" value="1.05508919822517" />
+      <entry key="S2" value="1.4996585932538018" />
+      <entry key="S5" value="1.7580782231817171" />
+      <entry key="S10" value="1.8709804302939137" />
+      <entry key="S30" value="2.133034197826624" />
+      <entry key="S60" value="3.187342049973181" />
+      <entry key="M2" value="5.385648630743761" />
+      <entry key="M5" value="8.987214165333754" />
+      <entry key="M10" value="12.927355330370409" />
+      <entry key="M15" value="16.07576809169072" />
+      <entry key="M30" value="22.66074943555891" />
+      <entry key="H1" value="30.546571928419333" />
+      <entry key="H2" value="42.07491126942408" />
+      <entry key="H4" value="64.51992664280553" />
+      <entry key="D1" value="461.90882306429233" />
+      <entry key="W1" value="1857.8430023527917" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -167,6 +171,7 @@
       <recent name="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/models/user_rules" />
       <recent name="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/analytics-engine/metrics" />
     </key>
   </component>

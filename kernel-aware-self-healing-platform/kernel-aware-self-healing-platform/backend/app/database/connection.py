@@ -1,16 +1,16 @@
-import mysql.connector
+from sqlalchemy import create_engine
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-connection = None
+DATABASE_URL = "mysql+mysqlconnector://pasindu:1234@localhost:3306/user_rules"
 
-def get_db_connection():
-    global connection
+engine = create_engine(DATABASE_URL)
 
-    if connection is None or not connection.is_connected():
-        connection = mysql.connector.connect(
-            host="localhost",
-            user="pasindu",
-            password="1234",
-            database="user_rules"
-        )
+SessionLocal = sessionmaker(
+    bind=engine,
+    autoflush=False,
+    autocommit=False
+)
 
-    return connection
+
+class Base(DeclarativeBase):
+    pass
