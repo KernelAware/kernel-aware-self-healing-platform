@@ -10,7 +10,6 @@
 #   collectors.logs
 # ============================================================
 
-import json
 import os
 import time
 import requests

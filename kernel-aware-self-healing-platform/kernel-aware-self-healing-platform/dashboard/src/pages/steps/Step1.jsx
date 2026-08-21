@@ -22,12 +22,6 @@ export default function Step1({ form, setForm, onNext, onCancel }) {
                 <span className="font-mono text-[10px] text-muted-foreground">{form.ruleName.length} / 100</span>
               </div>
             </div>
-            <div>
-              <label className="block font-mono text-[11px] text-foreground mb-1.5">Description</label>
-              <textarea value={form.description} maxLength={255} rows={3} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                className="w-full resize-none rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground focus:border-ring focus:outline-none" />
-              <div className="flex justify-end"><span className="font-mono text-[10px] text-muted-foreground">{form.description.length} / 255</span></div>
-            </div>
             <div className="grid grid-cols-3 gap-5">
               <div>
                 <label className="block font-mono text-[11px] text-foreground mb-1.5">Status</label>
@@ -60,18 +54,6 @@ export default function Step1({ form, setForm, onNext, onCancel }) {
                 </div>
                 <p className="mt-1 font-mono text-[10px] text-muted-foreground">Who owns this rule.</p>
               </div>
-            </div>
-            <div>
-              <label className="block font-mono text-[11px] text-foreground mb-1.5">Tags (Optional)</label>
-              <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 min-h-[42px]">
-                {form.tags.map(t => <TagPill key={t} label={t} onRemove={() => removeTag(t)} />)}
-                <input value={form.tagInput} onChange={e => setForm(f => ({ ...f, tagInput: e.target.value }))}
-                  onKeyDown={e => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addTag(form.tagInput) } }}
-                  onBlur={() => { if (form.tagInput.trim()) addTag(form.tagInput) }}
-                  placeholder="" className="flex-1 min-w-[80px] bg-transparent font-mono text-xs text-foreground focus:outline-none" />
-                <ChevronDown className="ml-auto size-3.5 text-muted-foreground shrink-0" />
-              </div>
-              <p className="mt-1 font-mono text-[10px] text-muted-foreground">Add tags to categorize this rule.</p>
             </div>
           </div>
           <div className="mt-8 flex items-center justify-between">

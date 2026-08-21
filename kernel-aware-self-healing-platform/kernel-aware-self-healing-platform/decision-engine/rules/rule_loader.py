@@ -1,2 +1,2 @@
-def load_rules(incident):
+def load_rules(metrics):
     pass

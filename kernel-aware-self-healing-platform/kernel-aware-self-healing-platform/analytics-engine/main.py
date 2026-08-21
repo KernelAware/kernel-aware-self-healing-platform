@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 import time
 
-from prometheus_client import get_metrics
+from get_metrics.prometheus_client import get_metrics
 from rules.rule_loader import load_rules
 from detection.detector import detect
 from incident_classification.classifier import classify
@@ -17,12 +17,12 @@ def health():
 
 def run_analysis():
     metrics = get_metrics()
-    rules = load_rules()
+    events= load_rules(metrics)
 
-    events = detect(metrics, rules)
+    incidents = detect(events)
 
-    for event in events:
-        incident = classify(event)
+    for incident in incidents:
+        incident = classify(incident)
         manage_incident(incident)
 
 
