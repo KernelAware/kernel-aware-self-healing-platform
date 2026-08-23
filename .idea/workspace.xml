@@ -4,22 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="80a84349-3319-409f-8a10-f0aa2f6eb13e" name="Changes" comment="make formm user data">
-      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/models/user_rules/rule_notification.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/models/user_rules/rule_recovery.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/repository/user_rules.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/routers/user_rules.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/schemas/user_rules.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/services/user_rule_service.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/kernel-aware-self-healing-platform.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/kernel-aware-self-healing-platform.iml" afterDir="false" />
+    <list default="true" id="80a84349-3319-409f-8a10-f0aa2f6eb13e" name="Changes" comment="make backend user rules store">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/database/connection.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/database/connection.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/models/rule.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/models/user_rules/rule.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/routers/metrics.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/schemas/.gitkeep" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/models/user_rules/rule_action.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/services/.gitkeep" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/models/user_rules/rule_metric.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/services/api.js" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/dashboard/src/services/api.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/routers/user_rules.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/routers/user_rules.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/services/user_rule_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/services/user_rule_service.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -27,7 +15,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="271" />
+    <option name="cachedIndexableFilesCount" value="276" />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -63,61 +51,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.0000010729393813" />
-      <entry key="MS500" value="1.0639904312767776" />
-      <entry key="S2" value="1.5029545707683072" />
-      <entry key="S5" value="1.7596464360698802" />
-      <entry key="S10" value="1.8716176312759263" />
-      <entry key="S30" value="1.9942387533839754" />
-      <entry key="S60" value="2.231022450860946" />
-      <entry key="M2" value="2.684971375281727" />
-      <entry key="M5" value="3.744705291256612" />
-      <entry key="M10" value="6.084640737928811" />
-      <entry key="M15" value="8.418409770443734" />
-      <entry key="M30" value="13.795667385433568" />
-      <entry key="H1" value="20.460112347179788" />
-      <entry key="H2" value="30.007548471204256" />
-      <entry key="H4" value="49.075000639037036" />
-      <entry key="D1" value="419.2535928585616" />
-      <entry key="W1" value="1740.0616105621195" />
+      <entry key="MS100" value="2.7026563070407984E-106" />
+      <entry key="MS500" value="7.69774574996942E-22" />
+      <entry key="S2" value="5.616038421159252E-6" />
+      <entry key="S5" value="0.011291828588222018" />
+      <entry key="S10" value="0.1704286390134627" />
+      <entry key="S30" value="1.1664259287580996" />
+      <entry key="S60" value="2.2668009356437" />
+      <entry key="M2" value="4.0189008776762" />
+      <entry key="M5" value="6.635883616076217" />
+      <entry key="M10" value="8.256167110537383" />
+      <entry key="M15" value="9.587225359242266" />
+      <entry key="M30" value="14.95800722030293" />
+      <entry key="H1" value="25.476583892788035" />
+      <entry key="H2" value="40.20091301942443" />
+      <entry key="H4" value="62.862912216513095" />
+      <entry key="D1" value="429.9922691163017" />
+      <entry key="W1" value="1757.5241830537827" />
     </decayedCancelled>
     <decayedSelected>
-      <entry key="MS100" value="0.0" />
-      <entry key="MS500" value="7.282695620545453E-77" />
-      <entry key="S2" value="9.702643304206685E-20" />
-      <entry key="S5" value="3.1741471590910533E-8" />
-      <entry key="S10" value="2.5035316534385756E-4" />
-      <entry key="S30" value="0.15143079009852542" />
-      <entry key="S60" value="0.9937564421030808" />
-      <entry key="M2" value="2.7497149872909756" />
-      <entry key="M5" value="5.27902774558885" />
-      <entry key="M10" value="6.866231536225112" />
-      <entry key="M15" value="7.67493756934232" />
-      <entry key="M30" value="8.875539881145174" />
-      <entry key="H1" value="10.09283511708468" />
-      <entry key="H2" value="12.071710074046452" />
-      <entry key="H4" value="15.448217846002581" />
-      <entry key="D1" value="42.657514168400944" />
-      <entry key="W1" value="117.78235345528921" />
+      <entry key="MS100" value="1.0" />
+      <entry key="MS500" value="1.0" />
+      <entry key="S2" value="1.0" />
+      <entry key="S5" value="1.000000000071226" />
+      <entry key="S10" value="1.0000096452879559" />
+      <entry key="S30" value="1.0322137612400373" />
+      <entry key="S60" value="1.278643793668368" />
+      <entry key="M2" value="1.8787215423618635" />
+      <entry key="M5" value="2.8160006497122114" />
+      <entry key="M10" value="3.4163212237386236" />
+      <entry key="M15" value="3.9879153296470973" />
+      <entry key="M30" value="6.309876470524115" />
+      <entry key="H1" value="10.291992072925758" />
+      <entry key="H2" value="15.021073699869225" />
+      <entry key="H4" value="20.40719927826616" />
+      <entry key="D1" value="49.903125329464025" />
+      <entry key="W1" value="126.11950836930514" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.9592651414480885" />
-      <entry key="MS500" value="1.05508919822517" />
-      <entry key="S2" value="1.4996585932538018" />
-      <entry key="S5" value="1.7580782231817171" />
-      <entry key="S10" value="1.8709804302939137" />
-      <entry key="S30" value="2.133034197826624" />
-      <entry key="S60" value="3.187342049973181" />
-      <entry key="M2" value="5.385648630743761" />
-      <entry key="M5" value="8.987214165333754" />
-      <entry key="M10" value="12.927355330370409" />
-      <entry key="M15" value="16.07576809169072" />
-      <entry key="M30" value="22.66074943555891" />
-      <entry key="H1" value="30.546571928419333" />
-      <entry key="H2" value="42.07491126942408" />
-      <entry key="H4" value="64.51992664280553" />
-      <entry key="D1" value="461.90882306429233" />
-      <entry key="W1" value="1857.8430023527917" />
+      <entry key="MS100" value="7.649814471977381E-8" />
+      <entry key="MS500" value="0.037733768483953004" />
+      <entry key="S2" value="0.44074538933807833" />
+      <entry key="S5" value="0.7309213631818746" />
+      <entry key="S10" value="1.0092493468096855" />
+      <entry key="S30" value="2.1156970130211166" />
+      <entry key="S60" value="3.4776758144892734" />
+      <entry key="M2" value="5.836714993879032" />
+      <entry key="M5" value="9.41077751284795" />
+      <entry key="M10" value="11.646631407588284" />
+      <entry key="M15" value="13.554955121709028" />
+      <entry key="M30" value="21.25279633537042" />
+      <entry key="H1" value="35.75712916629457" />
+      <entry key="H2" value="55.21388887213107" />
+      <entry key="H4" value="83.26452829688216" />
+      <entry key="D1" value="479.89265435324603" />
+      <entry key="W1" value="1883.64265634653" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -449,7 +437,31 @@
       <option name="project" value="LOCAL" />
       <updated>1787172695397</updated>
     </task>
-    <option name="localTasksCounter" value="29" />
+    <task id="LOCAL-00029" summary="make backend user rules store">
+      <option name="closed" value="true" />
+      <created>1787341799052</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1787341799053</updated>
+    </task>
+    <task id="LOCAL-00030" summary="make backend user rules store">
+      <option name="closed" value="true" />
+      <created>1787341805333</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1787341805333</updated>
+    </task>
+    <task id="LOCAL-00031" summary="make backend user rules store">
+      <option name="closed" value="true" />
+      <created>1787341810010</created>
+      <option name="number" value="00031" />
+      <option name="presentableId" value="LOCAL-00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1787341810011</updated>
+    </task>
+    <option name="localTasksCounter" value="32" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -464,6 +476,7 @@
     <MESSAGE value="make docker.yml file for run grafana , loki ,promithese" />
     <MESSAGE value="make all relate to disply process and service on grfana and react dashboard" />
     <MESSAGE value="make formm user data" />
-    <option name="LAST_COMMIT_MESSAGE" value="make formm user data" />
+    <MESSAGE value="make backend user rules store" />
+    <option name="LAST_COMMIT_MESSAGE" value="make backend user rules store" />
   </component>
 </project>
