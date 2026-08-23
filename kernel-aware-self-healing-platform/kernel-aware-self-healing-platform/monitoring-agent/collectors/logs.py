@@ -84,15 +84,20 @@ COMMON_LOG_FILES = {
 }
 
 # Environment Detection
+# These checks help identify the runtime context so the collector can use the
+# correct log sources for Docker, Kubernetes, or bare Linux hosts.
 
+# Returns True when the process is running inside a Docker container.
 def is_docker():
     return Path("/.dockerenv").exists()
 
 
+# Returns True when Kubernetes environment variables are present.
 def is_kubernetes():
     return "KUBERNETES_SERVICE_HOST" in os.environ
 
 
+# Returns True when the host looks like an AWS EC2 instance.
 def is_ec2():
     try:
         return Path(
@@ -105,6 +110,7 @@ def is_ec2():
         return False
 
 
+# Detects the current infrastructure type so log sources can be chosen correctly.
 def get_environment():
     if is_kubernetes():
         return "Kubernetes"
@@ -120,32 +126,41 @@ def get_environment():
 
 # Command Detection
 
+# Checks whether a command is available in the system PATH.
 def command_exists(command):
     return shutil.which(command) is not None
 
 
+# Returns True if the systemd journalctl utility exists and can be used.
 def has_journalctl():
     return command_exists("journalctl")
 
 
+# Returns True if systemctl is available for service-level log inspection.
 def has_systemctl():
     return command_exists("systemctl")
 
 
+# Returns True if dmesg is available for reading kernel ring buffer messages.
 def has_dmesg():
     return command_exists("dmesg")
 
 
+# Returns True if the 'last' command is installed for user login history checks.
 def has_last():
     return command_exists("last")
 
 
+# Returns True if the 'who' command is installed for current user session checks.
 def has_who():
     return command_exists("who")
 
 
 # Universal Log Discovery
+# A log type such as "kernel" or "authentication" is mapped to known file names
+# and searched across standard Linux log directories.
 
+# Finds the first matching log file for a given category in common log locations.
 def find_log_file(log_type):
     candidates = COMMON_LOG_FILES.get(log_type,[])
     for directory in LOG_DIRECTORIES:
@@ -161,7 +176,10 @@ def find_log_file(log_type):
 
 
 # Helper function to Execute Linux Command
+# The collector intentionally isolates shell execution in one place so that
+# all other code paths can work with normalized stdout lines.
 
+# Executes a shell command and returns each output line as a string entry.
 def run_command(command):
     try:
         result = subprocess.run(command, capture_output=True, text=True, timeout=COMMAND_TIMEOUT)
@@ -180,6 +198,7 @@ def run_command(command):
 
 # Helper function to Read Log File
 
+# Reads the last N lines from a log file, ignoring unreadable files safely.
 def read_log_file(path,lines=DEFAULT_LOG_LINES):
     if path is None:
         return []
@@ -202,8 +221,10 @@ def read_log_file(path,lines=DEFAULT_LOG_LINES):
 
 # Universal Reader
 # ALL collectors will use this.
-# Collectors NEVER know where logs come from.
+# Collectors NEVER know where logs come from; they only ask for a log type.
 
+# Retrieves log content for a log category by checking common files first,
+# then falling back to journalctl when that is available.
 def read_logs(log_type):
     path = find_log_file(log_type)
     if path:
@@ -230,20 +251,24 @@ def read_logs(log_type):
 
 # Helper Functions
 
+# Converts a byte size into a rough megabyte value for display or comparison.
 def bytes_to_mb(value):
     return round( value / (1024 * 1024) , 2)
 
 
+# Returns the current timestamp in ISO format for log metadata.
 def current_timestamp():
     return datetime.now().isoformat()
 
 
+# Returns the local machine hostname used in environment metadata.
 def hostname():
     return socket.gethostname()
 
 
 # Environment Information
 
+# Gathers metadata about the host environment and available system log tools.
 def get_environment_information():
     return {
         "environment":
@@ -294,10 +319,10 @@ if __name__ == "__main__":
 
 
 # Primary Collectors
+# These are the only functions that perform I/O.
+# Every other collector reads only from RAW_DATA, keeping the refresh flow simple.
 
-# These are the ONLY functions that perform I/O.
-# Every other collector reads only from RAW_DATA.
-
+# Collects the latest system journal entries from journalctl or a standard log file.
 def collect_system_journal():
     logger.info("Collecting system journal...")
     if has_journalctl():
@@ -314,6 +339,7 @@ def collect_system_journal():
         RAW_DATA["journal"] = read_logs("syslog")
 
 
+# Collects kernel-related log messages from dmesg, journalctl, or common kernel files.
 def collect_kernel_logs():
     logger.info("Collecting kernel logs...")
     if has_dmesg():
@@ -346,6 +372,7 @@ def collect_kernel_logs():
     RAW_DATA["kernel"] = read_logs("kernel")
 
 
+# Collects authentication and security-related log entries such as login attempts.
 def collect_authentication_logs():
     logger.info("Collecting authentication logs...")
     RAW_DATA["authentication"] = read_logs(
@@ -353,6 +380,7 @@ def collect_authentication_logs():
     )
 
 
+# Collects service and daemon log output from journalctl or fallback log files.
 def collect_service_logs():
     logger.info("Collecting service logs...")
     if has_journalctl():
@@ -373,6 +401,7 @@ def collect_service_logs():
         )
 
 
+# Collects startup and boot events by reading boot logs or filtering journal entries.
 def collect_boot_logs():
     logger.info("Collecting boot logs...")
     boot = read_logs("boot")
@@ -397,6 +426,7 @@ def collect_boot_logs():
     RAW_DATA["boot"] = boot_events
 
 
+# Collects scheduled task logs such as cron or crond activity from log files or journal.
 def collect_cron_logs():
     logger.info("Collecting cron logs...")
     cron = read_logs("cron")
@@ -420,6 +450,7 @@ def collect_cron_logs():
     RAW_DATA["cron"] = events
 
 
+# Collects application and generic system log output from the standard syslog source.
 def collect_application_logs():
     logger.info("Collecting application logs...")
     RAW_DATA["applications"] = read_logs(
@@ -427,6 +458,7 @@ def collect_application_logs():
     )
 
 
+# Collects login history and current active users using the last and who commands.
 def collect_user_sessions():
     logger.info("Collecting user sessions...")
     users = {}
@@ -454,6 +486,7 @@ def collect_user_sessions():
     RAW_DATA["users"] = users
 
 
+# Gathers metadata about each known log file, including size and modification time.
 def collect_log_statistics():
     logger.info("Collecting log statistics...")
     stats = {}
@@ -483,6 +516,7 @@ def collect_log_statistics():
 # Refresh Sources
 # The ONLY entry point that performs I/O.
 
+# Refreshes all environment and log data for the monitoring agent in one pass.
 def refresh_sources():
     logger.info("=" * 60)
     logger.info("Refreshing log sources...")
@@ -500,20 +534,23 @@ def refresh_sources():
 
 
 # Kernel Collectors
+# These functions read from RAW_DATA["kernel"] and other kernel-related entries
+# that were already collected by refresh_sources(). They do not execute system
+# commands directly and are used to filter relevant kernel events.
 
-# NO I/O
-# Uses: RAW_DATA["kernel"]
-
+# Returns the full system journal collected earlier in the refresh cycle.
 def get_system_journal_logs():
     logger.info("Getting system journal logs...")
     return RAW_DATA["journal"]
 
 
+# Returns all raw kernel log lines collected from dmesg, journalctl, or files.
 def get_kernel_logs():
     logger.info("Getting kernel logs...")
     return RAW_DATA["kernel"]
 
 
+# Filters kernel logs for out-of-memory events caused by low memory exhaustion.
 def get_oom_killer_logs():
     logger.info("Getting OOM Killer logs...")
     keywords = (
@@ -533,6 +570,7 @@ def get_oom_killer_logs():
     ]
 
 
+# Filters kernel logs for filesystem corruption, mount, or ext4/xfs/btrfs problems.
 def get_filesystem_error_logs():
     logger.info(
         "Getting filesystem errors..."
@@ -558,6 +596,7 @@ def get_filesystem_error_logs():
     ]
 
 
+# Filters kernel logs for hardware faults such as PCI, thermal, MCE, and memory issues.
 def get_hardware_error_logs():
     logger.info(
         "Getting hardware errors..."
@@ -589,6 +628,7 @@ def get_hardware_error_logs():
     ]
 
 
+# Filters kernel logs for networking problems like interface failures or DHCP errors.
 def get_network_error_logs():
     logger.info(
         "Getting network errors..."
@@ -616,6 +656,7 @@ def get_network_error_logs():
     ]
 
 
+# Returns the boot-related log entries collected earlier in the refresh process.
 def get_boot_logs():
     logger.info(
         "Getting boot logs..."
@@ -624,6 +665,7 @@ def get_boot_logs():
     return RAW_DATA["boot"]
 
 
+# Builds a summary of kernel-related counters for health and reporting dashboards.
 def get_kernel_statistics():
     logger.info(
         "Getting kernel statistics..."
@@ -667,6 +709,7 @@ def get_kernel_statistics():
     }
 
 
+# Returns True if any serious kernel failures were detected in the filtered categories.
 def has_kernel_errors():
     return (
         len(
@@ -683,6 +726,7 @@ def has_kernel_errors():
     ) > 0
 
 
+# Produces a compact summary of kernel issue counts for monitoring views.
 def kernel_summary():
     return {
         "kernel_logs":
@@ -717,15 +761,17 @@ def kernel_summary():
     }
 
 
-# Authentication Collectors, NO I/O
-# Uses:
-# RAW_DATA["authentication"]
+# Authentication Collectors
+# These helper functions filter the authentication log data into specific categories
+# such as SSH usage, failed logins, privilege changes, and security incidents.
 
+# Returns the complete set of authentication events collected from system log sources.
 def get_auth_logs():
     logger.info("Getting authentication logs...")
     return RAW_DATA["authentication"]
 
 
+# Returns lines related to SSH login activity, connections, and terminal disconnects.
 def get_ssh_logs():
     logger.info("Getting SSH logs...")
     keywords = (
@@ -747,6 +793,7 @@ def get_ssh_logs():
     ]
 
 
+# Returns only authentication failures that indicate an invalid or unsuccessful login attempt.
 def get_failed_logins():
     logger.info("Getting failed logins...")
     keywords = (
@@ -767,6 +814,7 @@ def get_failed_logins():
     ]
 
 
+# Returns lines indicating a successful login or session start after authentication succeeded.
 def get_successful_logins():
     logger.info("Getting successful logins...")
     keywords = (
@@ -786,6 +834,7 @@ def get_successful_logins():
     ]
 
 
+# Returns sudo or privilege-related authorization events captured in auth logs.
 def get_sudo_logs():
     logger.info("Getting sudo logs...")
     return [
@@ -795,6 +844,7 @@ def get_sudo_logs():
     ]
 
 
+# Returns permission or authorization-denied activity that may indicate misuse or policy violations.
 def get_permission_denied_logs():
     logger.info("Getting permission denied logs...")
     keywords = (
@@ -813,6 +863,7 @@ def get_permission_denied_logs():
     ]
 
 
+# Returns lines that suggest users gained or attempted to escalate privileges.
 def get_privilege_escalation_logs():
     logger.info("Getting privilege escalation logs...")
     keywords = (
@@ -833,6 +884,7 @@ def get_privilege_escalation_logs():
     ]
 
 
+# Returns a narrower set of authentication failures used to identify compromised or risky access.
 def get_authentication_failures():
     logger.info("Getting authentication failures...")
     keywords = (
@@ -851,6 +903,7 @@ def get_authentication_failures():
     ]
 
 
+# Returns events that indicate a user has successfully logged into a system or terminal session.
 def get_login_events():
     logger.info("Getting login events...")
     keywords = (
@@ -870,6 +923,7 @@ def get_login_events():
     ]
 
 
+# Returns events that indicate a user session ended or a logout occurred.
 def get_logout_events():
     logger.info("Getting logout events...")
     keywords = (
@@ -888,6 +942,7 @@ def get_logout_events():
     ]
 
 
+# Returns any authentication activity mentioning root, useful for privileged access auditing.
 def get_root_login_events():
     logger.info("Getting root login events...")
     return [
@@ -897,6 +952,7 @@ def get_root_login_events():
     ]
 
 
+# Returns remote access events that appear to be SSH or network-based login attempts.
 def get_remote_login_events():
     logger.info("Getting remote login events...")
     keywords = (
@@ -915,6 +971,7 @@ def get_remote_login_events():
     ]
 
 
+# Returns a catch-all security event set for risky auth behavior and suspicious access patterns.
 def get_security_events():
     logger.info("Getting security events...")
     keywords = (
@@ -939,6 +996,7 @@ def get_security_events():
     ]
 
 
+# Builds a count summary of auth-related events to support alerting and dashboards.
 def get_authentication_statistics():
     logger.info("Getting authentication statistics...")
     return {
@@ -989,6 +1047,7 @@ def get_authentication_statistics():
     }
 
 
+# Returns True when any security-relevant authentication event has been detected.
 def has_security_events():
     return (
         len(
@@ -997,6 +1056,7 @@ def has_security_events():
     )
 
 
+# Produces a compact authentication summary for dashboards and incident triage.
 def authentication_summary():
     return {
         "authentication_logs":
