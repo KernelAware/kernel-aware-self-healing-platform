@@ -1,5 +1,10 @@
 from database.connection import SessionLocal
+from models.user_rules.rule_action import RuleAction
+from models.user_rules.rule_recovery import RuleRecovery
+from models.user_rules.rule_notification import RuleNotification
+from models.user_rules.rule_metric import RuleMetric
 from models.user_rules.rule import Rule
+from models.user_rules.rule_targets import RuleTarget
 
 
 def save_rules(rule_details):
@@ -57,6 +62,54 @@ def retrieve_rules(system_id: int):
         )
 
         return rules
+
+    finally:
+        db.close()
+
+def get_rule_details(rule_id: int):
+    db = SessionLocal()
+
+    try:
+
+        targets = (
+            db.query(RuleTarget)
+            .filter(RuleTarget.rule_id == rule_id)
+            .all()
+        )
+
+        metrics = (
+            db.query(RuleMetric)
+            .filter(RuleMetric.rule_id == rule_id)
+            .all()
+        )
+
+        actions = (
+            db.query(RuleAction)
+            .filter(RuleAction.rule_id == rule_id)
+            .all()
+        )
+
+        notifications = (
+            db.query(RuleNotification)
+            .filter(RuleNotification.rule_id == rule_id)
+            .all()
+        )
+
+        recovery = (
+            db.query(RuleRecovery)
+            .filter(RuleRecovery.rule_id == rule_id)
+            .all()
+        )
+
+        rule_details = {
+            "targets": targets,
+            "metrics": metrics,
+            "actions": actions,
+            "notifications": notifications,
+            "recovery": recovery
+        }
+
+        return rule_details
 
     finally:
         db.close()

@@ -4,7 +4,7 @@ from models.user_rules.rule_metric import RuleMetric
 from models.user_rules.rule_action import RuleAction
 from models.user_rules.rule_notification import RuleNotification
 from models.user_rules.rule_recovery import RuleRecovery
-from repository.user_rules import save_rules
+from repository.user_rules import save_rules, retrieve_rules
 
 
 def user_rules_service(userRules):
@@ -184,3 +184,9 @@ def user_rules_service(userRules):
 
     save_details = save_rules(rule_details)
     return save_details
+
+def get_user_rules(system_id):
+    rules = retrieve_rules(system_id)
+
+    for rule in rules:
+        rule.rule_id = rule.id
