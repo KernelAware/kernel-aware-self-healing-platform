@@ -1,4 +1,5 @@
 from database.connection import SessionLocal
+from models.user_rules.rule import Rule
 
 
 def save_rules(rule_details):
@@ -34,13 +35,28 @@ def save_rules(rule_details):
         db.commit()
 
         return {
-            "success": True,
-            "rule_id": rule.id
+            "success": True
         }
 
     except Exception:
         db.rollback()
         raise
+
+    finally:
+        db.close()
+
+def retrieve_rules(system_id: int):
+
+    db = SessionLocal()
+
+    try:
+        rules = (
+            db.query(Rule)
+            .filter(Rule.system_id == system_id)
+            .all()
+        )
+
+        return rules
 
     finally:
         db.close()
