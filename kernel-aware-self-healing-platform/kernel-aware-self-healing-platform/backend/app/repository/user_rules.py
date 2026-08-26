@@ -99,6 +99,7 @@ def get_rule_details(rule_id: int):
             db.query(RuleRecovery)
             .filter(RuleRecovery.rule_id == rule_id)
             .all()
+
         )
 
         rule_details = {
