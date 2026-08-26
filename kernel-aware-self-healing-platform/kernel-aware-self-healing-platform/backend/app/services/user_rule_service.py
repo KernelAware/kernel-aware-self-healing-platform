@@ -4,8 +4,17 @@ from models.user_rules.rule_metric import RuleMetric
 from models.user_rules.rule_action import RuleAction
 from models.user_rules.rule_notification import RuleNotification
 from models.user_rules.rule_recovery import RuleRecovery
-from repository.user_rules import save_rules, retrieve_rules
+from repository.user_rules import save_rules, retrieve_rules , get_rule_details
 
+from schemas.user_rules import (
+    RuleResponse,
+    RuleDetailsResponse,
+    RuleTargetResponse,
+    RuleMetricResponse,
+    RuleActionResponse,
+    RuleNotificationResponse,
+    RuleRecoveryResponse
+)
 
 def user_rules_service(userRules):
     targets = []
@@ -185,8 +194,84 @@ def user_rules_service(userRules):
     save_details = save_rules(rule_details)
     return save_details
 
-def get_user_rules(system_id):
+def get_user_rules(system_id: int):
+
     rules = retrieve_rules(system_id)
 
+    result = []
+
     for rule in rules:
-        rule.rule_id = rule.id
+
+        data = get_rule_details(rule.id)
+
+        result.append(
+            RuleDetailsResponse(
+                rule=RuleResponse(
+                    name=rule.name,
+                    status=rule.status,
+                    priority=rule.priority,
+                    severity=rule.severity,
+                    owner=rule.owner,
+                    environment=rule.environment,
+                    region=rule.region,
+                    monitor_type=rule.monitor_type,
+                    target_type=rule.target_type,
+                    target=rule.target,
+                    system_id=rule.system_id,
+                    created_at=rule.created_at
+                ),
+
+                targets=[
+                    RuleTargetResponse(
+                        target_type=x.target_type,
+                        target=x.target
+                    )
+                    for x in data["targets"]
+                ],
+
+                metrics=[
+                    RuleMetricResponse(
+                        metric=x.metric,
+                        operator=x.operator,
+                        threshold=x.threshold,
+                        duration_seconds=x.duration_seconds
+                    )
+                    for x in data["metrics"]
+                ],
+
+                actions=[
+                    RuleActionResponse(
+                        action_type=x.action_type,
+                        automatic_execution=x.automatic_execution,
+                        approval_required=x.approval_required,
+                        allowed_during=x.allowed_during,
+                        max_retry_attempts=x.max_retry_attempts,
+                        cooldown_seconds=x.cooldown_seconds,
+                        suppress_duplicates=x.suppress_duplicates
+                    )
+                    for x in data["actions"]
+                ],
+
+                notifications=[
+                    RuleNotificationResponse(
+                        event_type=x.event_type,
+                        channel=x.channel,
+                        recipient=x.recipient
+                    )
+                    for x in data["notifications"]
+                ],
+
+                recovery=[
+                    RuleRecoveryResponse(
+                        verification_required=x.verification_required,
+                        metric=x.metric,
+                        operator=x.operator,
+                        recovery_threshold=x.recovery_threshold,
+                        recovery_duration_seconds=x.recovery_duration_seconds
+                    )
+                    for x in data["recovery"]
+                ]
+            )
+        )
+
+    return result
