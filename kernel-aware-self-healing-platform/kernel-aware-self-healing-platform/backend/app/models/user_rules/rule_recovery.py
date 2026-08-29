@@ -28,7 +28,6 @@ class RuleRecovery(Base):
         BigInteger,
         ForeignKey("rules.id"),
         nullable=False,
-        unique=True
     )
 
     verification_required: Mapped[bool | None] = mapped_column(
