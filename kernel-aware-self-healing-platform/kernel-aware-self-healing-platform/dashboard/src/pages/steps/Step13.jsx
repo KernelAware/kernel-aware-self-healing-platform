@@ -801,13 +801,13 @@ export default function Step13({ form, onCancel }) {
       <div className="flex justify-end pt-1">
         <button
           type="button"
-          onClick={() => {
-            userRules(form).then(r => {
-              if (res.ok){
-                setCreated(true)
-              }
-            })
-
+          onClick={async () => {
+            try {
+              const data = await userRules(form);
+              setCreated(true)
+            } catch (error) {
+              console.error(error);
+            }
           }}
           className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-6 font-mono text-xs font-bold tracking-wide text-primary-foreground hover:bg-primary/90 shadow-glow-primary transition-colors cursor-pointer"
         >

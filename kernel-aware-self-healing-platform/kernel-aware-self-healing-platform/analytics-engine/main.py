@@ -1,32 +1,52 @@
 from fastapi import FastAPI
 import time
 
-from get_metrics.prometheus_client import get_metrics
-from rules.rule_loader import load_rules
-from detection.detector import detect
-from incident_classification.classifier import classify
-from incident_management.manager import manage_incident
+from database.db_connection.connection import SessionLocal
+from database.systems.system_repository import get_active_systems
+from analyzer.server_analyzer import analyze_server
 
-app = FastAPI(title="Analytics Engine")
+app = FastAPI(
+    title="Analytics Engine"
+)
 
 
 @app.get("/health")
 def health():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy"
+    }
 
 
 def run_analysis():
-    metrics = get_metrics()
-    events= load_rules(metrics)
+    db = SessionLocal()
 
-    incidents = detect(events)
+    try:
+        systems = get_active_systems(db)
+        for system in systems:
+            try:
+                analyze_server(
+                    db=db,
+                    system=system
+                )
 
-    for incident in incidents:
-        incident = classify(incident)
-        manage_incident(incident)
+            except Exception as error:
+                print(
+                    f"Error analyzing system "
+                    f"{system['id']}: {error}"
+                )
+
+    except Exception as error:
+        print(
+            "Analysis cycle error:",
+            error
+        )
+
+    finally:
+        db.close()
 
 
 if __name__ == "__main__":
     while True:
         run_analysis()
+
         time.sleep(5)
