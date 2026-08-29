@@ -1,20 +1,31 @@
-def detect_cpu(metrics, rules):
-    threshold_result = check_cpu_threshold(metrics, rules)
-    duration_result = check_cpu_duration(metrics, rules)
+from detection.strategies.cpu_detector import CpuDetector
+from detection.strategies.memeory_detecter import MemoryDetector
+from detection.strategies.disk_detector import DiskDetector
+from detection.strategies.process_detector import ProcessDetector
+from detection.strategies.network_detector import NetworkDetector
 
-    return {
-        "threshold": threshold_result,
-        "duration": duration_result
-    }
 
-def detect_memory(events):
-    pass
+strategies = {
+    "cpu": CpuDetector(),
+    "memory": MemoryDetector(),
+    "disk": DiskDetector(),
+    "process": ProcessDetector(),
+    "network": NetworkDetector(),
+}
 
-def detect_disk(events):
-    pass
 
-def detect(data):
-    cpu_metrics = data["cpu"]
+def detect(rule, metrics):
 
-    detect_cpu(data["cpu"]["metrics"], data["cpu"]["rules"])
+    monitor_type = rule["monitor_type"]
 
+    strategy = strategies.get(monitor_type)
+
+    if strategy is None:
+        raise ValueError(
+            f"Unsupported monitor type: {monitor_type}"
+        )
+
+    return strategy.detect(
+        rule,
+        metrics
+    )
