@@ -12,7 +12,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from database.db_connection.connection import Base
+from database.connection import Base
 
 
 class RuleRecovery(Base):

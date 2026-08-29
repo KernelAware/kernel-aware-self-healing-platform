@@ -17,3 +17,7 @@ def query_prometheus(query: str):
 
     return data["data"]["result"]
 
+
+
+
+
