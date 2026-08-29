@@ -1,4 +1,4 @@
-from database.db_connection.connection import SessionLocal
+from database.connection import SessionLocal
 from models.user_rules.rule_action import RuleAction
 from models.user_rules.rule_recovery import RuleRecovery
 from models.user_rules.rule_notification import RuleNotification
