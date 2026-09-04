@@ -5,7 +5,7 @@ from services.user_rule_service import get_user_rules
 
 router = APIRouter()
 
-@router.get("/get_metrics")
+@router.get("/system_metrics")
 async def get_metrics():
     return {"incidents": "[]"}
 

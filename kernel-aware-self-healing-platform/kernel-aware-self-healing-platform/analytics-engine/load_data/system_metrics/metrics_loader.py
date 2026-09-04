@@ -1,4 +1,4 @@
-from get_metrics.prometheus_client import query_prometheus
+import requests
 
 METRIC_MAP = {
     "CPU Usage (%)": "process_cpu_percent",
@@ -42,3 +42,25 @@ def get_process_metric(system_id, process_name, metric):
     '''
 
     return query_prometheus(query)
+
+PROMETHEUS_URL = "http://localhost:9090"
+def query_prometheus(query: str):
+    response = requests.get(
+        f"{PROMETHEUS_URL}/api/v1/query",
+        params={"query": query},
+        timeout=10,
+    )
+
+    response.raise_for_status()
+
+    data = response.json()
+
+    if data["status"] != "success":
+        raise RuntimeError("Prometheus query failed")
+
+    return data["data"]["result"]
+
+
+
+
+

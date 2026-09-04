@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 import time
 
-from database.db_connection.connection import SessionLocal
-from database.systems.system_repository import get_active_systems
+from load_data.database.db_connection.connection import SessionLocal
+from load_data.systems_details.system_repository import get_active_systems
 from analyzer.server_analyzer import analyze_server
 
 app = FastAPI(

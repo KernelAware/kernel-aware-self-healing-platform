@@ -3,7 +3,7 @@ from prometheus_client import Gauge
 from collectors.memory import get_memory_metrics
 
 # test
-# RAM get_metrics
+# RAM system_metrics
 memory_total = Gauge(
     "system_memory_total_bytes",
     "Total physical memory in bytes"
@@ -30,7 +30,7 @@ memory_usage_percent = Gauge(
 )
 
 
-# Swap get_metrics
+# Swap system_metrics
 swap_total = Gauge(
     "system_swap_total_bytes",
     "Total swap memory in bytes"

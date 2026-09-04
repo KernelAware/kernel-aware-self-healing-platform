@@ -9,7 +9,7 @@ from prometheus_client import generate_latest
 
 from collectors.network import get_network_stats_snapshot
 
-# Network IO get_metrics
+# Network IO system_metrics
 network_byte_sent = Counter(
     "network_byte_sent_total",
     "Total bytes sent through network interfaces"
@@ -51,7 +51,7 @@ network_drops_out = Counter(
     "Total outgoing network packet drops"
 )
 
-# Interface get_metrics
+# Interface system_metrics
 network_interface_up = Gauge(
     "network_interface_up",
     "Network interface status",
@@ -70,7 +70,7 @@ network_interface_mtu = Gauge(
     ["interface"]
 )
 
-# Connection/process get_metrics
+# Connection/process system_metrics
 network_active_connections = Gauge(
     "network_active_connections",
     "Number of active network connections"
@@ -126,7 +126,7 @@ def update_network_metrics():
 
     network = get_network_stats_snapshot()
 
-    # Update Prometheus get_metrics
+    # Update Prometheus system_metrics
     network_byte_sent.inc(
         network["network_io"]["bytes_sent"]
     )
