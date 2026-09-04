@@ -1,4 +1,4 @@
-from detection.base_detector import DetectionStrategy
+from detection.strategies.base_detector import DetectionStrategy
 
 
 class CpuDetector(DetectionStrategy):
