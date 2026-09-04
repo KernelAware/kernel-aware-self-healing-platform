@@ -1,4 +1,4 @@
-from detection.base_detector import DetectionStrategy
+from detection.strategies.base_detector import DetectionStrategy
 from detection.threshold import check_threshold
 from detection.duration import check_duration
 from database.rules.rule_loader import get_process_metric
