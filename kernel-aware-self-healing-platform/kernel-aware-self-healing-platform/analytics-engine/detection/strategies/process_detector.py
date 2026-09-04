@@ -1,7 +1,7 @@
 from detection.strategies.base_detector import DetectionStrategy
 from detection.threshold import check_threshold
 from detection.duration import check_duration
-from database.rules.rule_loader import get_process_metric
+from load_data.system_metrics.metrics_loader import get_process_metric
 
 
 class ProcessDetector(DetectionStrategy):

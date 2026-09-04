@@ -1,5 +1,4 @@
-from database.rules.rule_loader import load_rules
-from get_metrics.prometheus_client import get_metrics
+from load_data.user_rules.rule_loader import load_rules
 from detection.detector import detect
 
 

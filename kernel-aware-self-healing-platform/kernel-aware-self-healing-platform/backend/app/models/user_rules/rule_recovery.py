@@ -26,7 +26,7 @@ class RuleRecovery(Base):
 
     rule_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("rules.id"),
+        ForeignKey("user_rules.id"),
         nullable=False,
     )
 

@@ -13,7 +13,7 @@ from database.connection import Base
 
 
 class Rule(Base):
-    __tablename__ = "rules"
+    __tablename__ = "user_rules"
 
     id: Mapped[int] = mapped_column(
         BigInteger,
@@ -23,7 +23,7 @@ class Rule(Base):
 
     system_id: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("systems.id"),
+        ForeignKey("systems_details.id"),
         nullable=True
     )
 
