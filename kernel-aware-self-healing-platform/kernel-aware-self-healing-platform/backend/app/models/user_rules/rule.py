@@ -4,6 +4,7 @@ from sqlalchemy import (
     BigInteger,
     String,
     TIMESTAMP,
+    ForeignKey,
     func
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -18,6 +19,12 @@ class Rule(Base):
         BigInteger,
         primary_key=True,
         autoincrement=True
+    )
+
+    system_id: Mapped[int | None] = mapped_column(
+        BigInteger,
+        ForeignKey("systems_details.id"),
+        nullable=True
     )
 
     name: Mapped[str] = mapped_column(

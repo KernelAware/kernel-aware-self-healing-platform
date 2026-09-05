@@ -25,7 +25,7 @@ const STATS = [
   { label: "Pending Approvals", value: "2", hint: "Requires action", tone: "text-warning" },
 ]
 const TABS = [
-  { id: "all-rules", label: "All Rules" },
+  { id: "all-user_rules", label: "All Rules" },
   { id: "create-rule", label: "Create Rule" },
   { id: "policies", label: "Policies" },
   { id: "approval-requests", label: "Approval Requests", badge: 2 },
@@ -41,8 +41,8 @@ export default function PolicyPage() {
     console.log(form);
     return Math.min(13, s + 1);
   })
-  const handleBack = () => { if (step === 1) setActiveTab("all-rules"); else setStep(s => Math.max(1, s - 1)) }
-  const exitWizard = () => setActiveTab("all-rules")
+  const handleBack = () => { if (step === 1) setActiveTab("all-user_rules"); else setStep(s => Math.max(1, s - 1)) }
+  const exitWizard = () => setActiveTab("all-user_rules")
 
   const renderStep = () => {
     switch (step) {
