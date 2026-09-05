@@ -183,7 +183,7 @@ def update_health_metrics():
 
 if __name__ == "__main__":
 
-    from get_metrics.prometheus_client import generate_latest
+    from load_data.system_metrics.metrics_loader import generate_latest
 
     print("=" * 70)
     print("      HARDWARE EXPORTER TEST")

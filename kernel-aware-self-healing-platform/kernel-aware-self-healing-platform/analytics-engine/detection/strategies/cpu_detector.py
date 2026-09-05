@@ -1,7 +1,7 @@
-from detection.base_detector import DetectionStrategy
+from detection.strategies.base_detector import DetectionStrategy
 
 
 class CpuDetector(DetectionStrategy):
 
-    def detect(self, rule, metrics):
+    def detect(self, rule):
         pass

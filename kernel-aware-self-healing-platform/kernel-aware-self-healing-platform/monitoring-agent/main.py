@@ -54,7 +54,7 @@ threading.Thread(
 ).start()
 
 
-@app.get("/get_metrics")
+@app.get("/system_metrics")
 def metrics():
     return Response(
         content=generate_latest(),
