@@ -53,9 +53,6 @@ def get_network_metrics():
 
 
 def get_process_metric(system_id, process_name, metric):
-    print(metric)
-    print(process_name)
-    print(system_id)
     prometheus_metric = METRIC_MAP[metric["metric"]]
 
     query = f'''

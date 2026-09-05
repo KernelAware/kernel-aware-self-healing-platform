@@ -22,6 +22,7 @@ class RuleTargetResponse(BaseModel):
 
 
 class RuleMetricResponse(BaseModel):
+    id: int | None
     metric: str
     operator: str | None = None
     threshold: float | None = None
