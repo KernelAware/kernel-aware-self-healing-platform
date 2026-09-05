@@ -14,10 +14,8 @@ strategies = {
 }
 
 
-def detect(rule, metrics):
-
-    monitor_type = rule["monitor_type"]
-
+def detect(rule):
+    monitor_type = rule["rule"]["monitor_type"]
     strategy = strategies.get(monitor_type)
 
     if strategy is None:
@@ -26,6 +24,5 @@ def detect(rule, metrics):
         )
 
     return strategy.detect(
-        rule,
-        metrics
+        rule
     )
