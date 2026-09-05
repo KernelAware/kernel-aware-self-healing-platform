@@ -23,7 +23,7 @@ class Rule(Base):
 
     system_id: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("systems.id"),
+        ForeignKey("systems_details.id"),
         nullable=True
     )
 

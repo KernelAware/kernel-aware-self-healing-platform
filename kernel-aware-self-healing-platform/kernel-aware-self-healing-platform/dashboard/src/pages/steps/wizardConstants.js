@@ -12,16 +12,16 @@ export const STEP_DEFS = [
 ]
 
 export const MONITOR_SOURCES = [
-  { id: "cpu", title: "CPU", desc: "Process get_metrics", icon: Cpu, cls: "bg-primary/20 text-primary" },
-  { id: "memory", title: "Memory", desc: "Memory get_metrics", icon: Database, cls: "bg-accent/20 text-accent" },
-  { id: "disk", title: "Disk", desc: "Disk & I/O get_metrics", icon: HardDrive, cls: "bg-warning/20 text-warning" },
+  { id: "cpu", title: "CPU", desc: "Process system_metrics", icon: Cpu, cls: "bg-primary/20 text-primary" },
+  { id: "memory", title: "Memory", desc: "Memory system_metrics", icon: Database, cls: "bg-accent/20 text-accent" },
+  { id: "disk", title: "Disk", desc: "Disk & I/O system_metrics", icon: HardDrive, cls: "bg-warning/20 text-warning" },
   { id: "hardware", title: "Hardware", desc: "Hardware health", icon: CircuitBoard, cls: "bg-primary/20 text-primary" },
-  { id: "network", title: "Network", desc: "Network get_metrics", icon: Network, cls: "bg-accent/20 text-accent" },
-  { id: "process", title: "Process", desc: "Process get_metrics", icon: Activity, cls: "bg-warning/20 text-warning" },
+  { id: "network", title: "Network", desc: "Network system_metrics", icon: Network, cls: "bg-accent/20 text-accent" },
+  { id: "process", title: "Process", desc: "Process system_metrics", icon: Activity, cls: "bg-warning/20 text-warning" },
   { id: "service", title: "Service", desc: "Service status", icon: Server, cls: "bg-primary/20 text-primary" },
   { id: "logs", title: "Logs", desc: "Log patterns", icon: ScrollText, cls: "bg-muted text-muted-foreground" },
   { id: "ebpf", title: "eBPF / Kernel", desc: "Kernel events", icon: Layers, cls: "bg-accent/20 text-accent" },
-  { id: "custom", title: "Custom Metric", desc: "External/Custom get_metrics", icon: Settings, cls: "bg-muted text-muted-foreground" },
+  { id: "custom", title: "Custom Metric", desc: "External/Custom system_metrics", icon: Settings, cls: "bg-muted text-muted-foreground" },
 ]
 
 export const ACTION_TYPES = [
