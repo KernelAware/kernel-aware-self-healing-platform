@@ -1,11 +1,32 @@
 import requests
+from sqlalchemy.orm import query
 
 METRIC_MAP = {
     "CPU Usage (%)": "process_cpu_percent",
     "Memory Usage (%)": "process_memory_percent",
+    "Disk Usage (%)": "disk_usage_percent",
     "Disk Read": "process_disk_read_bytes",
     "Disk Write": "process_disk_write_bytes",
 }
+
+PROMETHEUS_URL = "http://localhost:9090"
+def query_prometheus(query: str):
+    response = requests.get(
+        f"{PROMETHEUS_URL}/api/v1/query",
+        params={"query": query},
+        timeout=10,
+    )
+
+    response.raise_for_status()
+
+    data = response.json()
+
+    if data["status"] != "success":
+        raise RuntimeError("Prometheus query failed")
+
+    return data["data"]["result"]
+
+
 
 def get_cpu_metrics():
     return query_prometheus(
@@ -32,7 +53,10 @@ def get_network_metrics():
 
 
 def get_process_metric(system_id, process_name, metric):
-    prometheus_metric = METRIC_MAP[metric]
+    print(metric)
+    print(process_name)
+    print(system_id)
+    prometheus_metric = METRIC_MAP[metric["metric"]]
 
     query = f'''
         {prometheus_metric}{{
@@ -43,22 +67,6 @@ def get_process_metric(system_id, process_name, metric):
 
     return query_prometheus(query)
 
-PROMETHEUS_URL = "http://localhost:9090"
-def query_prometheus(query: str):
-    response = requests.get(
-        f"{PROMETHEUS_URL}/api/v1/query",
-        params={"query": query},
-        timeout=10,
-    )
-
-    response.raise_for_status()
-
-    data = response.json()
-
-    if data["status"] != "success":
-        raise RuntimeError("Prometheus query failed")
-
-    return data["data"]["result"]
 
 
 
