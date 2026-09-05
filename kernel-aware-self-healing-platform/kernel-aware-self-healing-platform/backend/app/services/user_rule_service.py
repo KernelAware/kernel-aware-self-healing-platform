@@ -231,6 +231,7 @@ def get_user_rules(system_id: int):
 
                 metrics=[
                     RuleMetricResponse(
+                        id=x.id,
                         metric=x.metric,
                         operator=x.operator,
                         threshold=x.threshold,
