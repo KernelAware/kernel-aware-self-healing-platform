@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel
 
 class RuleResponse(BaseModel):
+    id: int | None
     name: str
     status: str | None = None
     priority: str | None = None
@@ -22,6 +23,7 @@ class RuleTargetResponse(BaseModel):
 
 
 class RuleMetricResponse(BaseModel):
+    id: int | None
     metric: str
     operator: str | None = None
     threshold: float | None = None

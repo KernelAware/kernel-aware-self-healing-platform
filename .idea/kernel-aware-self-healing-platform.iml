@@ -5,6 +5,8 @@
       <sourceFolder url="file://$MODULE_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/analytics-engine" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/monitoring-agent" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/decision-engine" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/decision-engine/engine" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
       <excludeFolder url="file://$MODULE_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/deployment/docker/.venv" />
     </content>
