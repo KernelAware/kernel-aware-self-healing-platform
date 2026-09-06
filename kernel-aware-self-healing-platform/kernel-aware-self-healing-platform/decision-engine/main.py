@@ -15,7 +15,6 @@ def health():
 
 @app.post("/incidents")
 def process_incident(incident: dict):
-
     rules = load_rules(incident)
     policy = check_policy(incident, rules)
 

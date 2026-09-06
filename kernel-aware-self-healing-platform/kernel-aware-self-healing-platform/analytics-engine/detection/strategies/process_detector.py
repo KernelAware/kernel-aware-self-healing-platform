@@ -50,6 +50,7 @@ class ProcessDetector(DetectionStrategy):
                         continue
 
                     incident =  {
+                        "rule_id": rule["rule"]["id"],
                         "system_id": rule["rule"]["system_id"],
                         "incident_severity": rule["rule"]["severity"],
                         "incident_type": rule["rule"]["monitor_type"],
