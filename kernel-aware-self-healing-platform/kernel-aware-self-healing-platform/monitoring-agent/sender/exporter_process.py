@@ -85,7 +85,7 @@ process_disk_total = Gauge(
 
 process_network_connections = Gauge(
     "process_network_connections",
-    "Number of network connections used by process",
+    "Number of network send_decisions used by process",
     ["pid", "name"]
 )
 
