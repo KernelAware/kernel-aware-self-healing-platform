@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from rules.rule_loader import load_rules
 from policies.policy_checker import check_policy
 from engine.decision import make_decision
-from planner.action_planner import create_action_plan
+from action_planner.actions import create_action_plan
 
 app = FastAPI(title="Decision Engine")
 
@@ -15,16 +15,18 @@ def health():
 
 @app.post("/incidents")
 def process_incident(incident: dict):
+
     rules = load_rules(incident)
-    policy = check_policy(incident, rules)
+    policy = check_policy(rules)
+    print(policy)
 
     decision = make_decision(
         incident,
         rules,
         policy
     )
-
-    action = create_action_plan(decision)
+    print(decision)
+    action = create_action_plan(decision , incident , rules , policy)
 
     return {
         "incident": incident,

@@ -11,5 +11,6 @@ def load_rules(incident: dict) -> dict:
     )
 
     response.raise_for_status()
+    rule = response.json()
 
-    return response.json()
+    return rule[0]

@@ -73,12 +73,12 @@ network_interface_mtu = Gauge(
 # Connection/process system_metrics
 network_active_connections = Gauge(
     "network_active_connections",
-    "Number of active network connections"
+    "Number of active network send_decisions"
 )
 
 network_processes = Gauge(
     "network_processes_using_network",
-    "Number of processes using network connections"
+    "Number of processes using network send_decisions"
 )
 
 network_connection_info = Gauge(
@@ -180,7 +180,7 @@ def update_network_metrics():
         )
 
     # Connections
-    connections = network["connections"]
+    connections = network["send_decisions"]
 
     network_active_connections.set(
         len(connections)
