@@ -5,15 +5,15 @@ import { Panel, PanelHeader, StatusBadge } from '@/components/kit'
 export default function ActiveAlertsList({ alerts, acknowledgeAlert, resolveAlert }) {
   return (
     <Panel>
-      <PanelHeader 
-        title="Active Alerts" 
-        icon={TriangleAlert} 
-        action={<StatusBadge tone="danger">{alerts.filter(a => a.tone === 'danger').length} Critical</StatusBadge>} 
+      <PanelHeader
+        title="Active Alerts"
+        icon={TriangleAlert}
+        action={<StatusBadge tone="danger">{alerts.filter(a => a.tone === 'danger').length} Critical</StatusBadge>}
       />
       <div className="flex flex-col gap-3 p-4 pt-0">
         {alerts.map((a) => (
-          <div 
-            key={a.id} 
+          <div
+            key={a.id}
             className={`rounded-md border p-3 ${
               a.tone === 'danger' 
                 ? 'border-destructive/40 bg-destructive/5' 
@@ -34,7 +34,7 @@ export default function ActiveAlertsList({ alerts, acknowledgeAlert, resolveAler
               </div>
             ) : (
               <div className="mt-3 flex gap-2">
-                <button 
+                <button
                   onClick={() => acknowledgeAlert(a.id)}
                   className={`flex-1 rounded-md py-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider cursor-pointer ${
                     a.tone === 'danger' 
@@ -44,7 +44,7 @@ export default function ActiveAlertsList({ alerts, acknowledgeAlert, resolveAler
                 >
                   Acknowledge
                 </button>
-                <button 
+                <button
                   onClick={() => resolveAlert(a.id)}
                   className="flex-1 rounded-md border border-border py-1.5 font-mono text-[11px] uppercase tracking-wider text-foreground hover:bg-secondary cursor-pointer"
                 >
