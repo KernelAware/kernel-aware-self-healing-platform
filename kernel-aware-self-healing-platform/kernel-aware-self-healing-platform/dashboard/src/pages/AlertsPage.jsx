@@ -26,13 +26,30 @@ export default function AlertsPage() {
 
       <div className="space-y-4">
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_minmax(0,1fr)_260px]">
+          <div className="grid h-full grid-cols-1 gap-4 overflow-y-auto lg:grid-cols-[300px_minmax(0,1fr)_260px]">
+          <div
+              className="
+                h-[705px]
+                overflow-y-auto
+                rounded-xl
+                border
+                border-border
+                bg-card/60
+                p-0
 
-          <ActiveAlertsList
-            alerts={alerts}
-            acknowledgeAlert={acknowledgeAlert}
-            resolveAlert={resolveAlert}
-          />
+                [&::-webkit-scrollbar]:w-1.5
+                [&::-webkit-scrollbar-track]:bg-transparent
+                [&::-webkit-scrollbar-thumb]:rounded-full
+                [&::-webkit-scrollbar-thumb]:bg-border
+                hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40
+              "
+            >
+              <ActiveAlertsList
+                alerts={alerts}
+                acknowledgeAlert={acknowledgeAlert}
+                resolveAlert={resolveAlert}
+              />
+            </div>
 
           <IncidentDetailView timeline={timeline} />
         </div>
