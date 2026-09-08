@@ -4,6 +4,7 @@ from detection.strategies.base_detector import DetectionStrategy
 from detection.threshold import check_threshold
 from detection.duration import check_duration
 from load_data.system_metrics.metrics_loader import get_process_metric
+from incident_management.manager import manage_incidents
 
 
 class ProcessDetector(DetectionStrategy):
@@ -22,7 +23,6 @@ class ProcessDetector(DetectionStrategy):
                 )
 
                 for result in results:
-                    print(result)
                     sleep(5)
 
                     pid = result["metric"]["pid"]
@@ -36,26 +36,31 @@ class ProcessDetector(DetectionStrategy):
                         threshold=metric["threshold"]
                     )
 
-                    print(threshold_match)
-
                     if not threshold_match:
                         continue
 
                     duration_match = check_duration(
-                        started_at=rule.get("started_at"),
+                        system_id=rule["rule"]["system_id"],
+                        pid=pid,
+                        metric_name=metric["metric"],
                         duration_seconds=metric["duration_seconds"]
                     )
 
                     if not duration_match:
                         continue
 
-                    return {
+                    incident =  {
                         "rule_id": rule["rule"]["id"],
-                        "process": rule_target["target"],
+                        "system_id": rule["rule"]["system_id"],
+                        "incident_severity": rule["rule"]["severity"],
+                        "incident_type": rule["rule"]["monitor_type"],
+                        "incident_priority": rule["rule"]["priority"],
+                        "target": rule_target["target"],
                         "pid": pid,
-                        "metric": metric["metric"],
+                        "violated_metric": metric,
                         "value": current_value,
-                        "status": "violation"
                     }
+
+                    manage_incidents(incident)
 
         return None

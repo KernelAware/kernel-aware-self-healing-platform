@@ -4,7 +4,7 @@ from models.user_rules.rule_metric import RuleMetric
 from models.user_rules.rule_action import RuleAction
 from models.user_rules.rule_notification import RuleNotification
 from models.user_rules.rule_recovery import RuleRecovery
-from repository.user_rules import save_rules, retrieve_rules , get_rule_details
+from repository.user_rules import save_rules, get_rule_by_system_id , get_rule_by_id , get_rule_details
 
 from schemas.user_rules import (
     RuleResponse,
@@ -25,6 +25,7 @@ def user_rules_service(userRules):
 
     rule = Rule(
         name=userRules["ruleName"],
+        system_id=1,
         status="ENABLED" if userRules["enabled"] else "DISABLED",
         priority=userRules["priority"],
         severity=userRules["severity"],
@@ -194,9 +195,17 @@ def user_rules_service(userRules):
     save_details = save_rules(rule_details)
     return save_details
 
-def get_user_rules(system_id: int):
+def get_user_rules(system_id: int | None = None, rule_id: int | None = None):
+    rules = []
 
-    rules = retrieve_rules(system_id)
+    if rule_id is not None:
+        rule = get_rule_by_id(rule_id)
+
+        if rule is not None:
+            rules = [rule]
+
+    elif system_id is not None:
+        rules = get_rule_by_system_id(system_id)
 
     result = []
 
@@ -207,6 +216,7 @@ def get_user_rules(system_id: int):
         result.append(
             RuleDetailsResponse(
                 rule=RuleResponse(
+                    id=rule.id,
                     name=rule.name,
                     status=rule.status,
                     priority=rule.priority,
@@ -231,6 +241,7 @@ def get_user_rules(system_id: int):
 
                 metrics=[
                     RuleMetricResponse(
+                        id=x.id,
                         metric=x.metric,
                         operator=x.operator,
                         threshold=x.threshold,

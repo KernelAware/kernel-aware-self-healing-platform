@@ -1,4 +1,5 @@
-import uuid
+import json
+from load_data.redis_connection.redis_connection import redis_client
 import requests
 
 DECISION_ENGINE_URL = "http://localhost:8002"
@@ -6,42 +7,25 @@ DECISION_ENGINE_URL = "http://localhost:8002"
 
 active_incidents = {}
 
+def manage_incidents(incident):
 
-def manage_incidents(incidents: list):
-    results = []
+    system_id = incident["system_id"]
+    metric_id = incident["violated_metric"]["id"]
+    pid = incident["pid"]
+    target_name = incident["target"]
 
-    for incident in incidents:
+    key = f"incident:{system_id}:{metric_id}:{target_name}:{pid}"
 
-        incident_key = (
-            incident["target"],
-            incident["type"]
+    existing_incident = redis_client.get(key)
+
+    if existing_incident is None:
+        redis_client.set(
+            key,
+            json.dumps(incident)
         )
 
-        if incident_key in active_incidents:
+    send_to_decision_engine(incident)
 
-            active_incidents[incident_key]["occurrences"] += 1
-
-            results.append(
-                active_incidents[incident_key]
-            )
-
-            continue
-
-        new_incident = {
-            "id": str(uuid.uuid4()),
-            "type": incident["type"],
-            "severity": incident["severity"],
-            "target": incident["target"],
-            "message": incident.get("message", ""),
-            "status": "OPEN",
-            "occurrences": 1,
-        }
-
-        active_incidents[incident_key] = new_incident
-        send_to_decision_engine(new_incident)
-        results.append(new_incident)
-
-    return results
 
 
 def send_to_decision_engine(incident: dict):
