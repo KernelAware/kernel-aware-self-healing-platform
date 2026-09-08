@@ -10,6 +10,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database.connection import Base
+from models.user_rules.rule import Rule
 
 
 class RuleNotification(Base):
@@ -23,7 +24,7 @@ class RuleNotification(Base):
 
     rule_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("user_rules.id"),
+        ForeignKey("rules.id"),
         nullable=False
     )
 
