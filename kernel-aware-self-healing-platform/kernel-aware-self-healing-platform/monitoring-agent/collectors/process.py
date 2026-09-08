@@ -58,7 +58,7 @@ def collect_processes():
                 "username": info["username"],
                 "ppid": info["ppid"],
                 "status": info["status"],
-                "cpu_percent": process.cpu_percent(None)/psutil.cpu_count(),
+                "cpu_percent": process.cpu_percent(None),
                 "memory_percent": info["memory_percent"],
                 "memory_rss_bytes": memory.rss,
                 "memory_vms_bytes": memory.vms,

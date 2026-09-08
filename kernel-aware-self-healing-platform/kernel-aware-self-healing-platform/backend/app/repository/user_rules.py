@@ -50,7 +50,7 @@ def save_rules(rule_details):
     finally:
         db.close()
 
-def retrieve_rules(system_id: int):
+def get_rule_by_system_id(system_id: int):
 
     db = SessionLocal()
 
@@ -62,6 +62,21 @@ def retrieve_rules(system_id: int):
         )
 
         return rules
+
+    finally:
+        db.close()
+
+def get_rule_by_id(rule_id: int):
+    db = SessionLocal()
+
+    try:
+        rule = (
+            db.query(Rule)
+            .filter(Rule.id == rule_id)
+            .first()
+        )
+
+        return rule
 
     finally:
         db.close()
