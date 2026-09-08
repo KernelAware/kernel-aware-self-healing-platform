@@ -17,13 +17,14 @@ import {
 export default function ActiveAlertsList({
   alerts,
   acknowledgeAlert,
-  resolveAlert
+  resolveAlert,
+  selectIncident
 }) {
 
   const activeCount = alerts.length
 
   return (
-    <Panel>
+    <Panel onClick={() => selectIncident(a.id)}>
 
       <PanelHeader
         title="Active Incidents"
@@ -46,11 +47,14 @@ export default function ActiveAlertsList({
           return (
             <div
               key={a.id}
+              onClick={() => selectIncident(a.id)}
               className={`
+                cursor-pointer
                 rounded-lg
                 border
                 p-3
                 transition
+                hover:bg-secondary/50
                 ${
                   isCritical
                     ? 'border-yellow-500 bg-yellow-500/5'
