@@ -10,6 +10,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database.connection import Base
+from models.user_rules.systems import System
 
 
 class Rule(Base):
@@ -23,7 +24,7 @@ class Rule(Base):
 
     system_id: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("systems_details.id"),
+        ForeignKey("systems.id"),
         nullable=True
     )
 
