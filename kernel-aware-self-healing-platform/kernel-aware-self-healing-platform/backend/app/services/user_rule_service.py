@@ -25,6 +25,7 @@ def user_rules_service(userRules):
 
     rule = Rule(
         name=userRules["ruleName"],
+        system_id=1,
         status="ENABLED" if userRules["enabled"] else "DISABLED",
         priority=userRules["priority"],
         severity=userRules["severity"],
