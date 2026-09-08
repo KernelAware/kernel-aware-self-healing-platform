@@ -7,10 +7,12 @@ import IncidentsTable from '@/components/alerts/IncidentsTable'
 import { useAlerts } from '@/hooks/useAlerts'
 import { useIncidents } from '@/hooks/useIncidents'
 import HealingExecution from '@/components/alerts/HealingExecution.jsx'
+import {useIncidentDetails} from "@/hooks/alertDetails.js";
 
 export default function AlertsPage() {
   const { alerts, acknowledgeAlert, resolveAlert, criticalCount } = useAlerts()
   const { incidents, timeline } = useIncidents()
+  const { selectedIncident, selectedIncidentId, selectIncident, selectAction, approveIncident, rejectIncident, addIncident}  = useIncidentDetails()
 
   return (
     <>
@@ -29,7 +31,7 @@ export default function AlertsPage() {
           <div className="grid h-full grid-cols-1 gap-4 overflow-y-auto lg:grid-cols-[300px_minmax(0,1fr)_260px]">
           <div
               className="
-                h-[705px]
+                h-[730px]
                 overflow-y-auto
                 rounded-xl
                 border
@@ -48,10 +50,12 @@ export default function AlertsPage() {
                 alerts={alerts}
                 acknowledgeAlert={acknowledgeAlert}
                 resolveAlert={resolveAlert}
+                selectIncident={selectIncident}
+                selectedIncidentId={selectedIncidentId}
               />
             </div>
 
-          <IncidentDetailView timeline={timeline} />
+          <IncidentDetailView timeline={timeline} selectedIncident = {selectedIncident}  approveIncident={approveIncident} rejectIncident={rejectIncident} selectIncident={selectIncident}/>
         </div>
 
         <IncidentsTable incidents={incidents} />
