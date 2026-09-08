@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { TriangleAlert } from 'lucide-react'
 
 import {
@@ -7,7 +7,81 @@ import {
 } from '@/components/kit'
 
 
-export default function OperatorActionRequired() {
+export default function OperatorActionRequired({
+  selectedIncident,
+  approveIncident,
+  rejectIncident
+}) {
+
+  const [selectedAction, setSelectedAction] = useState('')
+
+
+  // Update selected action when user selects another incident
+  useEffect(() => {
+    if (selectedIncident) {
+      setSelectedAction(
+        selectedIncident.operatorAction?.selectedAction ||
+        selectedIncident.operatorAction?.recommendedAction ||
+        ''
+      )
+    }
+  }, [selectedIncident])
+
+
+  // No incident selected
+  if (!selectedIncident) {
+    return (
+      <Panel>
+        <PanelHeader
+          title="Operator Action Required"
+          icon={TriangleAlert}
+        />
+
+        <div className="p-4 pt-0">
+          <p className="text-xs text-muted-foreground">
+            Select an incident to view available actions.
+          </p>
+        </div>
+      </Panel>
+    )
+  }
+
+
+  // Auto execution without approval = operator cannot change anything
+  const autoExecuting =
+    selectedIncident.policy?.automaticExecution === true &&
+    selectedIncident.policy?.approvalRequired === false
+
+
+  const allowedActions =
+    selectedIncident.operatorAction?.allowedActions || []
+
+
+  const recommendedAction =
+    selectedIncident.operatorAction?.recommendedAction || ''
+
+
+  const reason =
+    selectedIncident.operatorAction?.reason || ''
+
+
+  const handleApprove = () => {
+    if (autoExecuting) return
+
+    approveIncident?.(
+      selectedIncident.id,
+      selectedAction
+    )
+  }
+
+
+  const handleReject = () => {
+    if (autoExecuting) return
+
+    rejectIncident?.(selectedIncident.id)
+  }
+
+
   return (
     <Panel>
 
@@ -19,9 +93,30 @@ export default function OperatorActionRequired() {
 
       <div className="p-4 pt-0">
 
-        <p className="mb-4 text-xs text-muted-foreground">
-          Review the recommendation and select an approved remediation action.
-        </p>
+        {/* MESSAGE */}
+        <div
+          className={`
+            mb-4
+            rounded-md
+            border
+            p-3
+            ${
+              autoExecuting
+                ? 'border-primary/30 bg-primary/5'
+                : 'border-border bg-secondary/20'
+            }
+          `}
+        >
+
+          <p className="text-xs text-muted-foreground">
+            {autoExecuting
+              ? 'Automatic execution is in progress. Operator actions are disabled.'
+              : selectedIncident.operatorAction?.message ||
+                'Review the recommendation and select an approved remediation action.'
+            }
+          </p>
+
+        </div>
 
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -33,25 +128,49 @@ export default function OperatorActionRequired() {
               Select Remediation Action
             </label>
 
+
             <select
-              className="w-full rounded-md border border-border bg-secondary/40 px-3 py-2 text-xs text-foreground outline-none focus:border-accent"
-              defaultValue="restart-service"
+              value={selectedAction}
+              disabled={autoExecuting}
+              onChange={(e) => setSelectedAction(e.target.value)}
+              className="
+                w-full
+                rounded-md
+                border
+                border-border
+                bg-secondary/40
+                px-3
+                py-2
+                text-xs
+                text-foreground
+                outline-none
+                transition
+                focus:border-accent
+                disabled:cursor-not-allowed
+                disabled:opacity-40
+              "
             >
-              <option value="restart-service">
-                restart-service (Recommended)
-              </option>
 
-              <option value="run-automation">
-                run-automation
-              </option>
+              {allowedActions.map((action) => (
+                <option
+                  key={action}
+                  value={action}
+                >
+                  {action}
+                  {action === recommendedAction
+                    ? ' (Recommended)'
+                    : ''}
+                </option>
+              ))}
 
-              <option value="send-notification">
-                send-notification
-              </option>
             </select>
 
+
             <p className="mt-2 text-[11px] text-muted-foreground">
-              Only actions allowed by this rule are shown.
+              {autoExecuting
+                ? 'Action selection is disabled because automatic execution is enabled.'
+                : 'Only actions allowed by this rule are shown.'
+              }
             </p>
 
           </div>
@@ -64,15 +183,20 @@ export default function OperatorActionRequired() {
               Recommended Action
             </p>
 
+
             <p className="mt-1 font-mono text-sm text-primary">
-              restart-service
+              {recommendedAction}
             </p>
 
+
             <p className="mt-1 text-xs text-muted-foreground">
+
               <span className="text-foreground">
                 Reason:
               </span>{' '}
-              CPU usage remained above the configured threshold for 5 minutes.
+
+              {reason}
+
             </p>
 
           </div>
@@ -83,11 +207,53 @@ export default function OperatorActionRequired() {
         {/* BUTTONS */}
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
 
-          <button className="rounded-md bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground transition hover:opacity-90">
-            Approve & Execute
+          {/* APPROVE */}
+          <button
+            type="button"
+            disabled={autoExecuting}
+            onClick={handleApprove}
+            className="
+              rounded-md
+              bg-primary
+              px-4
+              py-2.5
+              text-xs
+              font-semibold
+              text-primary-foreground
+              transition
+              hover:opacity-90
+              disabled:cursor-not-allowed
+              disabled:opacity-40
+              disabled:hover:opacity-40
+            "
+          >
+            {autoExecuting
+              ? 'Auto Executing'
+              : 'Approve & Execute'
+            }
           </button>
 
-          <button className="rounded-md bg-destructive px-4 py-2.5 text-xs font-semibold text-destructive-foreground transition hover:opacity-90">
+
+          {/* REJECT */}
+          <button
+            type="button"
+            disabled={autoExecuting}
+            onClick={handleReject}
+            className="
+              rounded-md
+              bg-destructive
+              px-4
+              py-2.5
+              text-xs
+              font-semibold
+              text-destructive-foreground
+              transition
+              hover:opacity-90
+              disabled:cursor-not-allowed
+              disabled:opacity-40
+              disabled:hover:opacity-40
+            "
+          >
             Reject
           </button>
 

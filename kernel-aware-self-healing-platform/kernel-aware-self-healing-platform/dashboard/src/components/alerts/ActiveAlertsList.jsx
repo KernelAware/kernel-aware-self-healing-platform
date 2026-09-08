@@ -18,7 +18,8 @@ export default function ActiveAlertsList({
   alerts,
   acknowledgeAlert,
   resolveAlert,
-  selectIncident
+  selectIncident,
+  selectedIncidentId
 }) {
 
   const activeCount = alerts.length
@@ -37,11 +38,11 @@ export default function ActiveAlertsList({
       />
 
 
-      <div className="flex flex-col gap-3 p-3 pt-0">
+      <div className="flex flex-col gap-5 p-3 pt-0">
 
         {alerts.map((a) => {
-
-          const isCritical = a.tone === 'danger'
+          const isSelected = a.id === selectedIncidentId
+          const isCritical = a.id === selectedIncidentId
           const isWarning = a.tone === 'warning'
 
           return (
@@ -56,11 +57,8 @@ export default function ActiveAlertsList({
                 transition
                 hover:bg-secondary/50
                 ${
-                  isCritical
-                    ? 'border-yellow-500 bg-yellow-500/5'
-                    : isWarning
-                      ? 'border-border bg-secondary/30'
-                      : 'border-border bg-secondary/20'
+                  isSelected
+                    ? 'border-yellow-500 bg-yellow-500/5':""
                 }
               `}
             >
@@ -86,18 +84,13 @@ export default function ActiveAlertsList({
 
 
               {/* DETAILS */}
-              <div className="mt-3 space-y-1.5 text-[11px] text-muted-foreground">
+              <div className="mt-3 space-y-1.5 text-[14px] text-muted-foreground">
 
-                <div className="flex items-center gap-2">
-                  <Server className="size-3 shrink-0" />
-                  <span>
-                    {a.server || 'server-01'}
-                  </span>
-                </div>
+
 
 
                 <div className="flex items-center gap-2">
-                  <Cpu className="size-3 shrink-0" />
+                  <Cpu className="size-5 shrink-0" />
                   <span>
                     {a.process || a.body}
                   </span>
