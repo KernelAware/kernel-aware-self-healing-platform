@@ -263,7 +263,88 @@ const INITIAL_INCIDENTS = [
   },
 
   status: "WAITING_APPROVAL"
-}
+},
+
+    {
+    id: "INC-1049",
+
+    title: "Memory Usage High - python",
+    priority: "P1",
+    severity: "High",
+    system: "server-01",
+    process: "python-app",
+    pid: 9231,
+    detectedAgo: "6m ago",
+
+    trigger: {
+      metric: "Memory Usage (%)",
+      currentValue: "87.2%",
+      operator: ">",
+      threshold: "80%",
+      duration: "5 minutes"
+    },
+
+    decision: {
+      recommendedAction: "restart-service",
+      decision: "RESTART",
+      reason:
+        "Memory usage remained above the configured threshold for 5 minutes."
+    },
+
+    policy: {
+      ruleEnabled: true,
+      automaticExecution: true,
+      approvalRequired: false,
+      cooldownPassed: true
+    },
+
+    rootCause: {
+      verified: true,
+      source: "eBPF Telemetry",
+      traceId: "IX-9943",
+      traceName: "Memory Pressure",
+
+      timeline: [
+        {
+          time: "14:10:02.100",
+          label: "Memory Pressure",
+          title: "Process memory increased rapidly.",
+          note:
+            "python-app exceeded the configured memory threshold.",
+          tone: "warning"
+        },
+        {
+          time: "14:10:05.220",
+          label: "Threshold Violated",
+          title: "Memory usage reached 87.2%.",
+          note:
+            "Configured threshold is 80% for 5 minutes.",
+          tone: "danger"
+        }
+      ]
+    },
+
+    operatorAction: {
+      required: false,
+
+      message:
+        "Automatic remediation is allowed by policy.",
+
+      recommendedAction: "restart-service",
+
+      allowedActions: [
+        "restart-service",
+        "send-notification"
+      ],
+
+      selectedAction: "restart-service",
+
+      reason:
+        "Memory usage remained above the configured threshold."
+    },
+
+    status: "HEALING"
+  }
 ]
 
 

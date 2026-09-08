@@ -7,8 +7,10 @@ import OperatorActionRequired from "@/components/alerts/OperatorActionRequired.j
 
 export default function IncidentDetailView({
     timeline ,
+    selectIncident,
     selectedIncident,
-    selectIncident
+    approveIncident,
+    rejectIncident
 }) {
 
   return (
@@ -22,7 +24,11 @@ export default function IncidentDetailView({
         <IncidentRootCause timeline={timeline}/>
 
       </div>
-      <OperatorActionRequired/>
+      <OperatorActionRequired
+            selectedIncident={selectedIncident}
+            approveIncident={approveIncident}
+            rejectIncident={rejectIncident}
+      />
     </div>
   )
 }

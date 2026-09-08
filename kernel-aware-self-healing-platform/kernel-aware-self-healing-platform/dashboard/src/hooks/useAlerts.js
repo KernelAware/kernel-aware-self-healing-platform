@@ -41,7 +41,20 @@ const INITIAL_ALERTS = [
     system: "server-02",
     process: "system",
     pid: null
-  }
+  },
+    {
+    id: "INC-1049",
+    level: "P1 - High",
+    tone: "warning",
+    age: "6m ago",
+    title: "Memory Usage High - python",
+    body: "Memory usage reached 87.2%, above the 80% threshold for 5 minutes.",
+    acked: false,
+    status: "HEALING",
+    system: "server-01",
+    process: "python-app",
+    pid: 9231
+  },
 ]
 
 export function useAlerts() {

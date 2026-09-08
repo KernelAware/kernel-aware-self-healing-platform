@@ -31,7 +31,7 @@ export default function AlertsPage() {
           <div className="grid h-full grid-cols-1 gap-4 overflow-y-auto lg:grid-cols-[300px_minmax(0,1fr)_260px]">
           <div
               className="
-                h-[705px]
+                h-[730px]
                 overflow-y-auto
                 rounded-xl
                 border
@@ -51,10 +51,11 @@ export default function AlertsPage() {
                 acknowledgeAlert={acknowledgeAlert}
                 resolveAlert={resolveAlert}
                 selectIncident={selectIncident}
+                selectedIncidentId={selectedIncidentId}
               />
             </div>
 
-          <IncidentDetailView timeline={timeline} selectedIncident = {selectedIncident} selectIncident={selectIncident} />
+          <IncidentDetailView timeline={timeline} selectedIncident = {selectedIncident}  approveIncident={approveIncident} rejectIncident={rejectIncident} selectIncident={selectIncident}/>
         </div>
 
         <IncidentsTable incidents={incidents} />
