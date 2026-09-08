@@ -58,7 +58,7 @@ process_uptime = Gauge(
 
 
 process_threads = Gauge(
-    "Number of process threads",
+    "process_threads",
     "Number of threads used by process",
     ["pid", "name"]
 )
@@ -85,7 +85,7 @@ process_disk_total = Gauge(
 
 process_network_connections = Gauge(
     "process_network_connections",
-    "Number of network connections used by process",
+    "Number of network send_decisions used by process",
     ["pid", "name"]
 )
 

@@ -1,0 +1,7 @@
+from detection.strategies.base_detector import DetectionStrategy
+
+
+class CpuDetector(DetectionStrategy):
+
+    def detect(self, rule):
+        pass

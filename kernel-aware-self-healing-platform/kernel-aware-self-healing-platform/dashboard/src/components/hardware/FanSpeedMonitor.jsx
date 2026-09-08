@@ -2,25 +2,12 @@ import React from 'react'
 import { Fan } from 'lucide-react'
 import { Panel, PanelHeader } from '@/components/kit'
 
-const fans = [
-  ['Intake Front 01', '1240 RPM'],
-  ['Intake Front 02', '1235 RPM'],
-  ['Exhaust Rear', '980 RPM'],
-  ['CPU Liquid Pump', '2400 RPM'],
-]
-
 export default function FanSpeedMonitor() {
   return (
-    <Panel>
-      <PanelHeader title="Chassis Cooling" icon={Fan} />
-      <ul className="divide-y divide-border px-4">
-        {fans.map(([k, v]) => (
-          <li key={k} className="flex items-center justify-between py-3 font-mono text-xs">
-            <span className="text-muted-foreground">{k}</span>
-            <span className="text-primary">{v}</span>
-          </li>
-        ))}
-      </ul>
-    </Panel>
+      <Panel>
+          <iframe
+              src="http://localhost:3000/d-solo/adkfxpq/core-temparature?orgId=1&from=now-5m&to=now&refresh=5s&showCategory=Panel%20links&panelId=panel-3"
+              width="450" height="250" frameBorder="0"></iframe>
+      </Panel>
   )
 }
