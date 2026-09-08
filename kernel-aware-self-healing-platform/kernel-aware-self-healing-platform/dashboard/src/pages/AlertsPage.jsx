@@ -7,10 +7,12 @@ import IncidentsTable from '@/components/alerts/IncidentsTable'
 import { useAlerts } from '@/hooks/useAlerts'
 import { useIncidents } from '@/hooks/useIncidents'
 import HealingExecution from '@/components/alerts/HealingExecution.jsx'
+import {useIncidentDetails} from "@/hooks/alertDetails.js";
 
 export default function AlertsPage() {
   const { alerts, acknowledgeAlert, resolveAlert, criticalCount } = useAlerts()
   const { incidents, timeline } = useIncidents()
+  const { selectedIncident, selectedIncidentId, selectIncident, selectAction, approveIncident, rejectIncident, addIncident}  = useIncidentDetails()
 
   return (
     <>
@@ -48,10 +50,11 @@ export default function AlertsPage() {
                 alerts={alerts}
                 acknowledgeAlert={acknowledgeAlert}
                 resolveAlert={resolveAlert}
+                selectIncident={selectIncident}
               />
             </div>
 
-          <IncidentDetailView timeline={timeline} />
+          <IncidentDetailView timeline={timeline} selectedIncident = {selectedIncident} selectIncident={selectIncident} />
         </div>
 
         <IncidentsTable incidents={incidents} />
