@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import {useEffect, useState} from 'react'
+import {useWebSocket} from "@/hooks/useWebSocket.js";
 
 
 const INITIAL_INCIDENTS = [
@@ -348,9 +349,25 @@ const INITIAL_INCIDENTS = [
 ]
 
 
+
 export function useIncidentDetails() {
 
   const [incidents, setIncidents] = useState(INITIAL_INCIDENTS)
+
+  const socket_incidents = useWebSocket('incident_detail')
+
+  useEffect(() => {
+
+    if (!socket_incidents) {
+      return
+    }
+
+    setIncidents((prev) => [
+      socket_incidents,
+      ...prev
+    ])
+
+  }, [socket_incidents])
 
   const [selectedIncidentId, setSelectedIncidentId] = useState(
     INITIAL_INCIDENTS[0]?.id || null
@@ -425,10 +442,8 @@ export function useIncidentDetails() {
     selectedIncidentId,
     selectIncident,
     selectAction,
-
     approveIncident,
     rejectIncident,
-
     addIncident
   }
 }

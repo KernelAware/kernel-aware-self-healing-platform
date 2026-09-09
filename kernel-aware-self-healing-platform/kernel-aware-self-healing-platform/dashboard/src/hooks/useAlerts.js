@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import {useEffect, useState} from 'react'
+import {useWebSocket} from "@/hooks/useWebSocket.js";
 
 const INITIAL_ALERTS = [
   {
@@ -57,8 +58,24 @@ const INITIAL_ALERTS = [
   },
 ]
 
+
 export function useAlerts() {
   const [alerts, setAlerts] = useState(INITIAL_ALERTS)
+
+  const socketAlert = useWebSocket('alerts')
+
+  useEffect(() => {
+
+    if (!socketAlert) {
+      return
+    }
+
+    setAlerts((prev) => [
+      socketAlert,
+      ...prev
+    ])
+
+  }, [socketAlert])
 
   const acknowledgeAlert = (id) => {
     setAlerts((prev) =>
@@ -70,8 +87,10 @@ export function useAlerts() {
     setAlerts((prev) => prev.filter((a) => a.id !== id))
   }
 
+
   return {
     alerts,
+    setAlerts,
     acknowledgeAlert,
     resolveAlert,
     criticalCount: alerts.filter((a) => a.tone === 'danger').length,
