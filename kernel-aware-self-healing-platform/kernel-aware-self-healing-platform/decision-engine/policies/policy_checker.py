@@ -14,9 +14,6 @@ def check_policy(rule):
 
     for action in rule["actions"]:
 
-        if not action["automatic_execution"]:
-            continue
-
         if action["approval_required"] == "ALWAYS":
             return {
                 "allowed": False,
