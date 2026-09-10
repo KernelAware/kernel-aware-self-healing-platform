@@ -41,3 +41,21 @@ export async function queryPrometheus(query) {
 
   return json.data.result
 }
+
+export async function userRules(form) {
+  const response = await fetch("http://localhost:8000/user_rules", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(form),
+  });
+
+  const json = await response.json();
+
+  if (!response.ok) {
+    throw new Error(json.detail || "Failed to save user rule");
+  }
+
+  return json;
+}

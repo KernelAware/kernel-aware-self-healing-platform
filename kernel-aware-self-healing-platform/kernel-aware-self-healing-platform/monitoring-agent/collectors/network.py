@@ -136,7 +136,7 @@ def get_network_stats_snapshot():
                 get_network_interfaces(),
             "addresses":
                 get_network_addresses(),
-            "connections":
+            "send_decisions":
                 get_active_connections(),
             "network_processes":
                 get_network_processes()
@@ -161,7 +161,7 @@ if __name__ == "__main__":
     print("\nActive Connections:")
 
     connections = get_active_connections()
-    print(f"{len(connections)} connections found")
+    print(f"{len(connections)} send_decisions found")
 
     print("\nNetwork Processes:")
     for process in get_network_processes():

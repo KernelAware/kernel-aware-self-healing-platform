@@ -15,6 +15,7 @@ import AlertsPage from '@/pages/AlertsPage'
 import HealingPage from '@/pages/HealingPage'
 import LogsPage from '@/pages/LogsPage'
 import SettingsPage from '@/pages/SettingsPage'
+import PolicyPage from '@/pages/PolicyPage'
 
 function DashboardLayout({ children }) {
   return (
@@ -49,6 +50,7 @@ export default function App() {
                 <Route path="/alerts" element={<AlertsPage />} />
                 <Route path="/self-healing" element={<HealingPage />} />
                 <Route path="/logs" element={<LogsPage />} />
+                <Route path="/policy" element={<PolicyPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Routes>
             </DashboardLayout>

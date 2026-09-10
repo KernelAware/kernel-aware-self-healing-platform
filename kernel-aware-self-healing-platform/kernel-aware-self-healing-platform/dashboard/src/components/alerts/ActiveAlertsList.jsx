@@ -1,65 +1,221 @@
 import React from 'react'
-import { TriangleAlert } from 'lucide-react'
-import { Panel, PanelHeader, StatusBadge } from '@/components/kit'
+import {
+  TriangleAlert,
+  Server,
+  Cpu,
+  Activity,
+  ChevronRight
+} from 'lucide-react'
 
-export default function ActiveAlertsList({ alerts, acknowledgeAlert, resolveAlert }) {
+import {
+  Panel,
+  PanelHeader,
+  StatusBadge
+} from '@/components/kit'
+
+
+export default function ActiveAlertsList({
+  alerts,
+  acknowledgeAlert,
+  resolveAlert,
+  selectIncident,
+  selectedIncidentId
+}) {
+
+  const activeCount = alerts.length
+
   return (
-    <Panel>
-      <PanelHeader 
-        title="Active Alerts" 
-        icon={TriangleAlert} 
-        action={<StatusBadge tone="danger">{alerts.filter(a => a.tone === 'danger').length} Critical</StatusBadge>} 
+    <Panel onClick={() => selectIncident(a.id)}>
+
+      <PanelHeader
+        title="Active Incidents"
+        icon={TriangleAlert}
+        action={
+          <span className="font-mono text-[10px] text-muted-foreground">
+            {activeCount} Active
+          </span>
+        }
       />
-      <div className="flex flex-col gap-3 p-4 pt-0">
-        {alerts.map((a) => (
-          <div 
-            key={a.id} 
-            className={`rounded-md border p-3 ${
-              a.tone === 'danger' 
-                ? 'border-destructive/40 bg-destructive/5' 
-                : a.tone === 'warning' 
-                  ? 'border-warning/40 bg-warning/5' 
-                  : 'border-border bg-secondary/30'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <StatusBadge tone={a.tone}>{a.level}</StatusBadge>
-              <span className="font-mono text-[10px] text-muted-foreground">{a.age}</span>
+
+
+      <div className="flex flex-col gap-5 p-3 pt-0">
+
+        {alerts.map((a) => {
+          const isSelected = a.id === selectedIncidentId
+          const isCritical = a.id === selectedIncidentId
+          const isWarning = a.tone === 'warning'
+
+          return (
+            <div
+              key={a.id}
+              onClick={() => selectIncident(a.id)}
+              className={`
+                cursor-pointer
+                rounded-lg
+                border
+                p-3
+                transition
+                hover:bg-secondary/50
+                ${
+                  isSelected
+                    ? 'border-yellow-500 bg-yellow-500/5':""
+                }
+              `}
+            >
+
+              {/* TOP ROW */}
+              <div className="flex items-center justify-between">
+
+                <StatusBadge tone={a.tone}>
+                  {a.level}
+                </StatusBadge>
+
+                <span className="font-mono text-[10px] text-muted-foreground">
+                  {a.age}
+                </span>
+
+              </div>
+
+
+              {/* TITLE */}
+              <h4 className="mt-2 text-sm font-semibold text-foreground">
+                {a.title}
+              </h4>
+
+
+              {/* DETAILS */}
+              <div className="mt-3 space-y-1.5 text-[14px] text-muted-foreground">
+
+
+
+
+                <div className="flex items-center gap-2">
+                  <Cpu className="size-5 shrink-0" />
+                  <span>
+                    {a.process || a.body}
+                  </span>
+                </div>
+
+
+                <div className="flex items-center gap-2">
+                  <Activity className="size-3 shrink-0" />
+                  <span>
+                    {a.metric || 'Threshold violation detected'}
+                  </span>
+                </div>
+
+              </div>
+
+
+              {/* STATUS */}
+              <div className="mt-3 flex items-center justify-between">
+
+                <div>
+                  {a.acked ? (
+
+                    <span className="rounded border border-border bg-secondary px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+                      Acknowledged
+                    </span>
+
+                  ) : (
+
+                    <span
+                      className={`
+                        rounded
+                        border
+                        px-2
+                        py-1
+                        font-mono
+                        text-[9px]
+                        uppercase
+                        tracking-wider
+                        ${
+                          isCritical
+                            ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-400'
+                            : isWarning
+                              ? 'border-blue-500/50 bg-blue-500/10 text-blue-400'
+                              : 'border-border bg-secondary text-muted-foreground'
+                        }
+                      `}
+                    >
+                      {isCritical
+                        ? 'Waiting Approval'
+                        : isWarning
+                          ? 'Healing'
+                          : 'Open'}
+                    </span>
+
+                  )}
+                </div>
+
+
+                <ChevronRight className="size-4 text-muted-foreground" />
+
+              </div>
+
+
+              {/* OPTIONAL ACTION BUTTONS */}
+              {!a.acked && (
+                <div className="mt-3 flex gap-2">
+
+                  <button
+                    onClick={() => acknowledgeAlert(a.id)}
+                    className="
+                      flex-1
+                      rounded-md
+                      border
+                      border-border
+                      bg-secondary/40
+                      py-1.5
+                      font-mono
+                      text-[10px]
+                      uppercase
+                      tracking-wider
+                      text-foreground
+                      hover:bg-secondary
+                    "
+                  >
+                    Acknowledge
+                  </button>
+
+
+                  <button
+                    onClick={() => resolveAlert(a.id)}
+                    className="
+                      flex-1
+                      rounded-md
+                      border
+                      border-border
+                      py-1.5
+                      font-mono
+                      text-[10px]
+                      uppercase
+                      tracking-wider
+                      text-muted-foreground
+                      hover:bg-secondary
+                    "
+                  >
+                    Resolve
+                  </button>
+
+                </div>
+              )}
+
             </div>
-            <h4 className="mt-2 text-sm font-semibold">{a.title}</h4>
-            <p className="mt-1 text-xs text-muted-foreground text-pretty">{a.body}</p>
-            {a.acked ? (
-              <div className="mt-3 rounded-md border border-border py-1.5 text-center font-mono text-[11px] uppercase tracking-wider text-muted-foreground select-none">
-                Acknowledged
-              </div>
-            ) : (
-              <div className="mt-3 flex gap-2">
-                <button 
-                  onClick={() => acknowledgeAlert(a.id)}
-                  className={`flex-1 rounded-md py-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider cursor-pointer ${
-                    a.tone === 'danger' 
-                      ? 'bg-destructive/80 text-destructive-foreground hover:bg-destructive' 
-                      : 'bg-warning/80 text-warning-foreground hover:bg-warning'
-                  }`}
-                >
-                  Acknowledge
-                </button>
-                <button 
-                  onClick={() => resolveAlert(a.id)}
-                  className="flex-1 rounded-md border border-border py-1.5 font-mono text-[11px] uppercase tracking-wider text-foreground hover:bg-secondary cursor-pointer"
-                >
-                  Resolve
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
+          )
+        })}
+
+
         {alerts.length === 0 && (
-          <div className="text-center font-mono text-xs text-muted-foreground py-6">
+
+          <div className="py-6 text-center font-mono text-xs text-muted-foreground">
             No active incidents detected.
           </div>
+
         )}
+
       </div>
+
     </Panel>
   )
 }

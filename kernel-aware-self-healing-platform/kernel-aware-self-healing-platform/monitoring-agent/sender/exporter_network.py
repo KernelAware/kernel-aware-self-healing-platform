@@ -9,7 +9,7 @@ from prometheus_client import generate_latest
 
 from collectors.network import get_network_stats_snapshot
 
-# Network IO metrics
+# Network IO system_metrics
 network_byte_sent = Counter(
     "network_byte_sent_total",
     "Total bytes sent through network interfaces"
@@ -51,7 +51,7 @@ network_drops_out = Counter(
     "Total outgoing network packet drops"
 )
 
-# Interface metrics
+# Interface system_metrics
 network_interface_up = Gauge(
     "network_interface_up",
     "Network interface status",
@@ -70,15 +70,15 @@ network_interface_mtu = Gauge(
     ["interface"]
 )
 
-# Connection/process metrics
+# Connection/process system_metrics
 network_active_connections = Gauge(
     "network_active_connections",
-    "Number of active network connections"
+    "Number of active network send_decisions"
 )
 
 network_processes = Gauge(
     "network_processes_using_network",
-    "Number of processes using network connections"
+    "Number of processes using network send_decisions"
 )
 
 network_connection_info = Gauge(
@@ -126,7 +126,7 @@ def update_network_metrics():
 
     network = get_network_stats_snapshot()
 
-    # Update Prometheus metrics
+    # Update Prometheus system_metrics
     network_byte_sent.inc(
         network["network_io"]["bytes_sent"]
     )
@@ -180,7 +180,7 @@ def update_network_metrics():
         )
 
     # Connections
-    connections = network["connections"]
+    connections = network["send_decisions"]
 
     network_active_connections.set(
         len(connections)
@@ -198,6 +198,8 @@ def update_network_metrics():
         )
 
         try:
+            process_bytes = 0
+
             if conn["pid"]:
                 process = psutil.Process(
                     conn["pid"]
@@ -214,12 +216,10 @@ def update_network_metrics():
 
             else:
                 process_name = "unknown"
-                rate = 0
 
-        except:
-
+        except Exception:
             process_name = "unknown"
-            rate = 0
+            process_bytes = 0
 
         connection_id = (
             f"{remote_ip}:{remote_port}:{process_name}"
