@@ -4,10 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="80a84349-3319-409f-8a10-f0aa2f6eb13e" name="Changes" comment="make backend user rules store">
+    <list default="true" id="80a84349-3319-409f-8a10-f0aa2f6eb13e" name="Changes" comment="update dashboard alert and build web socket and alert system">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/routers/user_rules.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/routers/user_rules.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/services/user_rule_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/services/user_rule_service.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -15,13 +13,14 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="276" />
+    <option name="cachedIndexableFilesCount" value="290" />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Dockerfile" />
         <option value="Python Script" />
+        <option value="JavaScript File" />
       </list>
     </option>
   </component>
@@ -51,61 +50,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="2.7026563070407984E-106" />
-      <entry key="MS500" value="7.69774574996942E-22" />
-      <entry key="S2" value="5.616038421159252E-6" />
-      <entry key="S5" value="0.011291828588222018" />
-      <entry key="S10" value="0.1704286390134627" />
-      <entry key="S30" value="1.1664259287580996" />
-      <entry key="S60" value="2.2668009356437" />
-      <entry key="M2" value="4.0189008776762" />
-      <entry key="M5" value="6.635883616076217" />
-      <entry key="M10" value="8.256167110537383" />
-      <entry key="M15" value="9.587225359242266" />
-      <entry key="M30" value="14.95800722030293" />
-      <entry key="H1" value="25.476583892788035" />
-      <entry key="H2" value="40.20091301942443" />
-      <entry key="H4" value="62.862912216513095" />
-      <entry key="D1" value="429.9922691163017" />
-      <entry key="W1" value="1757.5241830537827" />
+      <entry key="MS100" value="1.0202994668837126" />
+      <entry key="MS500" value="1.825335306236743" />
+      <entry key="S2" value="3.5406117710402056" />
+      <entry key="S5" value="5.619866650933935" />
+      <entry key="S10" value="7.243878070204809" />
+      <entry key="S30" value="8.909100262132014" />
+      <entry key="S60" value="9.42953804157983" />
+      <entry key="M2" value="9.738103962339842" />
+      <entry key="M5" value="10.350962750658963" />
+      <entry key="M10" value="11.12680685337514" />
+      <entry key="M15" value="11.612423520612914" />
+      <entry key="M30" value="12.990707444145832" />
+      <entry key="H1" value="17.766481518807954" />
+      <entry key="H2" value="29.169906435504107" />
+      <entry key="H4" value="51.3585000748022" />
+      <entry key="D1" value="292.56371731722913" />
+      <entry key="W1" value="1824.1559381992965" />
     </decayedCancelled>
     <decayedSelected>
-      <entry key="MS100" value="1.0" />
-      <entry key="MS500" value="1.0" />
-      <entry key="S2" value="1.0" />
-      <entry key="S5" value="1.000000000071226" />
-      <entry key="S10" value="1.0000096452879559" />
-      <entry key="S30" value="1.0322137612400373" />
-      <entry key="S60" value="1.278643793668368" />
-      <entry key="M2" value="1.8787215423618635" />
-      <entry key="M5" value="2.8160006497122114" />
-      <entry key="M10" value="3.4163212237386236" />
-      <entry key="M15" value="3.9879153296470973" />
-      <entry key="M30" value="6.309876470524115" />
-      <entry key="H1" value="10.291992072925758" />
-      <entry key="H2" value="15.021073699869225" />
-      <entry key="H4" value="20.40719927826616" />
-      <entry key="D1" value="49.903125329464025" />
-      <entry key="W1" value="126.11950836930514" />
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="0.0" />
+      <entry key="S5" value="0.0" />
+      <entry key="S10" value="8.974457212802098E-218" />
+      <entry key="S30" value="4.4771900897168343E-73" />
+      <entry key="S60" value="6.708159167040013E-37" />
+      <entry key="M2" value="8.592260638156636E-19" />
+      <entry key="M5" value="7.593568311211512E-8" />
+      <entry key="M10" value="3.9343714918606835E-4" />
+      <entry key="M15" value="0.007857244294964452" />
+      <entry key="M30" value="0.23090237602651142" />
+      <entry key="H1" value="1.6733155284391474" />
+      <entry key="H2" value="5.136131090325215" />
+      <entry key="H4" value="10.905971010078632" />
+      <entry key="D1" value="64.8909834603083" />
+      <entry key="W1" value="234.5416825920699" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="7.649814471977381E-8" />
-      <entry key="MS500" value="0.037733768483953004" />
-      <entry key="S2" value="0.44074538933807833" />
-      <entry key="S5" value="0.7309213631818746" />
-      <entry key="S10" value="1.0092493468096855" />
-      <entry key="S30" value="2.1156970130211166" />
-      <entry key="S60" value="3.4776758144892734" />
-      <entry key="M2" value="5.836714993879032" />
-      <entry key="M5" value="9.41077751284795" />
-      <entry key="M10" value="11.646631407588284" />
-      <entry key="M15" value="13.554955121709028" />
-      <entry key="M30" value="21.25279633537042" />
-      <entry key="H1" value="35.75712916629457" />
-      <entry key="H2" value="55.21388887213107" />
-      <entry key="H4" value="83.26452829688216" />
-      <entry key="D1" value="479.89265435324603" />
-      <entry key="W1" value="1883.64265634653" />
+      <entry key="MS100" value="0.9887331390342375" />
+      <entry key="MS500" value="1.7027289277906004" />
+      <entry key="S2" value="3.461599505009039" />
+      <entry key="S5" value="5.580329102910124" />
+      <entry key="S10" value="7.222230932259551" />
+      <entry key="S30" value="8.901364130332265" />
+      <entry key="S60" value="9.42559554666252" />
+      <entry key="M2" value="9.73607508181581" />
+      <entry key="M5" value="10.349825082945983" />
+      <entry key="M10" value="11.126323281238873" />
+      <entry key="M15" value="11.619530245216277" />
+      <entry key="M30" value="13.220493836125215" />
+      <entry key="H1" value="19.436768142340256" />
+      <entry key="H2" value="34.301449360114404" />
+      <entry key="H4" value="62.25980987154321" />
+      <entry key="D1" value="357.45029948734503" />
+      <entry key="W1" value="2058.6954597485274" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -143,6 +142,7 @@
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
     &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;/home/pasindu/Downloads/pycharm-2026.1.2/plugins/javascript-plugin/jsLanguageServicesImpl/external&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   },
   &quot;keyToStringList&quot;: {
@@ -159,8 +159,11 @@
       <recent name="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/infrastructure" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/backend/app/models/user_rules" />
-      <recent name="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/analytics-engine/metrics" />
+      <recent name="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/decision-engine/action_planner/connections" />
+      <recent name="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/analytics-engine/load_data" />
+      <recent name="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/analytics-engine" />
+      <recent name="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/analytics-engine/detection/strategies" />
+      <recent name="$PROJECT_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/analytics-engine/database/systems" />
     </key>
   </component>
   <component name="RunManager">
@@ -212,62 +215,6 @@
       <option name="presentableId" value="Default" />
       <updated>1782772395461</updated>
       <workItem from="1782772398402" duration="35000" />
-    </task>
-    <task id="LOCAL-00001" summary="make folder structure">
-      <option name="closed" value="true" />
-      <created>1782772953304</created>
-      <option name="number" value="00001" />
-      <option name="presentableId" value="LOCAL-00001" />
-      <option name="project" value="LOCAL" />
-      <updated>1782772953304</updated>
-    </task>
-    <task id="LOCAL-00002" summary="make example infastrure">
-      <option name="closed" value="true" />
-      <created>1783075119906</created>
-      <option name="number" value="00002" />
-      <option name="presentableId" value="LOCAL-00002" />
-      <option name="project" value="LOCAL" />
-      <updated>1783075119907</updated>
-    </task>
-    <task id="LOCAL-00003" summary="make example infastrure">
-      <option name="closed" value="true" />
-      <created>1783487614575</created>
-      <option name="number" value="00003" />
-      <option name="presentableId" value="LOCAL-00003" />
-      <option name="project" value="LOCAL" />
-      <updated>1783487614575</updated>
-    </task>
-    <task id="LOCAL-00004" summary="make example infastrure">
-      <option name="closed" value="true" />
-      <created>1783487624721</created>
-      <option name="number" value="00004" />
-      <option name="presentableId" value="LOCAL-00004" />
-      <option name="project" value="LOCAL" />
-      <updated>1783487624721</updated>
-    </task>
-    <task id="LOCAL-00005" summary="make docker.yml file for run grafana , loki ,promithese">
-      <option name="closed" value="true" />
-      <created>1784026947044</created>
-      <option name="number" value="00005" />
-      <option name="presentableId" value="LOCAL-00005" />
-      <option name="project" value="LOCAL" />
-      <updated>1784026947044</updated>
-    </task>
-    <task id="LOCAL-00006" summary="make docker.yml file for run grafana , loki ,promithese">
-      <option name="closed" value="true" />
-      <created>1784046622784</created>
-      <option name="number" value="00006" />
-      <option name="presentableId" value="LOCAL-00006" />
-      <option name="project" value="LOCAL" />
-      <updated>1784046622784</updated>
-    </task>
-    <task id="LOCAL-00007" summary="make docker.yml file for run grafana , loki ,promithese">
-      <option name="closed" value="true" />
-      <created>1784062292993</created>
-      <option name="number" value="00007" />
-      <option name="presentableId" value="LOCAL-00007" />
-      <option name="project" value="LOCAL" />
-      <updated>1784062292993</updated>
     </task>
     <task id="LOCAL-00008" summary="make docker.yml file for run grafana , loki ,promithese">
       <option name="closed" value="true" />
@@ -461,7 +408,207 @@
       <option name="project" value="LOCAL" />
       <updated>1787341810011</updated>
     </task>
-    <option name="localTasksCounter" value="32" />
+    <task id="LOCAL-00032" summary="make backend user rules store">
+      <option name="closed" value="true" />
+      <created>1787487628569</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1787487628569</updated>
+    </task>
+    <task id="LOCAL-00033" summary="make backend user rules store">
+      <option name="closed" value="true" />
+      <created>1787511957205</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1787511957205</updated>
+    </task>
+    <task id="LOCAL-00034" summary="make backend user rules store">
+      <option name="closed" value="true" />
+      <created>1787511962345</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1787511962345</updated>
+    </task>
+    <task id="LOCAL-00035" summary="make backend user rules store">
+      <option name="closed" value="true" />
+      <created>1787511966468</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1787511966468</updated>
+    </task>
+    <task id="LOCAL-00036" summary="make backend user rules store">
+      <option name="closed" value="true" />
+      <created>1787511972379</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1787511972379</updated>
+    </task>
+    <task id="LOCAL-00037" summary="make backend user rules retrieve">
+      <option name="closed" value="true" />
+      <created>1787599349951</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1787599349951</updated>
+    </task>
+    <task id="LOCAL-00038" summary="make backend user rules retrieve">
+      <option name="closed" value="true" />
+      <created>1787604938063</created>
+      <option name="number" value="00038" />
+      <option name="presentableId" value="LOCAL-00038" />
+      <option name="project" value="LOCAL" />
+      <updated>1787604938063</updated>
+    </task>
+    <task id="LOCAL-00039" summary="make backend user rules retrieve">
+      <option name="closed" value="true" />
+      <created>1787768736644</created>
+      <option name="number" value="00039" />
+      <option name="presentableId" value="LOCAL-00039" />
+      <option name="project" value="LOCAL" />
+      <updated>1787768736644</updated>
+    </task>
+    <task id="LOCAL-00040" summary="made user rule taking from database">
+      <option name="closed" value="true" />
+      <created>1787774421123</created>
+      <option name="number" value="00040" />
+      <option name="presentableId" value="LOCAL-00040" />
+      <option name="project" value="LOCAL" />
+      <updated>1787774421123</updated>
+    </task>
+    <task id="LOCAL-00041" summary="make analize engine">
+      <option name="closed" value="true" />
+      <created>1788032382442</created>
+      <option name="number" value="00041" />
+      <option name="presentableId" value="LOCAL-00041" />
+      <option name="project" value="LOCAL" />
+      <updated>1788032382442</updated>
+    </task>
+    <task id="LOCAL-00042" summary="make analize engine">
+      <option name="closed" value="true" />
+      <created>1788034559311</created>
+      <option name="number" value="00042" />
+      <option name="presentableId" value="LOCAL-00042" />
+      <option name="project" value="LOCAL" />
+      <updated>1788034559311</updated>
+    </task>
+    <task id="LOCAL-00043" summary="make analize engine">
+      <option name="closed" value="true" />
+      <created>1788539725490</created>
+      <option name="number" value="00043" />
+      <option name="presentableId" value="LOCAL-00043" />
+      <option name="project" value="LOCAL" />
+      <updated>1788539725490</updated>
+    </task>
+    <task id="LOCAL-00044" summary="make analize engine">
+      <option name="closed" value="true" />
+      <created>1788603931166</created>
+      <option name="number" value="00044" />
+      <option name="presentableId" value="LOCAL-00044" />
+      <option name="project" value="LOCAL" />
+      <updated>1788603931166</updated>
+    </task>
+    <task id="LOCAL-00045" summary="make analize engine">
+      <option name="closed" value="true" />
+      <created>1788603937838</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1788603937838</updated>
+    </task>
+    <task id="LOCAL-00046" summary="make analize engine">
+      <option name="closed" value="true" />
+      <created>1788603943634</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1788603943634</updated>
+    </task>
+    <task id="LOCAL-00047" summary="make analize engine">
+      <option name="closed" value="true" />
+      <created>1788603949253</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1788603949253</updated>
+    </task>
+    <task id="LOCAL-00048" summary="make analize engine">
+      <option name="closed" value="true" />
+      <created>1788603952983</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1788603952983</updated>
+    </task>
+    <task id="LOCAL-00049" summary="make analize engine">
+      <option name="closed" value="true" />
+      <created>1788634172929</created>
+      <option name="number" value="00049" />
+      <option name="presentableId" value="LOCAL-00049" />
+      <option name="project" value="LOCAL" />
+      <updated>1788634172929</updated>
+    </task>
+    <task id="LOCAL-00050" summary="make decision engine">
+      <option name="closed" value="true" />
+      <created>1788689369946</created>
+      <option name="number" value="00050" />
+      <option name="presentableId" value="LOCAL-00050" />
+      <option name="project" value="LOCAL" />
+      <updated>1788689369946</updated>
+    </task>
+    <task id="LOCAL-00051" summary="make decision engine">
+      <option name="closed" value="true" />
+      <created>1788724594462</created>
+      <option name="number" value="00051" />
+      <option name="presentableId" value="LOCAL-00051" />
+      <option name="project" value="LOCAL" />
+      <updated>1788724594462</updated>
+    </task>
+    <task id="LOCAL-00052" summary="update dashboard alert and incident UI">
+      <option name="closed" value="true" />
+      <created>1788796662608</created>
+      <option name="number" value="00052" />
+      <option name="presentableId" value="LOCAL-00052" />
+      <option name="project" value="LOCAL" />
+      <updated>1788796662608</updated>
+    </task>
+    <task id="LOCAL-00053" summary="update dashboard alert and incident UI">
+      <option name="closed" value="true" />
+      <created>1788804086813</created>
+      <option name="number" value="00053" />
+      <option name="presentableId" value="LOCAL-00053" />
+      <option name="project" value="LOCAL" />
+      <updated>1788804086813</updated>
+    </task>
+    <task id="LOCAL-00054" summary="update dashboard alert and incident UI">
+      <option name="closed" value="true" />
+      <created>1788846969908</created>
+      <option name="number" value="00054" />
+      <option name="presentableId" value="LOCAL-00054" />
+      <option name="project" value="LOCAL" />
+      <updated>1788846969908</updated>
+    </task>
+    <task id="LOCAL-00055" summary="update dashboard alert and incident UI">
+      <option name="closed" value="true" />
+      <created>1788891741272</created>
+      <option name="number" value="00055" />
+      <option name="presentableId" value="LOCAL-00055" />
+      <option name="project" value="LOCAL" />
+      <updated>1788891741273</updated>
+    </task>
+    <task id="LOCAL-00056" summary="update dashboard alert and build web socket and alert system">
+      <option name="closed" value="true" />
+      <created>1788991046731</created>
+      <option name="number" value="00056" />
+      <option name="presentableId" value="LOCAL-00056" />
+      <option name="project" value="LOCAL" />
+      <updated>1788991046732</updated>
+    </task>
+    <option name="localTasksCounter" value="57" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -477,6 +624,12 @@
     <MESSAGE value="make all relate to disply process and service on grfana and react dashboard" />
     <MESSAGE value="make formm user data" />
     <MESSAGE value="make backend user rules store" />
-    <option name="LAST_COMMIT_MESSAGE" value="make backend user rules store" />
+    <MESSAGE value="make backend user rules retrieve" />
+    <MESSAGE value="made user rule taking from database" />
+    <MESSAGE value="make analize engine" />
+    <MESSAGE value="make decision engine" />
+    <MESSAGE value="update dashboard alert and incident UI" />
+    <MESSAGE value="update dashboard alert and build web socket and alert system" />
+    <option name="LAST_COMMIT_MESSAGE" value="update dashboard alert and build web socket and alert system" />
   </component>
 </project>
