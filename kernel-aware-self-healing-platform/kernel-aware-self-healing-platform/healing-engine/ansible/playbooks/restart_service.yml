@@ -3,6 +3,7 @@
   hosts: "{{ target_host }}"
   become: true
   gather_facts: false
+
   tasks:
     - name: Restart requested service
       ansible.builtin.service:
