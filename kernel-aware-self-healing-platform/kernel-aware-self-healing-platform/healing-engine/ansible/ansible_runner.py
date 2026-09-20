@@ -1,11 +1,11 @@
 import subprocess
-from config import ANSIBLE_INVENTORY
+
 
 def run_playbook(playbook: str, extra_vars: dict):
     command = [
         "ansible-playbook",
         "-i",
-        ANSIBLE_INVENTORY,
+        "inventory.ini",
         playbook,
     ]
 
