@@ -9,6 +9,8 @@ from prometheus_client import generate_latest
 
 from collectors.network import get_network_stats_snapshot
 
+_previous_network_io = None
+
 # Network IO system_metrics
 network_byte_sent = Counter(
     "network_byte_sent_total",
@@ -124,41 +126,81 @@ def parse_address(address):
 
 def update_network_metrics():
 
+    global _previous_network_io
+
     network = get_network_stats_snapshot()
 
-    # Update Prometheus system_metrics
-    network_byte_sent.inc(
-        network["network_io"]["bytes_sent"]
-    )
+    current_io = network["network_io"]
 
-    network_byte_received.inc(
-        network["network_io"]["bytes_received"]
-    )
+    if _previous_network_io is None:
+        _previous_network_io = current_io.copy()
 
-    network_packets_sent.inc(
-        network["network_io"]["packets_sent"]
-    )
+    else:
+        network_byte_sent.inc(
+            max(
+                0,
+                current_io["bytes_sent"] -
+                _previous_network_io["bytes_sent"]
+            )
+        )
 
-    network_packets_received.inc(
-        network["network_io"]["packets_received"]
-    )
+        network_byte_received.inc(
+            max(
+                0,
+                current_io["bytes_received"] -
+                _previous_network_io["bytes_received"]
+            )
+        )
 
-    # Errors and Drops
-    network_errors_in.inc(
-        network["network_io"]["errors_in"]
-    )
+        network_packets_sent.inc(
+            max(
+                0,
+                current_io["packets_sent"] -
+                _previous_network_io["packets_sent"]
+            )
+        )
 
-    network_errors_out.inc(
-        network["network_io"]["errors_out"]
-    )
+        network_packets_received.inc(
+            max(
+                0,
+                current_io["packets_received"] -
+                _previous_network_io["packets_received"]
+            )
+        )
 
-    network_drops_in.inc(
-        network["network_io"]["drops_in"]
-    )
+        network_errors_in.inc(
+            max(
+                0,
+                current_io["errors_in"] -
+                _previous_network_io["errors_in"]
+            )
+        )
 
-    network_drops_out.inc(
-        network["network_io"]["drops_out"]
-    )
+        network_errors_out.inc(
+            max(
+                0,
+                current_io["errors_out"] -
+                _previous_network_io["errors_out"]
+            )
+        )
+
+        network_drops_in.inc(
+            max(
+                0,
+                current_io["drops_in"] -
+                _previous_network_io["drops_in"]
+            )
+        )
+
+        network_drops_out.inc(
+            max(
+                0,
+                current_io["drops_out"] -
+                _previous_network_io["drops_out"]
+            )
+        )
+
+        _previous_network_io = current_io.copy()
 
     for interface, data in network["interfaces"].items():
         network_interface_up.labels(

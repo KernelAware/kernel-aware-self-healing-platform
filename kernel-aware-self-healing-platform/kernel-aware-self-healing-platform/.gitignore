@@ -5,6 +5,13 @@
 infrastructure/.postman/
 infrastructure/postman/
 
-__pycache__/
-*.pyc
 .venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+
+# IntelliJ / PyCharm
+.idea/
+*.iml
