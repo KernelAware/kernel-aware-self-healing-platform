@@ -1,9 +1,12 @@
+import { useEffect } from "react"
 import { Panel } from "@/components/kit"
 import { SelectBox } from "./wizardComponents"
 import { Info } from "lucide-react"
 import Step10Process from "./process/step10process.jsx"
+import { DISK_METRICS, OPERATORS, metricFor, updateDisk } from "./disk/diskHelpers"
 
 export default function Step10({ form, setForm }) {
+  if (form.monitorSource === "disk") return <DiskRecovery form={form} setForm={setForm} />
   const isNetwork = form.monitorSource === "network";
   const condUnit = isNetwork ? "errors/sec" : "%";
 
@@ -38,4 +41,21 @@ export default function Step10({ form, setForm }) {
       </div>
     </Panel>
   )
+}
+
+function DiskRecovery({ form, setForm }) {
+  const metric = metricFor(form.recoveryMetric || form.metric)
+  useEffect(() => {
+    if (form.recoveryThreshold && form.recoveryDuration) return
+    const defaultThreshold = metric.unit === "%" ? "80" : metric.unit === "ms" ? "50" : metric.unit === "IOPS" ? "1000" : "20"
+    setForm(current => ({
+      ...current,
+      recoveryMetric: current.recoveryMetric || current.metric || metric.id,
+      recoveryOperator: current.recoveryOperator || "Less Than (<)",
+      recoveryThreshold: current.recoveryThreshold || defaultThreshold,
+      recoveryDuration: current.recoveryDuration || "5",
+      recoveryDurationUnit: current.recoveryDurationUnit || "Minutes",
+    }))
+  }, [form.recoveryMetric, form.metric, form.recoveryThreshold, form.recoveryDuration, metric.id, metric.unit, setForm])
+  return <Panel className="p-6"><div className="mb-6"><p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">10. DISK VERIFICATION & RECOVERY</p><p className="text-xs text-muted-foreground mt-0.5">Define how recovery is detected for this disk rule.</p></div><div className="space-y-5"><div className="grid grid-cols-4 gap-3"><SelectBox value={metric.id} options={DISK_METRICS.map(item => item.id)} onChange={v => updateDisk(setForm, { recoveryMetric: v })} /><SelectBox value={form.recoveryOperator || "Less Than (<)"} options={OPERATORS} onChange={v => updateDisk(setForm, { recoveryOperator: v })} /><input value={form.recoveryThreshold || ""} onChange={e => updateDisk(setForm, { recoveryThreshold: e.target.value })} placeholder="Threshold" className="rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs" /><span className="flex items-center font-mono text-xs text-muted-foreground">{metric.unit}</span></div><div className="flex items-center gap-3"><input value={form.recoveryDuration || ""} onChange={e => updateDisk(setForm, { recoveryDuration: e.target.value })} placeholder="Duration" className="w-28 rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs" /><SelectBox value={form.recoveryDurationUnit || "Minutes"} options={["Seconds", "Minutes", "Hours"]} onChange={v => updateDisk(setForm, { recoveryDurationUnit: v })} className="w-32" /></div><p className="rounded-md border border-primary/20 bg-primary/5 p-3 font-mono text-[11px] text-foreground">The recovery condition must remain satisfied for the configured duration before the incident is marked as recovered.</p></div></Panel>
 }

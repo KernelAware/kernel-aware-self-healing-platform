@@ -22,6 +22,7 @@ const CHANNELS = [
 ]
 
 export default function Step11({ form, setForm }) {
+  const disk = form.monitorSource === "disk"
   const events = Array.isArray(form.notifications?.events)
     ? form.notifications.events
     : []
@@ -112,7 +113,7 @@ export default function Step11({ form, setForm }) {
     <Panel className="p-6">
       <div className="mb-6">
         <p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">
-          11. Notifications
+          11. {disk ? "DISK NOTIFICATIONS" : "Notifications"}
         </p>
 
         <p className="text-xs text-muted-foreground mt-0.5">
