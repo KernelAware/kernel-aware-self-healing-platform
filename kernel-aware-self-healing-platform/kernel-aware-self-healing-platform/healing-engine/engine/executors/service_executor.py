@@ -8,7 +8,7 @@ PLAYBOOKS = {
 
 async def execute_service_action(action_plan: dict):
     action_type = action_plan["type"]
-    service = action_plan.get("service") or action_plan.get("target")
+    service = action_plan.get("target")
 
     if not service:
         return {"success": False, "status": "FAILED", "reason": "Service is required"}

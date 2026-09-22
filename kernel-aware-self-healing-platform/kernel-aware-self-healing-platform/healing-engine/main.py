@@ -1,7 +1,8 @@
 from fastapi import FastAPI
+from engine.healing_engine import heal
 
 app = FastAPI(title="Healing Engine", version="1.0.0")
 
-@app.get("/health")
-async def health():
-    return {"status": "ok", "service": "healing-engine"}
+@app.get("/heal")
+def heal_action(action_plan: dict):
+    return heal(action_plan)
