@@ -566,7 +566,7 @@
 #     → Grafana     (Visualization & Dashboards)
 #
 #     NO anomaly detection here.
-#     NO self-healing triggers here.
+#     NO healing-engine triggers here.
 #     NO threshold checking here.
 #     ONLY raw hardware health data collection.
 #
