@@ -557,7 +557,7 @@
 #     """
 #     MAIN FUNCTION - called by main.py every 15 seconds.
 #
-#     Collects ALL raw hardware health metrics from Linux kernel
+#     Collects ALL raw hardware health system_metrics from Linux kernel
 #     and returns them as one complete snapshot.
 #
 #     This raw data is then forwarded to:
@@ -566,7 +566,7 @@
 #     → Grafana     (Visualization & Dashboards)
 #
 #     NO anomaly detection here.
-#     NO self-healing triggers here.
+#     NO healing-engine triggers here.
 #     NO threshold checking here.
 #     ONLY raw hardware health data collection.
 #

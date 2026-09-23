@@ -5,7 +5,7 @@ import { Panel, PanelHeader, StatusBadge, ProgressBar, ActionButton } from '@/co
 const heals = [
   { id: '#HEAL-8821', ts: 'Oct 24, 11:22:04', action: 'Restart PostgreSQL Service', comp: 'db-cluster-prod-01', rate: 100, status: 'Resolved', tone: 'success' },
   { id: '#HEAL-8819', ts: 'Oct 24, 09:45:12', action: 'Purge Docker Zombie Containers', comp: 'edge-worker-node-12', rate: 94, status: 'Resolved', tone: 'success' },
-  { id: '#HEAL-8815', ts: 'Oct 23, 23:12:59', action: 'Kernel Memory Hard Flush', comp: 'core-api-v1-gw', rate: 25, status: 'Escalated', tone: 'danger' },
+  { id: '#HEAL-8815', ts: 'Oct 23, 23:12:59', action: 'Kernel Memory Hard Flush', comp: 'core-routers-v1-gw', rate: 25, status: 'Escalated', tone: 'danger' },
   { id: '#HEAL-8802', ts: 'Oct 23, 18:04:44', action: 'Scale Up Redis Replicas', comp: 'cache-fleet-us-east', rate: 100, status: 'Resolved', tone: 'success' },
 ]
 

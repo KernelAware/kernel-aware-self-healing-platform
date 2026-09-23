@@ -20,11 +20,11 @@ export default function IncidentsTable({ incidents }) {
           <div className="flex items-center gap-2">
             <div className="relative hidden sm:block">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <input 
-                placeholder="Search incidents..." 
+              <input
+                placeholder="Search incidents..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-8 w-44 rounded-md border border-input bg-background pl-8 pr-2 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none" 
+                className="h-8 w-44 rounded-md border border-input bg-background pl-8 pr-2 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
               />
             </div>
             <ActionButton icon={ListFilter} className="h-8 cursor-pointer">Filter</ActionButton>

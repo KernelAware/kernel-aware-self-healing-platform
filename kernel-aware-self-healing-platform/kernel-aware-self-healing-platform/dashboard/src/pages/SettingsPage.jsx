@@ -14,7 +14,6 @@ import {
   FileText
 } from 'lucide-react'
 import { Panel, PanelHeader, StatusBadge, Dot, ProgressBar, ActionButton } from '@/components/kit'
-import { api } from '@/services/api'
 
 const INITIAL_CLUSTERS = [
   { name: 'US-East-1 AWS', provider: 'AWS Cloud', level: 'LEVEL 0', status: 'Connected', tone: 'success' },

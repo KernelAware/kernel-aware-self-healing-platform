@@ -10,7 +10,10 @@ export function useWebSocket(typeFilter) {
         setData(msg.data)
       }
     })
-    return () => unsubscribe()
+
+    return () => {
+      unsubscribe()
+    }
   }, [typeFilter])
 
   return data
