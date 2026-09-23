@@ -163,7 +163,7 @@ const toneClasses = {
   warning: 'bg-warning/12 text-warning border-warning/30',
   danger: 'bg-destructive/12 text-destructive border-destructive/30',
   info: 'bg-accent/15 text-accent border-accent/30',
-  muted: 'bg-muted text-muted-foreground border-border',
+  muted: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
 }
 
 export function StatusBadge({ tone = 'muted', children, className }) {

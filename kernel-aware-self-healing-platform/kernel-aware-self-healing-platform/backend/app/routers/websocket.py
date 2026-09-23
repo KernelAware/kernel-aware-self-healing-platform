@@ -5,8 +5,9 @@ router = APIRouter()
 connected_clients: dict[int, WebSocket] = {}
 
 
-@router.websocket("/ws/{userid}")
+@router.websocket("/ws/{systemid}")
 async def websocket_endpoint(websocket: WebSocket, systemid: int):
+    print(f"WebSocket connected to {systemid}")
     await websocket.accept()
 
     connected_clients[systemid] = websocket
@@ -20,6 +21,7 @@ async def websocket_endpoint(websocket: WebSocket, systemid: int):
 
 
 async def give_message(message: dict, systemid: int):
+    print(message)
     websocket = connected_clients.get(systemid)
 
     if websocket:
@@ -27,3 +29,4 @@ async def give_message(message: dict, systemid: int):
             await websocket.send_json(message)
         except Exception:
             connected_clients.pop(systemid, None)
+
