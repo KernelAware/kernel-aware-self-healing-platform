@@ -35,7 +35,7 @@ def collect_metrics():
 
         update_disk_metrics()
 
-        update_logs_metrics()
+        #update_logs_metrics()
 
         update_network_metrics()
 
@@ -56,7 +56,7 @@ threading.Thread(
 ).start()
 
 
-@app.get("/system_metrics")
+@app.get("/metrics") #weda natnm /metrics -> system_metrics walta maru karpn
 def metrics():
     return Response(
         content=generate_latest(),
