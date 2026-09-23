@@ -47,6 +47,8 @@ def collect_metrics():
 
         update_health_metrics()
 
+        time.sleep(5)
+
 
 threading.Thread(
     target=collect_metrics,
