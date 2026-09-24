@@ -93,7 +93,7 @@ KERNEL_INFO = Info(
     "Kernel information"
 )
 
-from collectors.health import collect
+from collectors.system_metrics.health import collect
 
 
 def update_health_metrics():

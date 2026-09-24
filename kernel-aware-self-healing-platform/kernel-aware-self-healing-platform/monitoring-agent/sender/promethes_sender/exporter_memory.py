@@ -1,6 +1,6 @@
 from prometheus_client import Gauge
 
-from collectors.memory import get_memory_metrics
+from collectors.system_metrics.memory import get_memory_metrics
 
 # test
 # RAM system_metrics
