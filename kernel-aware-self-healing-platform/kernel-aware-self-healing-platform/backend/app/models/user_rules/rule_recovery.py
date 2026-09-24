@@ -44,12 +44,12 @@ class RuleRecovery(Base):
     )
 
     recovery_threshold: Mapped[float | None] = mapped_column(
-        "recovery_threshold",
+        "RECOVERY_threshold",
         Double
     )
 
     recovery_duration_seconds: Mapped[int | None] = mapped_column(
-        "recovery_duration_seconds",
+        "RECOVERY_duration_seconds",
         Integer,
         default=0
     )
