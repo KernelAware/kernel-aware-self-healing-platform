@@ -1,82 +1,6 @@
-
 import { useEffect, useRef, useState } from "react"
 import { Panel } from "@/components/kit"
-import { SelectBox } from "../wizardComponents"
-
-const PROCESSES = [
-  {
-    name: "nginx",
-    pid: "1245",
-    status: "Running",
-    cpu: "2.4%",
-    memory: "1.2%",
-    threads: 12,
-    executable: "/usr/sbin/nginx",
-  },
-  {
-    name: "python",
-    pid: "2187",
-    status: "Running",
-    cpu: "8.7%",
-    memory: "3.4%",
-    threads: 8,
-    executable: "/usr/bin/python3",
-  },
-  {
-    name: "java",
-    pid: "3421",
-    status: "Running",
-    cpu: "14.2%",
-    memory: "12.8%",
-    threads: 32,
-    executable: "/usr/bin/java",
-  },
-  {
-    name: "postgres",
-    pid: "1567",
-    status: "Running",
-    cpu: "4.1%",
-    memory: "6.2%",
-    threads: 18,
-    executable: "/usr/bin/postgres",
-  },
-  {
-    name: "node",
-    pid: "4218",
-    status: "Running",
-    cpu: "5.8%",
-    memory: "4.7%",
-    threads: 10,
-    executable: "/usr/bin/node",
-  },
-  {
-    name: "sshd",
-    pid: "892",
-    status: "Running",
-    cpu: "0.1%",
-    memory: "0.3%",
-    threads: 1,
-    executable: "/usr/sbin/sshd",
-  },
-  {
-    name: "docker",
-    pid: "1024",
-    status: "Running",
-    cpu: "1.8%",
-    memory: "2.1%",
-    threads: 14,
-    executable: "/usr/bin/dockerd",
-  },
-  {
-    name: "redis",
-    pid: "1128",
-    status: "Running",
-    cpu: "2.1%",
-    memory: "1.8%",
-    threads: 6,
-    executable: "/usr/bin/redis-server",
-  },
-]
+import { getProcess } from "@/services/api.js"
 
 const METRICS = [
   "Process Status",
@@ -88,10 +12,34 @@ const METRICS = [
 ]
 
 export default function Step4Process({ form, setForm }) {
+  const [processes, setProcesses] = useState([])
   const [processSearch, setProcessSearch] = useState("")
   const [showProcessList, setShowProcessList] = useState(false)
+
   const processBoxRef = useRef(null)
 
+  // -----------------------------------------
+  // Load processes from backend
+  // -----------------------------------------
+  useEffect(() => {
+    async function loadProcesses() {
+      try {
+        const data = await getProcess(form.system_id || 1)
+
+        setProcesses(data.processes || [])
+      } catch (error) {
+        console.error("Failed to load processes:", error)
+        setProcesses([])
+      }
+    }
+
+    loadProcesses()
+  }, [form.system_id])
+
+
+  // -----------------------------------------
+  // Close dropdown when clicking outside
+  // -----------------------------------------
   useEffect(() => {
     const handleOutsideClick = (event) => {
       if (
@@ -109,54 +57,88 @@ export default function Step4Process({ form, setForm }) {
     }
   }, [])
 
+
+  // -----------------------------------------
+  // Current selected targets
+  // -----------------------------------------
   const selectedTargets = Array.isArray(form.targets)
     ? form.targets
     : []
 
-  const selectedProcesses = PROCESSES.filter((process) =>
-  selectedTargets.some(
-    target => target.type === "process" && target.name === process.name
-  )
-)
 
-  const filteredProcesses = PROCESSES.filter((process) =>
-    process.name.toLowerCase().includes(processSearch.toLowerCase())
-  )
-
-  const handleProcessChange = (processName) => {
-  setForm(f => {
-    const current = Array.isArray(f.targets) ? f.targets : []
-
-    const exists = current.some(
-      process => process.type === "process" && process.name === processName
+  // -----------------------------------------
+  // Find selected process details
+  // -----------------------------------------
+  const selectedProcesses = processes.filter((process) =>
+    selectedTargets.some(
+      (target) =>
+        target.type === "process" &&
+        target.pid === process.pid
     )
+  )
 
-    if (exists) {
+
+  // -----------------------------------------
+  // Search processes
+  // -----------------------------------------
+  const filteredProcesses = processes.filter((process) =>
+    (process.name || "")
+      .toLowerCase()
+      .includes(processSearch.trim().toLowerCase())
+  )
+
+
+  // -----------------------------------------
+  // Select / Remove process
+  // -----------------------------------------
+  const handleProcessChange = (process) => {
+    setForm((f) => {
+      const current = Array.isArray(f.targets)
+        ? f.targets
+        : []
+
+      const exists = current.some(
+        (target) =>
+          target.type === "process" &&
+          target.pid === process.pid
+      )
+
+      // Remove if already selected
+      if (exists) {
+        return {
+          ...f,
+          targets: current.filter(
+            (target) =>
+              !(
+                target.type === "process" &&
+                target.pid === process.pid
+              )
+          ),
+        }
+      }
+
+      // Add process
       return {
         ...f,
-        targets: current.filter(
-          process => !(process.type === "process" && process.name === processName)
-        )
+        targets: [
+          ...current,
+          {
+            type: "process",
+            name: process.name,
+            pid: process.pid,
+            service: process.service,
+            metrics: [],
+          },
+        ],
       }
-    }
+    })
+  }
 
-    return {
-      ...f,
-      targets: [
-        ...current,
-        {
-          type: "process",
-          name: processName,
-          host: "web-01.prod.local",
-          metrics: []
-        }
-      ]
-    }
-  })
-}
 
   return (
     <Panel className="p-6">
+
+      {/* Header */}
       <div className="mb-6">
         <p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">
           4. Target & Metric
@@ -167,21 +149,26 @@ export default function Step4Process({ form, setForm }) {
         </p>
       </div>
 
+
       <div className="grid grid-cols-3 gap-5">
+
         <div className="col-span-2 space-y-4">
+
+          {/* Process Selection */}
           <div>
+
             <label className="block font-mono text-[11px] text-foreground mb-1.5">
               Target Processes{" "}
               <span className="text-destructive">*</span>
             </label>
 
-            {/* Search + Dropdown */}
+
+            {/* Search */}
             <div
               ref={processBoxRef}
               className="relative"
             >
 
-              {/* Search Input */}
               <input
                 type="text"
                 value={processSearch}
@@ -194,8 +181,10 @@ export default function Step4Process({ form, setForm }) {
                 className="w-full border rounded-md bg-background px-3 py-2 font-mono text-[11px] text-foreground outline-none focus:border-primary/50"
               />
 
-              {/* Process Dropdown */}
+
+              {/* Dropdown */}
               {showProcessList && (
+
                 <div className="absolute z-50 left-0 right-0 mt-1 border rounded-md bg-background shadow-lg max-h-[220px] overflow-y-auto">
 
                   {filteredProcesses.length === 0 ? (
@@ -207,16 +196,20 @@ export default function Step4Process({ form, setForm }) {
                   ) : (
 
                     filteredProcesses.map((process) => {
+
                       const selected = selectedTargets.some(
-                        target => target.type === "process" && target.name === process.name
+                        (target) =>
+                          target.type === "process" &&
+                          target.pid === process.pid
                       )
 
                       return (
+
                         <button
-                          key={process.name}
+                          key={process.pid}
                           type="button"
                           onClick={() => {
-                            handleProcessChange(process.name)
+                            handleProcessChange(process)
                             setProcessSearch("")
                           }}
                           className={`w-full text-left px-3 py-2 font-mono text-[11px] transition flex items-center justify-between ${
@@ -227,6 +220,7 @@ export default function Step4Process({ form, setForm }) {
                         >
 
                           <div>
+
                             <span className="font-bold">
                               {process.name}
                             </span>
@@ -234,7 +228,15 @@ export default function Step4Process({ form, setForm }) {
                             <span className="ml-2 text-muted-foreground">
                               PID {process.pid}
                             </span>
+
+                            {process.recommended && (
+                              <span className="ml-2 text-green-500">
+                                Recommended
+                              </span>
+                            )}
+
                           </div>
+
 
                           {selected && (
                             <span className="text-primary font-bold">
@@ -245,7 +247,6 @@ export default function Step4Process({ form, setForm }) {
                         </button>
                       )
                     })
-
                   )}
 
                 </div>
@@ -253,26 +254,51 @@ export default function Step4Process({ form, setForm }) {
 
             </div>
 
-            {selectedTargets.filter(target => target.type === "process").length > 0 && (
+
+            {/* Selected Process Tags */}
+            {selectedTargets.filter(
+              (target) => target.type === "process"
+            ).length > 0 && (
+
               <div className="flex flex-wrap gap-2 mt-2">
+
                 {selectedTargets
-                  .filter(target => target.type === "process")
+                  .filter(
+                    (target) => target.type === "process"
+                  )
                   .map((target) => (
+
                     <button
-                      key={target.name}
+                      key={target.pid}
                       type="button"
-                      onClick={() => handleProcessChange(target.name)}
+                      onClick={() => {
+                        const process = processes.find(
+                          (p) => p.pid === target.pid
+                        )
+
+                        if (process) {
+                          handleProcessChange(process)
+                        }
+                      }}
                       className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1.5 font-mono text-[10px] text-primary hover:bg-primary/20"
                     >
+
                       <span>
                         {target.name}
                       </span>
 
                       <span className="text-muted-foreground">
+                        PID {target.pid}
+                      </span>
+
+                      <span>
                         ×
                       </span>
+
                     </button>
+
                   ))}
+
               </div>
             )}
 
@@ -282,145 +308,175 @@ export default function Step4Process({ form, setForm }) {
 
           </div>
 
-          {/* Metric */}
-          <div className="col-span-1">
 
-          <div
-            className="rounded-md border border-primary/20 bg-primary/5 p-4 h-full"
-            style={{
-              overflowY: "auto",
-              maxHeight: "385px",
-            }}
-          >
+          {/* Selected Processes Details */}
+          <div>
 
-            {/* Header */}
-            <div className="flex items-center justify-between mb-3">
+            <div
+              className="rounded-md border border-primary/20 bg-primary/5 p-4 h-full"
+              style={{
+                overflowY: "auto",
+                maxHeight: "385px",
+              }}
+            >
 
-              <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-primary">
-                Selected Processes
-              </p>
+              <div className="flex items-center justify-between mb-3">
 
-              <span className="font-mono text-[10px] text-muted-foreground">
-                {selectedProcesses.length} selected
-              </span>
+                <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-primary">
+                  Selected Processes
+                </p>
 
-            </div>
+                <span className="font-mono text-[10px] text-muted-foreground">
+                  {selectedProcesses.length} selected
+                </span>
 
-            {/* Empty State */}
-            {selectedProcesses.length === 0 ? (
+              </div>
 
-              <p className="font-mono text-[11px] text-muted-foreground">
-                No processes selected.
-              </p>
 
-            ) : (
+              {selectedProcesses.length === 0 ? (
 
-              <div className="space-y-3">
+                <p className="font-mono text-[11px] text-muted-foreground">
+                  No processes selected.
+                </p>
 
-                {selectedProcesses.map((process) => (
+              ) : (
 
-                  <div
-                    key={process.name}
-                    className="rounded-md border border-primary/10 bg-background/50 p-3"
-                    style={{ display: "flex", flexDirection: "row" , justifyContent: "space-around"}}
-                  >
+                <div className="space-y-3">
 
-                    {/* Process Header */}
-                    <div className="flex items-center justify-between mb-2" >
+                  {selectedProcesses.map((process) => (
 
-                      <p className="font-mono text-[12px] font-bold text-foreground">
-                        {process.name}
-                      </p>
+                    <div
+                      key={process.pid}
+                      className="rounded-md border border-primary/10 bg-background/50 p-3 flex items-center justify-between gap-5"
+                    >
 
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-y-2 font-mono text-[10px]" style={{ display: "flex", flexDirection: "row" , justifyContent: "space-between" , gap:"30px"}}>
-
+                      {/* Name */}
                       <div>
-                        <p className="text-muted-foreground">
+
+                        <p className="font-mono text-[12px] font-bold text-foreground">
+                          {process.name}
+                        </p>
+
+                      </div>
+
+
+                      {/* PID */}
+                      <div>
+
+                        <p className="text-muted-foreground font-mono text-[10px]">
                           PID
                         </p>
 
-                        <p className="text-foreground">
+                        <p className="text-foreground font-mono text-[10px]">
                           {process.pid}
                         </p>
+
                       </div>
 
+
+                      {/* Status */}
                       <div>
-                        <p className="text-muted-foreground">
+
+                        <p className="text-muted-foreground font-mono text-[10px]">
                           Status
                         </p>
 
-                        <p className="text-foreground">
+                        <p className="text-foreground font-mono text-[10px]">
                           {process.status}
                         </p>
+
                       </div>
 
+
+                      {/* CPU */}
                       <div>
-                        <p className="text-muted-foreground">
+
+                        <p className="text-muted-foreground font-mono text-[10px]">
                           CPU
                         </p>
 
-                        <p className="text-foreground">
-                          {process.cpu}
+                        <p className="text-foreground font-mono text-[10px]">
+                          {process.cpu_percent}%
                         </p>
+
                       </div>
 
+
+                      {/* Memory */}
                       <div>
-                        <p className="text-muted-foreground">
+
+                        <p className="text-muted-foreground font-mono text-[10px]">
                           Memory
                         </p>
 
-                        <p className="text-foreground">
-                          {process.memory}
+                        <p className="text-foreground font-mono text-[10px]">
+                          {Number(process.memory_percent || 0).toFixed(1)}%
                         </p>
+
                       </div>
 
+
+                      {/* Service */}
                       <div>
-                        <p className="text-muted-foreground">
-                          Threads
+
+                        <p className="text-muted-foreground font-mono text-[10px]">
+                          Related Service
                         </p>
 
-                        <p className="text-foreground">
-                          {process.threads}
+                        <p className="text-foreground font-mono text-[10px]">
+                          {process.service || "None"}
                         </p>
+
                       </div>
 
-                    </div>
-                    <button
+
+                      {/* Remove */}
+                      <button
                         type="button"
-                        onClick={() => handleProcessChange(process.name)}
+                        onClick={() =>
+                          handleProcessChange(process)
+                        }
                         className="text-[10px] text-destructive hover:underline"
                       >
                         Remove
                       </button>
-                  </div>
 
-                ))}
+                    </div>
 
-              </div>
+                  ))}
 
-            )}
+                </div>
+              )}
 
-          </div>
-
-        </div>
-      </div>
-          <div style={{height:"100%"}}>
-          <div style={{height:"100%"}}>
-            <div className="col-span-1" style={{height:"100%"}}>
-          <div className="rounded-md border border-primary/20 bg-primary/5 p-4 h-full" style={{height:"100%"}}>
-            <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-primary mb-2">About Process Policies and user rules</p>
-            <p className="font-mono text-[11px] text-muted-foreground leading-relaxed">
-              Analyze and Detect abnormal behavior or rule violations on selected processes to Make a decision based on configured policies, then automatically execute appropriate recovery actions and verify whether the system has successfully returned to a healthy state.
-            </p>
-            <p className="mt-3 font-mono text-[10px] text-muted-foreground leading-relaxed">How values are aggregated for evaluation.</p>
-          </div>
             </div>
-        </div>
+
+          </div>
 
         </div>
+
+
+        {/* Information */}
+        <div className="col-span-1">
+
+          <div className="rounded-md border border-primary/20 bg-primary/5 p-4 h-full">
+
+            <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-primary mb-2">
+              About Process Policies and User Rules
+            </p>
+
+            <p className="font-mono text-[11px] text-muted-foreground leading-relaxed">
+              Analyze and detect abnormal behavior or rule violations
+              on selected processes, make decisions based on configured
+              policies, execute appropriate recovery actions, and verify
+              whether the system has returned to a healthy state.
+            </p>
+
+          </div>
+
+        </div>
+
       </div>
+
     </Panel>
   )
 }

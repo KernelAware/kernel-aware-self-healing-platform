@@ -1,5 +1,5 @@
-from prometheus_client import Gauge, Counter, generate_latest
-from collectors.cpu import collect
+from prometheus_client import Gauge, generate_latest
+from collectors.system_metrics.cpu import collect
 
 # ─── CPU Usage ─────────────────────────────────────────────
 cpu_usage_percent = Gauge(

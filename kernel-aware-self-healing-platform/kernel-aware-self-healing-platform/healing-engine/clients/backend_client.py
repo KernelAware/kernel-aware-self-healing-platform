@@ -1,5 +1,5 @@
 import requests
-from config import BACKEND_URL
+BACKEND_URL = "http://localhost:8000"
 
 def notify_backend(result: dict):
     response = requests.post(

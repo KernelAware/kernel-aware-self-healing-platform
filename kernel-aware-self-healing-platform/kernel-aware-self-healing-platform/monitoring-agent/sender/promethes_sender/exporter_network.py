@@ -7,7 +7,7 @@ from prometheus_client import Gauge
 from prometheus_client import Counter
 from prometheus_client import generate_latest
 
-from collectors.network import get_network_stats_snapshot
+from collectors.system_metrics.network import get_network_stats_snapshot
 
 # Network IO system_metrics
 network_byte_sent = Counter(

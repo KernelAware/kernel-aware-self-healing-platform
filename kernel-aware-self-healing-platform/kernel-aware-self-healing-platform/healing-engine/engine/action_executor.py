@@ -1,29 +1,30 @@
-from executors.service_executor import execute_service_action
-from executors.process_executor import execute_process_action
-from executors.command_executor import execute_command_action
-from executors.automation_executor import execute_automation_action
-from executors.notification_executor import execute_notification_action
+from engine.executors.service_executor import execute_service_action
+from engine.executors.process_executor import execute_process_action
+from engine.executors.command_executor import execute_command_action
+from engine.executors.automation_executor import execute_automation_action
+from engine.executors.notification_executor import execute_notification_action
 
 async def execute_action(action_plan: dict):
-    action_type = action_plan["type"]
+    action = action_plan["action"]
+    print(action)
 
-    if action_type in {"restart-service", "start-service", "stop-service"}:
+    if action in {"restart_service", "start_service", "stop_service"}:
         return await execute_service_action(action_plan)
 
-    if action_type == "kill-process":
+    if action == "kill-process":
         return await execute_process_action(action_plan)
 
-    if action_type == "run-command":
+    if action == "run-command":
         return await execute_command_action(action_plan)
 
-    if action_type == "run-automation":
+    if action == "run-automation":
         return await execute_automation_action(action_plan)
 
-    if action_type == "send-notification":
+    if action == "send-notification":
         return await execute_notification_action(action_plan)
 
     return {
         "success": False,
         "status": "FAILED",
-        "reason": f"Unsupported action: {action_type}",
+        "reason": f"Unsupported action: {action}",
     }

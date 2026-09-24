@@ -4,5 +4,8 @@ from engine.healing_engine import heal
 app = FastAPI(title="Healing Engine", version="1.0.0")
 
 @app.get("/heal")
-def heal_action(action_plan: dict):
-    return heal(action_plan)
+async def heal_action(action_plan: dict):
+
+    result = await heal(action_plan)
+    return result
+
