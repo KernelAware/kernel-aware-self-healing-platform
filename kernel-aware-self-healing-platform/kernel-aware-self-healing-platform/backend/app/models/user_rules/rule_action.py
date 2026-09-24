@@ -27,7 +27,6 @@ class RuleAction(Base):
     rule_id: Mapped[int] = mapped_column(
         BigInteger,
         ForeignKey("rules.id"),
-        ForeignKey("rules.id"),
         nullable=False
     )
 

@@ -1,7 +1,6 @@
-from fastapi import APIRouter , HTTPException
+from fastapi import APIRouter, HTTPException
 from typing import Any
-from services.user_rule_service import user_rules_service
-from services.user_rule_service import get_user_rules
+from services.user_rule_service import user_rules_service, get_user_rules
 
 
 router = APIRouter()
@@ -12,13 +11,16 @@ async def get_metrics():
 
 @router.post("/user_rules")
 async def put_incidents(data: dict[str, Any]):
-    return user_rules_service(data)
+    try:
+        return user_rules_service(data)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/get_user_rules")
-async def get_user_rules_api(system_id: int):
-    return get_user_rules(system_id = system_id)
+async def get_user_rules_api(system_id: int | None = None):
+    return get_user_rules(system_id=system_id)
 
 @router.get("/get_user_rule")
 async def get_rule_by_id_api(rule_id: int):
-    rule = get_user_rules(rule_id =rule_id)
+    rule = get_user_rules(rule_id=rule_id)
     return rule

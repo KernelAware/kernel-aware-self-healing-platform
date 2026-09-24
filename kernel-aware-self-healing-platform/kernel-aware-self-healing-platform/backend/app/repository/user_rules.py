@@ -5,6 +5,33 @@ from models.user_rules.rule_notification import RuleNotification
 from models.user_rules.rule_metric import RuleMetric
 from models.user_rules.rule import Rule
 from models.user_rules.rule_targets import RuleTarget
+from models.user_rules.systems import System
+
+
+def ensure_system_exists(db, system_id: int | None = 1) -> int:
+    if system_id is not None:
+        sys_obj = db.query(System).filter(System.id == system_id).first()
+        if sys_obj:
+            return sys_obj.id
+
+    first_sys = db.query(System).first()
+    if first_sys:
+        return first_sys.id
+
+    new_system = System(
+        id=1,
+        hostname="localhost",
+        ip_address="127.0.0.1",
+        os_name="Linux",
+        os_version="Ubuntu",
+        architecture="x86_64",
+        environment="Production",
+        status="active"
+    )
+    db.add(new_system)
+    db.commit()
+    db.refresh(new_system)
+    return new_system.id
 
 
 def save_rules(rule_details):
@@ -13,27 +40,28 @@ def save_rules(rule_details):
 
     try:
         rule = rule_details["rule"]
+        rule.system_id = ensure_system_exists(db, getattr(rule, "system_id", 1) or 1)
 
         db.add(rule)
         db.flush()
 
-        for target in rule_details["targets"]:
+        for target in rule_details.get("targets", []):
             target.rule_id = rule.id
             db.add(target)
 
-        for metric in rule_details["metrics"]:
+        for metric in rule_details.get("metrics", []):
             metric.rule_id = rule.id
             db.add(metric)
 
-        for action in rule_details["actions"]:
+        for action in rule_details.get("actions", []):
             action.rule_id = rule.id
             db.add(action)
 
-        for notification in rule_details["notifications"]:
+        for notification in rule_details.get("notifications", []):
             notification.rule_id = rule.id
             db.add(notification)
 
-        for recovery in rule_details["recovery"]:
+        for recovery in rule_details.get("recovery", []):
             recovery.rule_id = rule.id
             db.add(recovery)
 
@@ -127,5 +155,13 @@ def get_rule_details(rule_id: int):
 
         return rule_details
 
+    finally:
+        db.close()
+
+
+def get_all_rules():
+    db = SessionLocal()
+    try:
+        return db.query(Rule).all()
     finally:
         db.close()
