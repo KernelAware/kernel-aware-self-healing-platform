@@ -1,4 +1,4 @@
-from ansible.ansible_runner import run_playbook
+from ansible_runner import run_playbook
 
 async def execute_process_action(action_plan: dict):
     pid = action_plan.get("pid")
@@ -6,7 +6,7 @@ async def execute_process_action(action_plan: dict):
         return {"success": False, "status": "FAILED", "reason": "PID is required"}
 
     return run_playbook(
-        "ansible/playbooks/kill_process.yml",
+        "ansible_playbooks/playbooks/kill_process.yml",
         {
             "target_host": f"system_{action_plan['system_id']}",
             "process_pid": int(pid),

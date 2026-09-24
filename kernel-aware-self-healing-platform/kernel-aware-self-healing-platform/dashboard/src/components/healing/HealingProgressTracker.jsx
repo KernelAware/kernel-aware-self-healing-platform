@@ -12,7 +12,7 @@ const steps = [
 const logLines = [
   { time: '14:01:02', text: "Anomaly detected in Kernel Namespace 'net-stack-01'. High TCP Retransmission." },
   { time: '14:01:15', text: "Policy matched: 'AUTONOMOUS_NET_HEAL'. Selected Action: 'RESET_INTERFACE_TX_QUEUE'." },
-  { time: '14:01:18', text: "Executing ansible playbook: 'system-network-reset.yml' on host node-v42..." },
+  { time: '14:01:18', text: "Executing ansible_playbooks playbook: 'system-network-reset.yml' on host node-v42..." },
   { time: '14:02:11', text: 'Waiting for kernel telemetry feedback loop...' },
 ]
 
