@@ -3,7 +3,7 @@
 from prometheus_client import Gauge
 from prometheus_client import generate_latest
 
-from collectors.disk import get_disk_stats_snapshot
+from collectors.system_metrics.disk import get_disk_stats_snapshot
 
 
 # ============================================================

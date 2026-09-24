@@ -1,16 +1,19 @@
-from sender.exporter_cpu import update_cpu_metrics
+from sender.promethes_sender.exporter_cpu import update_cpu_metrics
 from fastapi import FastAPI
 from fastapi.responses import Response
-from sender.exporter_disk import update_disk_metrics
-from sender.exporter_logs import update_logs_metrics
+from sender.promethes_sender.exporter_disk import update_disk_metrics
+from sender.promethes_sender.exporter_logs import update_logs_metrics
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
-from collectors.process import initialize_cpu_measurement
+from collectors.system_metrics.process import initialize_cpu_measurement
 
-from sender.exporter_network import update_network_metrics
-from sender.exporter_process import update_process_metrics
-from sender.exporter_service import update_service_metrics
-from sender.exporter_memory import update_memory_metrics
-from sender.exporter_health import update_health_metrics
+from sender.promethes_sender.exporter_network import update_network_metrics
+from sender.promethes_sender.exporter_process import update_process_metrics
+from sender.promethes_sender.exporter_service import update_service_metrics
+from sender.promethes_sender.exporter_memory import update_memory_metrics
+from sender.promethes_sender.exporter_health import update_health_metrics
+
+from collectors.process_details.process_collector import get_processes
+from sender.backend_sender.send_backend import send_process_inventory
 
 import logging
 import threading
@@ -48,11 +51,32 @@ def collect_metrics():
         update_health_metrics()
 
 
+def collect_process_inventory():
+
+    while True:
+        try:
+            processes = get_processes()
+
+            send_process_inventory(
+                system_id=1,
+                processes=processes
+            )
+
+        except Exception as e:
+            logger.error(f"Process inventory error: {e}")
+
+        time.sleep(30)
+
+
 threading.Thread(
     target=collect_metrics,
     daemon=True
 ).start()
 
+threading.Thread(
+    target=collect_process_inventory,
+    daemon=True
+).start()
 
 @app.get("/system_metrics")
 def metrics():

@@ -42,6 +42,24 @@ export async function queryPrometheus(query) {
   return json.data.result
 }
 
+export async function getProcess(system_id) {
+  const response = await fetch(`http://localhost:8000/process_inventory/${system_id}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    }
+  });
+
+  const json = await response.json();
+
+  if (!response.ok) {
+    throw new Error(json.detail || "Failed to take process details");
+  }
+
+  return json;
+}
+
+
 export async function userRules(form) {
   const response = await fetch("http://localhost:8000/user_rules", {
     method: "POST",

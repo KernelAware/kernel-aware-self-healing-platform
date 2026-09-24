@@ -1,5 +1,5 @@
 from prometheus_client import Gauge, generate_latest
-from collectors.process import collect_processes, get_process_summary
+from collectors.system_metrics.process import collect_processes, get_process_summary
 
 
 process_total = Gauge("process_total", "Total processes")
