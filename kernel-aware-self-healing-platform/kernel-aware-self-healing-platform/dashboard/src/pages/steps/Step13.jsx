@@ -803,7 +803,26 @@ export default function Step13({ form, onCancel }) {
           type="button"
           onClick={async () => {
             try {
-              const data = await userRules(form);
+              const payload = form.monitorSource === "cpu"
+                ? {
+                    ...form,
+                    targets: [{
+                      type: form.targetType || "host",
+                      name: form.host || "",
+                      metrics: [{
+                        name: form.metric,
+                        conditions: [{
+                          metric: form.metric,
+                          operator: form.condOperator,
+                          threshold: form.condThreshold,
+                          duration: form.condDuration,
+                          durationUnit: form.condDurationUnit || "Minutes",
+                        }],
+                      }],
+                    }],
+                  }
+                : form;
+              const data = await userRules(payload);
               setCreated(true)
             } catch (error) {
               console.error(error);
