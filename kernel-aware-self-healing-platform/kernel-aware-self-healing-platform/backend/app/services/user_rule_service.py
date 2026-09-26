@@ -35,11 +35,18 @@ def user_rules_service(userRules):
         monitor_type=userRules["monitorSource"]
     )
 
+    is_cpu_rule = userRules["monitorSource"].lower() == "cpu"
+
     for target in userRules["targets"]:
         rule_target = RuleTarget(
             rule_id=rule.id,
             target_type=target["type"],
-            target=target["name"]
+            target=(target["metrics"][0]["name"] if is_cpu_rule else target["name"]),
+            host=(
+                (target.get("host") or target["name"])
+                if is_cpu_rule
+                else target.get("host")
+            )
         )
         targets.append(rule_target)
 
@@ -234,7 +241,8 @@ def get_user_rules(system_id: int | None = None, rule_id: int | None = None):
                 targets=[
                     RuleTargetResponse(
                         target_type=x.target_type,
-                        target=x.target
+                        target=x.target,
+                        host=x.host
                     )
                     for x in data["targets"]
                 ],
