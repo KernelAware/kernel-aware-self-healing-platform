@@ -52,26 +52,6 @@ def create_action_plan(decision, incident, rules, policy):
 
 
 def create_alert(decision, incident, rules, policy):
-    print("incident")
-    print(incident)
-    print("")
-    print("")
-    print("decision")
-    print(decision)
-    print("")
-    print("")
-    print("rules")
-    print(rules)
-    print("")
-    print("")
-    print("incident")
-    print(incident)
-    print("")
-    print("")
-    print("policy")
-    print(policy)
-    print("")
-    print("")
 
     incident_id = f"INC-{uuid.uuid4().hex[:8].upper()}"
     system = incident.get("system_id", "Unknown")

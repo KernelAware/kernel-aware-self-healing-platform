@@ -1,5 +1,7 @@
 def check_threshold(value, operator, threshold):
-
+    print("operator: ", operator)
+    print("threshold: ", threshold)
+    print("value: ", value)
     if operator == "Greater Than (>)":
         return value > threshold
 

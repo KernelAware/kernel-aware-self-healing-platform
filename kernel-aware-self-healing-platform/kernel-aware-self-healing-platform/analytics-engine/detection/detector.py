@@ -17,7 +17,6 @@ strategies = {
 def detect(rule):
     monitor_type = rule["rule"]["monitor_type"]
     strategy = strategies.get(monitor_type)
-
     if strategy is None:
         raise ValueError(
             f"Unsupported monitor type: {monitor_type}"

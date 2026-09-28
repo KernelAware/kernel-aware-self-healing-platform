@@ -61,6 +61,7 @@ export async function getProcess(system_id) {
 
 
 export async function userRules(form) {
+  console.log(form)
   const response = await fetch("http://localhost:8000/user_rules", {
     method: "POST",
     headers: {

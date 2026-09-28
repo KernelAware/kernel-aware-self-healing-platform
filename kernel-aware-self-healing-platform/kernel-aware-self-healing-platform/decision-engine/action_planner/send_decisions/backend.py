@@ -3,6 +3,7 @@ import requests
 BACKEND_URL =  "http://localhost:8000"
 
 def notify_backend(incident_detail, alert):
+    print(incident_detail)
     response = requests.post(
         f"{BACKEND_URL}/alert_incidents",
         json={

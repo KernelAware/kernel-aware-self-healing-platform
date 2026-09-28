@@ -10,6 +10,7 @@ from incident_management.manager import manage_incidents
 class ProcessDetector(DetectionStrategy):
 
     def detect(self, rule):
+
         if rule is None:
             return None
 
@@ -18,12 +19,11 @@ class ProcessDetector(DetectionStrategy):
 
                 results = get_process_metric(
                     system_id=rule["rule"]["system_id"],
-                    process_name=rule_target["target"],
+                    process_details=rule_target["target"],
                     metric=metric
                 )
-
                 for result in results:
-                    sleep(5)
+
 
                     pid = result["metric"]["pid"]
                     current_value = float(
@@ -55,7 +55,7 @@ class ProcessDetector(DetectionStrategy):
                         "incident_severity": rule["rule"]["severity"],
                         "incident_type": rule["rule"]["monitor_type"],
                         "incident_priority": rule["rule"]["priority"],
-                        "target": rule_target["target"],
+                        "target": rule_target["target"].split("@service=")[0],
                         "pid": pid,
                         "violated_metric": metric,
                         "value": current_value,

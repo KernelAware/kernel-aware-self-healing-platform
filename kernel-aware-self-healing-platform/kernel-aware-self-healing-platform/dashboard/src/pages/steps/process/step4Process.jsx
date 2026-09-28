@@ -124,7 +124,7 @@ export default function Step4Process({ form, setForm }) {
           ...current,
           {
             type: "process",
-            name: process.name,
+            name: `${process.name}@service=${process.service}@pid=${process.pid}`,
             pid: process.pid,
             service: process.service,
             metrics: [],

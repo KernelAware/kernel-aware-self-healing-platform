@@ -16,7 +16,8 @@ async def put_incidents(data: dict[str, Any]):
 
 @router.get("/get_user_rules")
 async def get_user_rules_api(system_id: int):
-    return get_user_rules(system_id = system_id)
+    rules = get_user_rules(system_id=system_id)
+    return rules
 
 @router.get("/get_user_rule")
 async def get_rule_by_id_api(rule_id: int):
