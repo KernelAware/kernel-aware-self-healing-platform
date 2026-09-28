@@ -81,7 +81,7 @@ export default function Step4Memory({ form, setForm }) {
 
           {/* Host */}
           <div>
-            <label className="block font-mono text-[11px] text-foreground mb-1.5">Host <span className="text-destructive">*</span></label>
+            <label className="block font-mono text-[11px] text-foreground mb-1.5">Target <span className="text-destructive">*</span></label>
             <SelectBox
               value={form.host || ""}
               options={["web-01.prod.local", "web-02.prod.local", "app-01.prod.local", "db-01.prod.local"]}
@@ -93,8 +93,8 @@ export default function Step4Memory({ form, setForm }) {
           <div>
             <label className="block font-mono text-[11px] text-foreground mb-1.5">Aggregation <span className="text-destructive">*</span></label>
             <SelectBox
-              value={form.aggregation || "Average (Avg)"}
-              options={["Average (Avg)", "Maximum (Max)", "Minimum (Min)"]}
+              value={form.aggregation || "Latest"}
+              options={["Latest","Average (Avg)", "Maximum (Max)", "Minimum (Min)"]}
               onChange={v => setForm(f => ({ ...f, aggregation: v }))}
             />
             <p className="mt-1 font-mono text-[10px] text-muted-foreground">How values are aggregated for evaluation.</p>

@@ -56,7 +56,7 @@ threading.Thread(
 ).start()
 
 
-@app.get("/metrics") #weda natnm /metrics -> system_metrics walta maru karpn
+@app.get("/system_metrics")
 def metrics():
     return Response(
         content=generate_latest(),

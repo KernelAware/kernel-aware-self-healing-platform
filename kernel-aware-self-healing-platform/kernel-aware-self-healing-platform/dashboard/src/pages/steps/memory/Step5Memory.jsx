@@ -33,7 +33,6 @@ export default function Step5Memory({ form, setForm }) {
     if (conditions[0]?.id === id) {
       if (field === "threshold") setForm(f => ({ ...f, condThreshold: value }))
       if (field === "operator")  setForm(f => ({ ...f, condOperator: value }))
-      if (field === "metric")    setForm(f => ({ ...f, memoryMetric: value, condMetric: value }))
     }
   }
 
@@ -60,11 +59,11 @@ export default function Step5Memory({ form, setForm }) {
             const unit = unitFor(cond.metric)
             return (
               <div key={cond.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-2 items-center">
-                <SelectBox
-                  value={cond.metric}
-                  options={availableMetrics}
-                  onChange={v => updateCondition(cond.id, "metric", v)}
-                />
+                <div className="flex items-center h-full rounded-md border border-border bg-muted/40 px-3 py-2.5">
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {cond.metric}
+                  </span>
+                </div>
                 <SelectBox
                   value={cond.operator}
                   options={["Greater Than (>)", "Less Than (<)", "Equals (=)"]}
@@ -80,23 +79,23 @@ export default function Step5Memory({ form, setForm }) {
                   />
                   <span className="font-mono text-[10px] text-muted-foreground shrink-0">{unit}</span>
                 </div>
-                <button
-                  onClick={() => removeCondition(cond.id)}
-                  disabled={conditions.length === 1}
-                  className="flex size-8 items-center justify-center rounded-md border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  <Trash2 className="size-3.5" />
-                </button>
+                {/*<button*/}
+                {/*  onClick={() => removeCondition(cond.id)}*/}
+                {/*  disabled={conditions.length === 1}*/}
+                {/*  className="flex size-8 items-center justify-center rounded-md border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors cursor-pointer shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"*/}
+                {/*>*/}
+                {/*  <Trash2 className="size-3.5" />*/}
+                {/*</button>*/}
               </div>
             )
           })}
 
-          <button
-            onClick={addCondition}
-            className="flex items-center gap-1.5 rounded border border-border bg-card px-3 py-1.5 font-mono text-[11px] text-foreground hover:bg-secondary transition-colors cursor-pointer"
-          >
-            <Plus className="size-3" /> Add Condition
-          </button>
+          {/*<button*/}
+          {/*  onClick={addCondition}*/}
+          {/*  className="flex items-center gap-1.5 rounded border border-border bg-card px-3 py-1.5 font-mono text-[11px] text-foreground hover:bg-secondary transition-colors cursor-pointer"*/}
+          {/*>*/}
+          {/*  <Plus className="size-3" /> Add Condition*/}
+          {/*</button>*/}
         </div>
 
         {/* Duration */}
@@ -120,25 +119,25 @@ export default function Step5Memory({ form, setForm }) {
           </div>
         </div>
 
-        {/* Occurrences */}
-        <div>
-          <label className="block font-mono text-[11px] text-foreground mb-1.5">Required Occurrences (within the window)</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              value={form.condOccurrences}
-              onChange={e => setForm(f => ({ ...f, condOccurrences: e.target.value }))}
-              className="w-16 rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground text-center focus:border-ring focus:outline-none"
-            />
-            <span className="font-mono text-xs text-muted-foreground">out of</span>
-            <input
-              type="number"
-              value={form.condOutOf}
-              onChange={e => setForm(f => ({ ...f, condOutOf: e.target.value }))}
-              className="w-16 rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground text-center focus:border-ring focus:outline-none"
-            />
-          </div>
-        </div>
+        {/*/!* Occurrences *!/*/}
+        {/*<div>*/}
+        {/*  <label className="block font-mono text-[11px] text-foreground mb-1.5">Required Occurrences (within the window)</label>*/}
+        {/*  <div className="flex items-center gap-2">*/}
+        {/*    <input*/}
+        {/*      type="number"*/}
+        {/*      value={form.condOccurrences}*/}
+        {/*      onChange={e => setForm(f => ({ ...f, condOccurrences: e.target.value }))}*/}
+        {/*      className="w-16 rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground text-center focus:border-ring focus:outline-none"*/}
+        {/*    />*/}
+        {/*    <span className="font-mono text-xs text-muted-foreground">out of</span>*/}
+        {/*    <input*/}
+        {/*      type="number"*/}
+        {/*      value={form.condOutOf}*/}
+        {/*      onChange={e => setForm(f => ({ ...f, condOutOf: e.target.value }))}*/}
+        {/*      className="w-16 rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground text-center focus:border-ring focus:outline-none"*/}
+        {/*    />*/}
+        {/*  </div>*/}
+        {/*</div>*/}
 
         {/* Preview */}
         <div className="rounded-md border border-primary/20 bg-primary/5 p-3">
