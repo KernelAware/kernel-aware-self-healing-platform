@@ -20,6 +20,7 @@ class RuleResponse(BaseModel):
 class RuleTargetResponse(BaseModel):
     target_type: str
     target: str
+    host: str | None = None
 
 
 class RuleMetricResponse(BaseModel):
