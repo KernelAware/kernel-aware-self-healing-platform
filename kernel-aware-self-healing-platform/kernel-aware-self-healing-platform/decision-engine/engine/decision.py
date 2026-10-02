@@ -1,10 +1,12 @@
 from engine.decision_strategies.process_decisions import ProcessDecision
+from engine.decision_strategies.cpu_decisions import CpuDecision
 from engine.decision_strategies.helth_decisions import HealthDecision
 from engine.decision_strategies.network_decisions import NetworkDecision
 
 
 STRATEGIES = {
     "process": ProcessDecision(),
+    "cpu": CpuDecision(),
     "health": HealthDecision(),
     "network": NetworkDecision()
 }

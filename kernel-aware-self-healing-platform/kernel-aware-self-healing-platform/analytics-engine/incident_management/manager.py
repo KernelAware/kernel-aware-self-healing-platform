@@ -11,8 +11,10 @@ def manage_incidents(incident):
 
     system_id = incident["system_id"]
     metric_id = incident["violated_metric"]["id"]
-    pid = incident["pid"]
-    target_name = incident["target"]
+    target_name = incident.get("target", "unknown")
+    pid = incident.get("pid")
+    if pid is None:
+        pid = "host"
 
     key = f"incident:{system_id}:{metric_id}:{target_name}:{pid}"
 
