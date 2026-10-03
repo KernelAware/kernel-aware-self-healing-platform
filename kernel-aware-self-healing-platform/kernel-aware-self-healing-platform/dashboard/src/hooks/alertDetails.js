@@ -362,8 +362,52 @@ export function useIncidentDetails() {
       return
     }
 
+    const metric = socket_incidents.trigger?.metric
+    const isCpuIncident = socket_incidents.incident_type === 'cpu'
+      || metric?.startsWith('cpu_')
+
+    if (!isCpuIncident) {
+      setIncidents((prev) => [socket_incidents, ...prev])
+      return
+    }
+
+    const formatPercent = (value) => {
+      if (value == null || value === '') {
+        return value
+      }
+
+      const text = String(value)
+      return text.endsWith('%') ? text : `${text}%`
+    }
+
+    const duration = socket_incidents.trigger?.duration
+    const minutesMatch = typeof duration === 'string'
+      ? duration.match(/^(\d+(?:\.\d+)?) minutes?$/)
+      : null
+    const minutes = minutesMatch ? Number(minutesMatch[1]) : null
+    const formattedDuration = minutesMatch && Number.isInteger(minutes)
+      ? `${minutes} minute${minutes === 1 ? '' : 's'}`
+      : duration
+
+    const cpuIncident = {
+      ...socket_incidents,
+      incident_type: 'cpu',
+      process: 'Host CPU',
+      pid: null,
+      trigger: {
+        ...socket_incidents.trigger,
+        currentValue: metric?.endsWith('_percent')
+          ? formatPercent(socket_incidents.trigger.currentValue)
+          : socket_incidents.trigger.currentValue,
+        threshold: metric?.endsWith('_percent')
+          ? formatPercent(socket_incidents.trigger.threshold)
+          : socket_incidents.trigger.threshold,
+        duration: formattedDuration,
+      },
+    }
+
     setIncidents((prev) => [
-      socket_incidents,
+      cpuIncident,
       ...prev
     ])
 
