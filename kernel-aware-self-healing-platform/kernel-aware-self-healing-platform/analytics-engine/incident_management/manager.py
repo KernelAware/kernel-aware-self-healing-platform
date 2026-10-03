@@ -40,3 +40,19 @@ def send_to_decision_engine(incident: dict):
     response.raise_for_status()
 
     return response.json()
+
+def recover_incident(incident):
+    system_id = incident["system_id"]
+    metric_id = incident["violated_metric"]["id"]
+    target_name = incident.get("target", "unknown")
+    pid = incident.get("pid")
+    if pid is None:
+        pid = "host"
+
+    key = f"incident:{system_id}:{metric_id}:{target_name}:{pid}"
+    existing_incident = redis_client.get(key)
+    
+    if existing_incident is not None:
+        redis_client.delete(key)
+        incident["status"] = "RECOVERED"
+        send_to_decision_engine(incident)

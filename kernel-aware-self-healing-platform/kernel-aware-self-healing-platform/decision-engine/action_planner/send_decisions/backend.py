@@ -17,4 +17,11 @@ def notify_backend(incident_detail, alert):
     return response.json()
 
 def save_incident(decision):
-    pass
+    response = requests.post(
+        f"{BACKEND_URL}/incidents",
+        json=decision,
+        timeout=10,
+    )
+    if response.status_code < 400:
+        return response.json()
+    return None

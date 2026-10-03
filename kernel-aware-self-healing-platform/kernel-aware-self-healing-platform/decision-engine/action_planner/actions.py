@@ -23,7 +23,7 @@ def create_action_plan(decision, incident, rules, policy):
         )
 
         if policy["reason"] != "Rule is disabled":
-            dash_board_alert = {}
+            dash_board_alert = incident_detail
 
             notify_backend(incident_detail,alert)
             save_incident(dash_board_alert)

@@ -1,8 +1,8 @@
 from detection.strategies.base_detector import DetectionStrategy
 from detection.threshold import check_threshold
-from detection.duration import check_duration
+from detection.duration import check_duration, clear_duration
 from load_data.system_metrics.metrics_loader import get_cpu_metric
-from incident_management.manager import manage_incidents
+from incident_management.manager import manage_incidents, recover_incident
 
 
 class CpuDetector(DetectionStrategy):
@@ -26,8 +26,6 @@ class CpuDetector(DetectionStrategy):
                     operator=metric["operator"],
                     threshold=metric["threshold"],
                 )
-                if not threshold_match:
-                    continue
 
                 labels = result.get("metric", {})
                 target = (
@@ -40,14 +38,6 @@ class CpuDetector(DetectionStrategy):
                     or rule.get("target")
                     or "host"
                 )
-                duration_match = check_duration(
-                    system_id=system_id,
-                    target=target,
-                    metric_name=metric["metric"],
-                    duration_seconds=metric["duration_seconds"],
-                )
-                if not duration_match:
-                    continue
 
                 incident = {
                     "rule_id": rule["rule"]["id"],
@@ -60,6 +50,25 @@ class CpuDetector(DetectionStrategy):
                     "violated_metric": metric,
                     "value": current_value,
                 }
+
+                if not threshold_match:
+                    clear_duration(
+                        system_id=system_id,
+                        target=target,
+                        metric_name=metric["metric"],
+                    )
+                    recover_incident(incident)
+                    continue
+
+                duration_match = check_duration(
+                    system_id=system_id,
+                    target=target,
+                    metric_name=metric["metric"],
+                    duration_seconds=metric["duration_seconds"],
+                )
+                if not duration_match:
+                    continue
+
                 manage_incidents(incident)
 
         return None
