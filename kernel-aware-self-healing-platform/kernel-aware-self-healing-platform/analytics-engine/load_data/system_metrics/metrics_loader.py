@@ -1,5 +1,4 @@
 import requests
-from sqlalchemy.orm import query
 
 METRIC_MAP = {
     "CPU Usage (%)": "process_cpu_percent",
@@ -95,23 +94,34 @@ def get_process_metric(system_id, process_name, metric):
 
 
 def get_disk_metric(target, metric):
+    query = build_disk_query(target, metric)
+    return query_prometheus(query)
+
+
+def build_disk_query(target, metric):
     prometheus_metric, labels = DISK_METRIC_MAP[metric["metric"]]
-    if target.get("device") and metric["metric"] in DISK_PER_DEVICE_MAP:
+    if target.get("disk") and metric["metric"] in DISK_PER_DEVICE_MAP:
         prometheus_metric = DISK_PER_DEVICE_MAP[metric["metric"]]
         labels = ("disk",)
+
     label_values = {
+        "system_id": target.get("system_id"),
         "device": target.get("device"),
         "mountpoint": target.get("mountpoint"),
         "filesystem": target.get("filesystem"),
-        "disk": target.get("device") or target.get("disk"),
+        "disk": target.get("disk"),
     }
+
+    filters = []
+    if label_values["system_id"]:
+        filters.append(f'system_id="{label_values["system_id"]}"')
     filters = [
         f'{label}="{label_values[label]}"'
         for label in labels
         if label_values.get(label)
-    ]
+    ] + filters
     selector = "{" + ",".join(filters) + "}" if filters else ""
-    return query_prometheus(f"{prometheus_metric}{selector}")
+    return f"{prometheus_metric}{selector}"
 
 
 
