@@ -1,359 +1,691 @@
-.
-├── analytics-engine
-│   ├── analyzer
-│   │   └── server_analyzer.py
-│   ├── detection
-│   │   ├── detector.py
-│   │   ├── duration.py
-│   │   ├── strategies
-│   │   │   ├── base_detector.py
-│   │   │   ├── cpu_detector.py
-│   │   │   ├── disk_detector.py
-│   │   │   ├── memeory_detecter.py
-│   │   │   ├── network_detector.py
-│   │   │   └── process_detector.py
-│   │   └── threshold.py
-│   ├── incident_management
-│   │   └── manager.py
-│   ├── load_data
-│   │   ├── database
-│   │   │   └── db_connection
-│   │   │       └── connection.py
-│   │   ├── redis_connection
-│   │   │   └── redis_connection.py
-│   │   ├── system_metrics
-│   │   │   └── metrics_loader.py
-│   │   ├── systems_details
-│   │   │   └── system_repository.py
-│   │   └── user_rules
-│   │       └── rule_loader.py
-│   └── main.py
-├── backend
-│   ├── app
-│   │   ├── config
-│   │   │   └── settings.py
-│   │   ├── database
-│   │   │   └── connection.py
-│   │   ├── main.py
-│   │   ├── models
-│   │   │   ├── incidents.py
-│   │   │   └── user_rules
-│   │   │       ├── rule_action.py
-│   │   │       ├── rule_metric.py
-│   │   │       ├── rule_notification.py
-│   │   │       ├── rule.py
-│   │   │       ├── rule_recovery.py
-│   │   │       └── rule_targets.py
-│   │   ├── repository
-│   │   │   └── user_rules.py
-│   │   ├── routers
-│   │   │   ├── alerts.py
-│   │   │   ├── health.py
-│   │   │   ├── incidents.py
-│   │   │   ├── recovery.py
-│   │   │   ├── user_rules.py
-│   │   │   ├── users.py
-│   │   │   └── websocket.py
-│   │   ├── schemas
-│   │   │   └── user_rules.py
-│   │   ├── services
-│   │   │   └── user_rule_service.py
-│   │   └── utils
-│   ├── Dockerfile
-│   └── requirements.txt
-├── dashboard
-│   ├── dist
-│   │   ├── assets
-│   │   │   ├── index-1ZEymK3w.css
-│   │   │   └── index-BtbeJu8j.js
-│   │   ├── icon.svg
-│   │   └── index.html
-│   ├── Dockerfile
-│   ├── index.html
-│   ├── nginx.conf
-│   ├── package.json
-│   ├── package-lock.json
-│   ├── public
-│   │   └── icon.svg
-│   ├── src
-│   │   ├── App.jsx
-│   │   ├── components
-│   │   │   ├── alerts
-│   │   │   │   ├── ActiveAlertsList.jsx
-│   │   │   │   ├── IncidentDetailView.jsx
-│   │   │   │   └── IncidentsTable.jsx
-│   │   │   ├── cpu
-│   │   │   │   ├── ContextSwitches.jsx
-│   │   │   │   ├── CoreUtilization16Core.jsx
-│   │   │   │   ├── CpuHistoryGraph.jsx
-│   │   │   │   ├── CpuUsageGauge.jsx
-│   │   │   │   ├── CurrentFrequency.jsx
-│   │   │   │   ├── HardwareInterrupts.jsx
-│   │   │   │   ├── LoadAverageGraph.jsx
-│   │   │   │   ├── LoadAverage.jsx
-│   │   │   │   ├── LogicalCores.jsx
-│   │   │   │   ├── MaxFrequency.jsx
-│   │   │   │   ├── MinFrequency.jsx
-│   │   │   │   ├── PerCoreBreakdown.jsx
-│   │   │   │   ├── PerformanceOverview.jsx
-│   │   │   │   ├── PhysicalCores.jsx
-│   │   │   │   ├── SoftInterrupts.jsx
-│   │   │   │   ├── TopProcessesTable.jsx
-│   │   │   │   └── TotalCpuUtilization.jsx
-│   │   │   ├── disk
-│   │   │   │   ├── DiskBusyTime.jsx
-│   │   │   │   ├── DiskIOGraph.jsx
-│   │   │   │   ├── DiskReadWriteCount.jsx
-│   │   │   │   ├── DiskReadWriteIOPS.jsx
-│   │   │   │   ├── DiskReadWriteLatency.jsx
-│   │   │   │   ├── DiskReadWriteSize.jsx
-│   │   │   │   ├── DiskReadWriteSpead.jsx
-│   │   │   │   ├── DiskReadWriteTime.jsx
-│   │   │   │   └── DiskUsageTable.jsx
-│   │   │   ├── grafana
-│   │   │   │   └── GrafanaPanel.jsx
-│   │   │   ├── hardware
-│   │   │   │   ├── BatteryStatus.jsx
-│   │   │   │   ├── FanSpeedMonitor.jsx
-│   │   │   │   ├── SmartDiskStatus.jsx
-│   │   │   │   ├── SystemUptime.jsx
-│   │   │   │   └── TemperatureMonitor.jsx
-│   │   │   ├── healing
-│   │   │   │   ├── HealingHistoryTable.jsx
-│   │   │   │   ├── HealingProgressTracker.jsx
-│   │   │   │   └── SupportedActionsList.jsx
-│   │   │   ├── kit.jsx
-│   │   │   ├── logs
-│   │   │   │   ├── Authentication&Security.jsx
-│   │   │   │   ├── Kernel&System.jsx
-│   │   │   │   ├── LiveLogExplorer.jsx
-│   │   │   │   ├── LogFiles&StorageHealth.jsx
-│   │   │   │   ├── LogFilter.jsx
-│   │   │   │   ├── LogLevelChart.jsx
-│   │   │   │   ├── LogStream.jsx
-│   │   │   │   ├── OverviewSection.jsx
-│   │   │   │   ├── Services.jsx
-│   │   │   │   └── Users&Sessions .jsx
-│   │   │   ├── memory
-│   │   │   │   ├── MemoryHistoryGraph.jsx
-│   │   │   │   ├── MemoryUsageBar.jsx
-│   │   │   │   └── SwapUsageBar.jsx
-│   │   │   ├── Navbar.jsx
-│   │   │   ├── network
-│   │   │   │   ├── ConnectionsTable.jsx
-│   │   │   │   ├── NetworkSpeedDisplay.jsx
-│   │   │   │   └── NetworkTrafficGraph.jsx
-│   │   │   ├── overview
-│   │   │   │   ├── ActivityFeed.jsx
-│   │   │   │   ├── HealthSummaryCards.jsx
-│   │   │   │   ├── MetricGauges.jsx
-│   │   │   │   └── QuickStats.jsx
-│   │   │   ├── process
-│   │   │   │   ├── ProcessesStatus.jsx
-│   │   │   │   ├── ProcessesTable.jsx
-│   │   │   │   ├── ServicesTable.jsx
-│   │   │   │   ├── serviceStatus.jsx
-│   │   │   │   ├── totalProcesses.jsx
-│   │   │   │   └── total_servieses.jsx
-│   │   │   ├── Sidebar.jsx
-│   │   │   ├── StatusFooter.jsx
-│   │   │   └── TelemetryChart.jsx
-│   │   ├── constants
-│   │   │   └── thresholds.js
-│   │   ├── hooks
-│   │   │   ├── useAlerts.js
-│   │   │   ├── useIncidents.js
-│   │   │   ├── useMetrics.js
-│   │   │   └── useWebSocket.js
-│   │   ├── index.css
-│   │   ├── main.jsx
-│   │   ├── pages
-│   │   │   ├── AlertsPage.jsx
-│   │   │   ├── CpuPage.jsx
-│   │   │   ├── HardwarePage.jsx
-│   │   │   ├── HealingPage.jsx
-│   │   │   ├── LogsPage.jsx
-│   │   │   ├── MemoryDiskPage.jsx
-│   │   │   ├── NetworkPage.jsx
-│   │   │   ├── OverviewPage.jsx
-│   │   │   ├── PolicyPage.jsx
-│   │   │   ├── ProcessPage.jsx
-│   │   │   ├── SettingsPage.jsx
-│   │   │   └── steps
-│   │   │       ├── cpu
-│   │   │       │   ├── Step4Cpu.jsx
-│   │   │       │   └── Step5Cpu.jsx
-│   │   │       ├── disk
-│   │   │       │   ├── Step4Disk.jsx
-│   │   │       │   └── Step5Disk.jsx
-│   │   │       ├── hardware
-│   │   │       │   ├── Step4Hardware.jsx
-│   │   │       │   └── Step5Hardware.jsx
-│   │   │       ├── memory
-│   │   │       │   ├── Step4Memory.jsx
-│   │   │       │   └── Step5Memory.jsx
-│   │   │       ├── network
-│   │   │       │   ├── Step4Network.jsx
-│   │   │       │   └── Step5Network.jsx
-│   │   │       ├── process
-│   │   │       │   ├── step10process.jsx
-│   │   │       │   ├── step4Process.jsx
-│   │   │       │   ├── step5process.jsx
-│   │   │       │   └── step7Process.jsx
-│   │   │       ├── Step10.jsx
-│   │   │       ├── Step11.jsx
-│   │   │       ├── Step12.jsx
-│   │   │       ├── Step13.jsx
-│   │   │       ├── Step1.jsx
-│   │   │       ├── Step2.jsx
-│   │   │       ├── Step3.jsx
-│   │   │       ├── Step4.jsx
-│   │   │       ├── Step5.jsx
-│   │   │       ├── Step6.jsx
-│   │   │       ├── Step7.jsx
-│   │   │       ├── Step8.jsx
-│   │   │       ├── Step9.jsx
-│   │   │       ├── wizardComponents.jsx
-│   │   │       └── wizardConstants.js
-│   │   ├── services
-│   │   │   ├── api.js
-│   │   │   └── websocket.js
-│   │   └── utils
-│   │       ├── cn.js
-│   │       ├── formatBytes.js
-│   │       ├── formatUptime.js
-│   │       └── getAlertColor.js
-│   ├── tailwind.config.js
-│   └── vite.config.js
-├── decision-engine
-│   ├── action_planner
-│   │   ├── actions.py
-│   │   └── send_decisions
-│   │       ├── backend.py
-│   │       └── healing_engine.py
-│   ├── engine
-│   │   ├── decision.py
-│   │   └── decision_strategies
-│   │       ├── base_decisions.py
-│   │       ├── helth_decisions.py
-│   │       ├── network_decisions.py
-│   │       └── process_decisions.py
-│   ├── main.py
-│   ├── policies
-│   │   └── policy_checker.py
-│   └── rules
-│       └── rule_loader.py
-├── deployment
-│   ├── aws
-│   ├── docker
-│   │   └── docker-compose.yml
-│   ├── github-actions
-│   └── kubernetes
-├── docs
-│   ├── api
-│   ├── architecture
-│   ├── diagrams
-│   ├── meeting-notes
-│   ├── proposal
-│   ├── reports
-│   └── sprint-plans
-├── grafana
-│   ├── dashboards
-│   │   ├── CPU & Performance.json
-│   │   ├── DiskViewer.json
-│   │   ├── LogsViewer.json
-│   │   ├── network.json
-│   │   └── process.json
-│   ├── grafana.ini
-│   └── provisioning
-├── infrastructure
-│   ├── app.log
-│   ├── app.py
-│   ├── crud.py
-│   ├── database.py
-│   ├── docker-compose.yml
-│   ├── Dockerfile
-│   ├── model.py
-│   ├── nginx.conf
-│   ├── requirements.txt
-│   ├── schema.py
-│   └── test.db
-├── integrations
-│   ├── aws
-│   ├── email
-│   ├── rest-api
-│   ├── service-now
-│   ├── slack
-│   └── webhook
-├── LICENSE
-├── loki
-│   └── config
-│       └── loki.yml
-├── monitoring-agent
-│   ├── collectors
-│   │   ├── cpu.py
-│   │   ├── disk.py
-│   │   ├── ebpf
-│   │   ├── health2.py
-│   │   ├── health.py
-│   │   ├── logs.py
-│   │   ├── memory.py
-│   │   ├── network.py
-│   │   ├── process.py
-│   │   ├── __pycache__
-│   │   │   ├── cpu.cpython-312.pyc
-│   │   │   ├── disk.cpython-312.pyc
-│   │   │   ├── health.cpython-312.pyc
-│   │   │   ├── logs.cpython-312.pyc
-│   │   │   ├── memory.cpython-312.pyc
-│   │   │   ├── network.cpython-312.pyc
-│   │   │   ├── process.cpython-312.pyc
-│   │   │   └── service.cpython-312.pyc
-│   │   └── service.py
-│   ├── config
-│   ├── Dockerfile
-│   ├── main.py
-│   ├── __pycache__
-│   │   └── main.cpython-312.pyc
-│   ├── requirements.txt
-│   ├── scheduler
-│   ├── sender
-│   │   ├── exporter_cpu.py
-│   │   ├── exporter_disk.py
-│   │   ├── exporter_health.py
-│   │   ├── exporter_logs.py
-│   │   ├── exporter_memory.py
-│   │   ├── exporter_network.py
-│   │   ├── exporter_process.py
-│   │   ├── exporter_service.py
-│   │   └── __pycache__
-│   │       ├── exporter_cpu.cpython-312.pyc
-│   │       ├── exporter_disk.cpython-312.pyc
-│   │       ├── exporter_health.cpython-312.pyc
-│   │       ├── exporter_logs.cpython-312.pyc
-│   │       ├── exporter_memory.cpython-312.pyc
-│   │       ├── exporter_network.cpython-312.pyc
-│   │       ├── exporter_process.cpython-312.pyc
-│   │       └── exporter_service.cpython-312.pyc
-│   ├── tests
-│   └── utils
-├── prometheus
-│   ├── prometheus.yml
-│   └── rules
-├── README.md
-├── self-healing
-│   ├── ansible
-│   ├── logs
-│   ├── recovery
-│   ├── rollback
-│   ├── scripts
-│   └── verification
-├── testing
-│   ├── integration
-│   ├── performance
-│   ├── scenarios
-│   ├── security
-│   └── unit
-└── t.txt
+I’ll trace the project from configuration and user rules through monitoring, detection, decisions, healing, and dashboard/API paths, then isolate the disk-specific implementation surface and compare it with the completed process path. I’ll first map the controlling files and existing disk/process code, then validate the flow against the actual source before giving you a prompt-ready implementation guide.
 
-112 directories, 245 files
+Search complete: Trace project architecture
+
+Searched codebase for "runtime flow user rules system details loading monitoring-agent collectors exporters disk process", 26 results
+
+Searched codebase for "backend APIs models services analytics detection decision engine healing engine", 26 results
+
+Searched codebase for "integrations deployment dashboard payload schemas service boundaries", 25 results
+
+Searched for files matching `**/*monitor*agent*`, no matches
+
+Searched for files matching `**/collector*`, no matches
+
+Searched for files matching `**/exporter*`, 8 matches
+
+Searched for files matching `**/decision*engine*`, no matches
+
+Searched for files matching `**/healing*engine*`, 2 matches
+
+Searched for files matching `**/analytics*`, no matches
+
+Searched for files matching `**/rule*`, 8 matches
+
+Searched for files matching `**/monitoring-agent/**`, 25 matches
+
+Searched for files matching `**/analytics-engine/**`, 17 matches
+
+Searched for files matching `**/decision-engine/**`, 11 matches
+
+Searched for files matching `**/healing-engine/**`, 16 matches
+
+Searched for files matching `**/backend/app/**`, 22 matches
+
+Searched for files matching `**/dashboard/**`, 142 matches
+
+Searched for files matching `**/infrastructure/**`, 11 matches
+
+Searched for files matching `**/integrations/**`, 6 matches
+
+Read 
+
+Read , lines 1 to 260
+
+Read , lines 1 to 260
+
+Read , lines 1 to 260
+
+The first trace shows the central path is already wired: the dashboard creates a rule, the backend stores it, analytics loads it, detection emits an incident, and the decision/healing services act on it. The important distinction for your disk work is that disk telemetry exists, but the downstream disk rule-to-incident and disk remediation path appears incomplete or inconsistent; I’m now checking the exact disk/process collectors, rule serializers, and service boundaries so the guidance matches the code rather than the folder names.
+
+Search complete: Compare disk process telemetry
+
+Searched codebase for "monitoring-agent disk and process paths inspection metrics labels intervals cleanup", 18 results
+
+Searched codebase for "disk collection interval default 60s process collection interval default 60s", 23 results
+
+Searched codebase for "process implementation complete versus disk missing pieces", 24 results
+
+Searched for files matching `**/collectors/disk.py`, 1 match
+
+Searched for files matching `**/collectors/process.py`, 1 match
+
+Searched for files matching `**/sender/exporter_disk.py`, 1 match
+
+Searched for files matching `**/sender/exporter_process.py`, 1 match
+
+Searched for files matching `**/main.py`, 5 matches
+
+Searched for files matching `**/*.yml`, 8 matches
+
+Searched for files matching `**/*.yaml`, no matches
+
+Searched for files matching `**/tests/**`, 1 match
+
+Searched for regex `disk.*monitor|process.*monitor|collector.*disk|collector.*process`, 11 results
+
+Searched for regex `metric.*name|label.*name|collection.*interval|cleanup.*behavior`, 114 results
+
+Searched for regex `def collect.*disk|def collect.*process|class.*DiskCollector|class.*ProcessCollector`, 1 result
+
+Searched for regex `Prometheus.*config|rules.*file|exporter.*disk|exporter.*process`, 7 results
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Searched codebase for "disk collection interval default 60s process collection interval default 60s", 23 results
+
+Searched for files matching `**/monitoring-agent/collectors/disk.py`, 1 match
+
+Searched for files matching `**/monitoring-agent/collectors/process.py`, 1 match
+
+Searched for files matching `**/sender/exporter_disk.py`, 1 match
+
+Searched for files matching `**/sender/exporter_process.py`, 1 match
+
+Searched for files matching `**/tests/**`, 1 match
+
+Searched for regex `disk.*monitor|process.*monitor|collector.*disk|collector.*process`, 11 results
+
+Searched for regex `metric.*name|label.*name|collection.*interval|cleanup.*behavior`, 114 results
+
+Search complete: Trace rules to incidents
+
+Searched codebase for "user rule lifecycle dashboard wizard form construction submission", 16 results
+
+Searched codebase for "backend user rule schemas models repository service router", 15 results
+
+Searched codebase for "analytics load_data rule loader metric loaders detection duration threshold", 26 results
+
+Searched codebase for "detector strategies disk process detector incident manager tests", 23 results
+
+Searched for files matching `**/user*rule*.{js,ts,py,go,java}`, 4 matches
+
+Searched for files matching `**/dashboard*wizard*.{js,ts,py,go,java}`, no matches
+
+Searched for files matching `**/rule*loader*.{js,ts,py,go,java}`, 2 matches
+
+Searched for files matching `**/detector*.{js,ts,py,go,java}`, 1 match
+
+Searched for regex `user.*rule|userRule|UserRule`, 67 results
+
+No matches found. Your search pattern might be excluded completely by either the search.exclude settings or .*ignore files.
+If you believe that it should have results, you can check into the .*ignore files and the exclude setting (here are some excluded patterns for reference:[**/node_modules,**/bower_components,**/*.code-search]).
+Then if you want to include those files you can call the tool again by setting "includeIgnoredFiles" to true.
+
+Read , lines 1 to 280
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Search complete: Trace incident remediation
+
+Searched codebase for "decision-engine healing-engine backend incident endpoints deployment wiring", 23 results
+
+Searched codebase for "decision strategies policy checker action planner send clients healing executors", 21 results
+
+Searched for files matching `**/decision*.py`, 1 match
+
+Searched for files matching `**/healing*.py`, 2 matches
+
+Searched for files matching `**/incident*.py`, 2 matches
+
+Searched for files matching `**/router*.py`, no matches
+
+Searched for files matching `**/service*.py`, 2 matches
+
+Searched for files matching `**/model*.py`, 1 match
+
+Searched for files matching `**/docker*.yml`, 2 matches
+
+Searched for regex `decision-engine|healing-engine|incident.*endpoint|backend.*incident`, 8 results
+
+Searched for regex `decision.*strategy|policy.*checker|action.*planner|healing.*executor`, 8 results
+
+Searched for files matching `**/test_*incident*.py`, no matches
+
+Searched for files matching `**/docs/**`, 7 matches
+
+Searched for regex `disk.*remediation|unsupported.*path|inconsistent.*path`, 1 result
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Read 
+
+Searched for files matching `/home/thejan/Desktop/Kernel/kernel-aware-healing-platform/deployment/docker/docker-compose.yml`, no matches
+
+Searched for files matching `/home/thejan/Desktop/Kernel/kernel-aware-self-healing-platform/deployment/docker/docker-compose.yml`, no matches
+
+Searched for files matching `/home/thejan/Desktop/Kernel/kernel-aware-self-healing-platform/infrastructure/docker-compose.yml`, no matches
+
+The comparison is now clear: process has a real detector that queries Prometheus, checks threshold and duration, builds an incident, and calls incident management; disk currently stops at `print("Detecting disk rule")`. I’m doing one final local read of the disk snapshot, metric query mapping, and rule payload builder to pin down the object your team lead meant and the exact disk flow you should implement.
+
+Searched for regex `targets:|monitorSource|userRules\(|JSON.stringify|metrics:|conditions:` (`**/dashboard/src/**`), 54 results
+
+Read 
+
+Read memory
+
+Read 
+
+Read 
+
+I read the project flow. The important conclusion is:
+
+**Disk collection is implemented, but disk detection and disk remediation are not implemented yet.**  
+Also, the process path is only partially complete and contains several integration bugs.
+
+## 1. Overall Project Flow
+
+```mermaid
+flowchart TD
+    UI[Dashboard Rule Wizard]
+    API[Backend /user_rules]
+    DB[(Database)]
+    AGENT[Monitoring Agent]
+    PROM[Prometheus]
+    ANALYTICS[Analytics Engine]
+    REDIS[(Redis)]
+    DECISION[Decision Engine]
+    HEALING[Healing Engine]
+    RESULT[Backend Incident / Healing Result]
+
+    UI -->|Create rule object| API
+    API --> DB
+    AGENT -->|Collect metrics| PROM
+    ANALYTICS -->|Load rules| API
+    ANALYTICS -->|Query metrics| PROM
+    ANALYTICS -->|Track duration| REDIS
+    ANALYTICS -->|Create incident| DECISION
+    DECISION -->|Create action plan| HEALING
+    HEALING -->|Execute action| RESULT
+```
+
+## 2. User Rule Object
+
+The team leader was referring to creating a normalized rule object from the dashboard data.
+
+The dashboard submits an object similar to:
+
+```json
+{
+  "ruleName": "High disk usage",
+  "enabled": true,
+  "priority": "High",
+  "severity": "Critical",
+  "owner": "admin",
+  "environment": "production",
+  "region": "local",
+  "monitorSource": "disk",
+  "targets": [
+    {
+      "type": "Filesystem / Mount Point",
+      "name": "/data",
+      "host": "server-01",
+      "metrics": [
+        {
+          "conditions": [
+            {
+              "metric": "Disk Usage (%)",
+              "operator": "Greater Than (>)",
+              "threshold": "90",
+              "duration": "5",
+              "durationUnit": "Minutes"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "actions": ["send-notification"],
+  "safety": {
+    "autoExec": false,
+    "approvalRequired": "ALWAYS"
+  },
+  "retry": {
+    "maxAttempts": 3,
+    "cooldownMinutes": 10,
+    "suppressDuplicates": true
+  }
+}
+```
+
+The dashboard logic is mainly in `Step4Disk.jsx`, `Step5Disk.jsx`, and `Step13.jsx`.
+
+The backend converts that object into:
+
+```text
+Rule
+RuleTarget
+RuleMetric
+RuleAction
+RuleNotification
+RuleRecovery
+```
+
+This conversion happens in `user_rule_service.py`.
+
+The stored rule is later returned as:
+
+```json
+{
+  "rule": {},
+  "targets": [],
+  "metrics": [],
+  "actions": [],
+  "notifications": [],
+  "recovery": []
+}
+```
+
+This is the object your disk detector should consume.
+
+## 3. Monitoring-Agent Flow
+
+The monitoring agent starts collectors in `main.py`:
+
+```text
+process -> every 15 seconds
+service  -> every 30 seconds
+network  -> every 5 seconds
+disk    -> every 5 seconds
+cpu     -> every 5 seconds
+memory  -> every 5 seconds
+health  -> every 60 seconds
+```
+
+Disk collection is handled by:
+
+- collectors/disk.py
+- sender/exporter_disk.py
+
+The disk collector already gathers:
+
+```text
+Partition usage
+Total bytes
+Used bytes
+Free bytes
+Usage percentage
+Disk read/write bytes
+Read/write counts
+Read/write latency
+IOPS
+Throughput
+Busy percentage
+Per-device statistics
+```
+
+The exporter exposes Prometheus metrics such as:
+
+```text
+disk_usage_percent
+disk_read_bytes
+disk_write_bytes
+disk_read_speed_mb
+disk_write_speed_mb
+disk_read_iops
+disk_write_iops
+disk_busy_percentage
+```
+
+Disk partition metrics use labels:
+
+```text
+device
+mountpoint
+filesystem
+```
+
+This is important because disk metrics do **not** use the same labels as process metrics.
+
+## 4. Existing Process Detection Flow
+
+The process detector in `process_detector.py` does this:
+
+```text
+1. Load process rule.
+2. Loop through each target.
+3. Loop through each metric.
+4. Query Prometheus.
+5. Read current value.
+6. Check threshold.
+7. Check whether the violation lasted long enough.
+8. Build incident object.
+9. Store/send incident through incident manager.
+```
+
+The incident looks like:
+
+```json
+{
+  "rule_id": 12,
+  "system_id": 1,
+  "incident_severity": "Critical",
+  "incident_type": "process",
+  "incident_priority": "High",
+  "target": "nginx",
+  "pid": 1234,
+  "violated_metric": {},
+  "value": 95.4
+}
+```
+
+The common utilities are:
+
+- `threshold.py`
+- `duration.py`
+- `metrics_loader.py`
+- `manager.py`
+
+## 5. Disk Detection Flow You Should Implement
+
+Your disk detector should follow the same general process flow:
+
+```text
+1. Receive normalized rule object.
+2. Read disk target.
+3. Read disk metric and condition.
+4. Convert user metric name to Prometheus metric name.
+5. Build a Prometheus query using disk labels.
+6. Read current disk value.
+7. Compare value against threshold.
+8. Track violation duration in Redis.
+9. Create disk incident.
+10. Send incident to decision engine.
+```
+
+Recommended metric mapping:
+
+```python
+DISK_METRIC_MAP = {
+    "Disk Usage (%)": "disk_usage_percent",
+    "Disk Read": "disk_read_speed_mb",
+    "Disk Write": "disk_write_speed_mb",
+    "Read IOPS": "disk_read_iops",
+    "Write IOPS": "disk_write_iops",
+    "Busy Percentage": "disk_busy_percentage",
+}
+```
+
+For a mount-point target, the Prometheus query should be similar to:
+
+```promql
+disk_usage_percent{mountpoint="/data"}
+```
+
+For a device target:
+
+```promql
+disk_usage_percent{device="/dev/sda1"}
+```
+
+The disk incident should look like:
+
+```json
+{
+  "rule_id": 12,
+  "system_id": 1,
+  "incident_type": "disk",
+  "incident_severity": "Critical",
+  "incident_priority": "High",
+  "target": "/data",
+  "target_type": "mountpoint",
+  "violated_metric": {
+    "id": 5,
+    "metric": "Disk Usage (%)",
+    "operator": "Greater Than (>)",
+    "threshold": 90,
+    "duration_seconds": 300
+  },
+  "value": 94.2
+}
+```
+
+For disk duration tracking, do not use `pid`. The current duration function is process-specific:
+
+```python
+check_duration(system_id, pid, metric_name, duration_seconds)
+```
+
+You should either generalize it to:
+
+```python
+check_duration(system_id, target, metric_name, duration_seconds)
+```
+
+or create a disk-specific version using a Redis key such as:
+
+```text
+violation:disk:{system_id}:{target}:{metric}
+```
+
+## 6. Important Existing Problems
+
+The following issues will affect your implementation:
+
+1. `DiskDetector.detect()` currently only prints a message and returns an empty list in `disk_detector.py`.
+
+2. `metrics_loader.py` only has process-oriented querying logic. Disk queries need `mountpoint`, `device`, or `filesystem` labels.
+
+3. `check_duration()` requires a PID, which disks do not have.
+
+4. The decision engine has no `"disk"` strategy in `decision.py`.
+
+5. The healing sender is unfinished:
+   - `healing_engine.py` contains `pass`.
+   - `backend.py` contains unfinished incident storage.
+
+6. `create_action_plan()` reads `decision["actions"]`, but the process decision returns `all_actions`.
+
+7. Disk actions need to be clearly defined. Possible actions are:
+
+```text
+send-notification
+run-command
+run-automation
+```
+
+The healing engine currently supports `run-command`, but its command allow-list only contains:
+
+```text
+disk-usage
+memory-usage
+```
+
+8. The backend currently forces every rule to:
+
+```python
+system_id = 1
+```
+
+9. The frontend uses disk labels such as `mountpoint`, but the exporter currently exposes disk metrics with `device`, `mountpoint`, and `filesystem`. The detector must use those exact labels.
+
+## 7. Recommended Order for Your Work
+
+Implement in this order:
+
+1. Create disk metric mapping and Prometheus query helper.
+2. Implement `DiskDetector.detect()`.
+3. Generalize duration tracking so it supports disk targets.
+4. Create the disk incident object.
+5. Add disk support to the decision engine.
+6. Fix the action-plan field mismatch.
+7. Connect the decision engine to the healing engine.
+8. Add tests for:
+   - threshold matching
+   - mount-point queries
+   - device queries
+   - duration tracking
+   - disk incident creation
+   - unsupported disk metrics
+
+## Prompt to Give ChatGPT
+
+```text
+I am implementing disk monitoring in an existing Python self-healing platform.
+
+Please help me implement the disk flow using the existing project architecture.
+
+The current architecture is:
+
+Dashboard creates a user rule.
+Backend stores the rule as Rule, RuleTarget, RuleMetric, RuleAction, RuleRecovery, and RuleNotification.
+Analytics loads the rule from the backend.
+Monitoring-agent exports disk metrics to Prometheus.
+Analytics queries Prometheus.
+The detector checks threshold and duration.
+An incident is sent to the decision engine.
+The decision engine checks policy and selects an action.
+The healing engine executes the action.
+
+Existing disk Prometheus metrics include:
+
+disk_usage_percent{device, mountpoint, filesystem}
+disk_read_speed_mb{disk}
+disk_write_speed_mb{disk}
+disk_read_iops
+disk_write_iops
+disk_busy_percentage
+
+The dashboard disk rule contains:
+
+monitorSource = "disk"
+target type such as "Filesystem / Mount Point" or "Disk / Device"
+mount point or device
+metric
+operator
+threshold
+duration
+duration unit
+actions
+safety settings
+retry settings
+
+Implement the following:
+
+1. A disk metric mapping from user-facing metric names to Prometheus metric names.
+2. A disk Prometheus query function that uses mountpoint, device, or filesystem labels correctly.
+3. DiskDetector.detect(rule), following the same structure as ProcessDetector.
+4. Disk-specific duration tracking using Redis. Do not use PID because disks do not have PIDs.
+5. A normalized disk incident object containing:
+   rule_id
+   system_id
+   incident_type
+   target
+   target_type
+   violated_metric
+   value
+   severity
+   priority
+6. Disk support in the decision engine.
+7. Correct action-plan field names so the selected action is passed to the healing engine.
+8. Proper support for notification, run-command, and run-automation actions.
+9. Unit tests for threshold checks, Prometheus query construction, duration tracking, and incident creation.
+
+Before changing code, inspect these files:
+
+analytics-engine/detection/strategies/process_detector.py
+analytics-engine/detection/strategies/disk_detector.py
+analytics-engine/load_data/system_metrics/metrics_loader.py
+analytics-engine/detection/threshold.py
+analytics-engine/detection/duration.py
+analytics-engine/incident_management/manager.py
+decision-engine/engine/decision.py
+decision-engine/engine/decision_strategies/process_decisions.py
+decision-engine/action_planner/actions.py
+monitoring-agent/collectors/disk.py
+monitoring-agent/sender/exporter_disk.py
+backend/app/services/user_rule_service.py
+
+Preserve the existing architecture and avoid unrelated refactoring. First explain the current data flow, then identify inconsistencies, then provide the implementation plan, then write the code with focused tests.
+```
+
+Your part is mainly the path:
+
+```text
+User rule object
+→ disk detector
+→ Prometheus disk query
+→ threshold/duration check
+→ disk incident
+→ decision engine
+```
+
+That is the correct boundary to focus on first.

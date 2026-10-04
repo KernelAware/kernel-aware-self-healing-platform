@@ -2,6 +2,7 @@ import { Globe, ChevronDown } from "lucide-react"
 import { Panel } from "@/components/kit"
 import { cn } from "@/utils/cn"
 import { Radio, Checkbox } from "./wizardComponents"
+import Step12Disk from "./disk/Step12Disk"
 
 const ACTIVATION_OPTIONS = [
   {
@@ -46,6 +47,7 @@ const DAYS = [
 ]
 
 export default function Step12({ form, setForm }) {
+  if (form.monitorSource === "disk") return <Step12Disk form={form} setForm={setForm} />
   const schedule = form.schedule || {}
 
   const activation = schedule.activation || "Always Active"

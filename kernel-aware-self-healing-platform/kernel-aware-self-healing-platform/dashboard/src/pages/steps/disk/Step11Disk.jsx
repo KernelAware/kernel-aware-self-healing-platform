@@ -1,0 +1,17 @@
+import { X, Plus, Mail, MessageSquare, Users, Settings, Link2 } from "lucide-react"
+import { Panel } from "@/components/kit"
+import { cn } from "@/utils/cn"
+import { Checkbox } from "../wizardComponents"
+
+const EVENTS = ["Incident detected", "Remediation started", "Remediation failed", "Max retries reached", "Condition recovered", "Remediation successful", "Approval required"]
+const CHANNELS = [["email", "Email", Mail], ["slack", "Slack", MessageSquare], ["teams", "Teams", Users], ["servicenow", "ServiceNow", Settings], ["webhook", "Webhook", Link2]]
+
+export default function Step11Disk({ form, setForm }) {
+  const notifications = form.notifications || {}
+  const events = notifications.events || []
+  const channels = notifications.channels || []
+  const recipients = notifications.recipients || []
+  const toggle = (key, value) => setForm(f => ({ ...f, notifications: { ...f.notifications, [key]: (f.notifications?.[key] || []).includes(value) ? f.notifications[key].filter(item => item !== value) : [...(f.notifications?.[key] || []), value] } }))
+  const addRecipient = input => { const value = input.trim(); if (value && !recipients.includes(value)) setForm(f => ({ ...f, notifications: { ...f.notifications, recipients: [...(f.notifications?.recipients || []), value] } })) }
+  return <Panel className="p-6"><div className="mb-6"><p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">11. DISK NOTIFICATIONS</p><p className="text-xs text-muted-foreground mt-0.5">Choose Disk rule events, channels, and recipients.</p></div><div className="space-y-6"><div><p className="font-mono text-xs font-semibold mb-3">Notify When</p><div className="grid grid-cols-1 md:grid-cols-2 gap-2">{EVENTS.map(event => <label key={event} className="flex items-center gap-2.5 font-mono text-xs"><Checkbox checked={events.includes(event)} onClick={() => toggle("events", event)} />{event}</label>)}</div></div><div><p className="font-mono text-xs font-semibold mb-3">Notification Channels</p><div className="flex flex-wrap gap-2">{CHANNELS.map(([id, label, Icon]) => <button type="button" key={id} onClick={() => toggle("channels", id)} className={cn("inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 font-mono text-xs", channels.includes(id) ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground")}><Icon className="size-3.5" />{label}</button>)}</div></div><div><p className="font-mono text-xs font-semibold mb-2">Recipients</p><div className="flex flex-wrap gap-1.5 rounded-md border border-border bg-card px-3 py-2 min-h-[42px]">{recipients.map(recipient => <span key={recipient} className="inline-flex items-center gap-1 rounded bg-secondary/70 px-2 py-0.5 font-mono text-[11px]">{recipient}<button type="button" onClick={() => setForm(f => ({ ...f, notifications: { ...f.notifications, recipients: f.notifications.recipients.filter(item => item !== recipient) } }))}><X className="size-2.5" /></button></span>)}<input placeholder="Add recipient" className="flex-1 min-w-[140px] bg-transparent font-mono text-xs outline-none" onKeyDown={e => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addRecipient(e.currentTarget.value); e.currentTarget.value = "" } }} /><button type="button" onClick={e => { const input = e.currentTarget.previousElementSibling; addRecipient(input.value); input.value = "" }} className="flex items-center gap-1 font-mono text-[11px] text-primary"><Plus className="size-3" />Add</button></div></div></div></Panel>
+}

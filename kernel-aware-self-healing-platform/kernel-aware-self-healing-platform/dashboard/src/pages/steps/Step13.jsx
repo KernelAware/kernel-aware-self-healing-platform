@@ -8,9 +8,11 @@ import {
 } from "lucide-react"
 import { Panel } from "@/components/kit"
 import {userRules} from "../../services/api.js";
+import Step13Disk from "./disk/Step13Disk"
 
 export default function Step13({ form, onCancel }) {
   const [created, setCreated] = useState(false)
+  if (form.monitorSource === "disk") return <Step13Disk form={form} onCancel={onCancel} />
 
   const targets = Array.isArray(form.targets) ? form.targets : []
   const actions = Array.isArray(form.actions) ? form.actions : []

@@ -1,16 +1,17 @@
 import { Info } from "lucide-react"
 import { Panel } from "@/components/kit"
 import { SelectBox, Checkbox } from "./wizardComponents"
+import Step9Disk from "./disk/Step9Disk"
 
 export default function Step9({ form, setForm }) {
+  if (form.monitorSource === "disk") return <Step9Disk form={form} setForm={setForm} />
   const retry = form.retry || {}
-  const disk = form.monitorSource === "disk"
 
   return (
     <Panel className="p-6">
       <div className="mb-6">
         <p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">
-          9. {disk ? "RETRY & COOLDOWN" : "Retry & Cooldown"}
+          9. Retry & Cooldown
         </p>
 
         <p className="text-xs text-muted-foreground mt-0.5">

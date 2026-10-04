@@ -2,6 +2,7 @@ import { X, Plus, Mail, MessageSquare, Users, Settings, Link2 } from "lucide-rea
 import { Panel } from "@/components/kit"
 import { cn } from "@/utils/cn"
 import { Checkbox } from "./wizardComponents"
+import Step11Disk from "./disk/Step11Disk"
 
 const EVENTS = [
   "Incident detected",
@@ -22,7 +23,7 @@ const CHANNELS = [
 ]
 
 export default function Step11({ form, setForm }) {
-  const disk = form.monitorSource === "disk"
+  if (form.monitorSource === "disk") return <Step11Disk form={form} setForm={setForm} />
   const events = Array.isArray(form.notifications?.events)
     ? form.notifications.events
     : []
@@ -113,7 +114,7 @@ export default function Step11({ form, setForm }) {
     <Panel className="p-6">
       <div className="mb-6">
         <p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">
-          11. {disk ? "DISK NOTIFICATIONS" : "Notifications"}
+          11. Notifications
         </p>
 
         <p className="text-xs text-muted-foreground mt-0.5">
