@@ -1,12 +1,14 @@
 from engine.decision_strategies.process_decisions import ProcessDecision
 from engine.decision_strategies.helth_decisions import HealthDecision
 from engine.decision_strategies.network_decisions import NetworkDecision
+from engine.decision_strategies.disk_decisions import DiskDecision
 
 
 STRATEGIES = {
     "process": ProcessDecision(),
     "health": HealthDecision(),
     "network": NetworkDecision()
+    ,"disk": DiskDecision()
 }
 
 

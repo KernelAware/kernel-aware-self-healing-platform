@@ -28,3 +28,12 @@ def check_duration(system_id, pid, metric_name, duration_seconds):
     print("Elapsed:", elapsed)
 
     return elapsed >= duration_seconds
+
+
+def check_target_duration(system_id, target_identity, metric_name, duration_seconds):
+    key = f"violation:{system_id}:{target_identity}:{metric_name}"
+    stored_time = redis_client.get(key)
+    if stored_time is None:
+        redis_client.set(key, time.time())
+        return False
+    return time.time() - float(stored_time) >= duration_seconds

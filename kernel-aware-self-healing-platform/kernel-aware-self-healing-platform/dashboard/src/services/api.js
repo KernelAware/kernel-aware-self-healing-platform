@@ -43,12 +43,15 @@ export async function queryPrometheus(query) {
 }
 
 export async function userRules(form) {
+  const payload = form.monitorSource === "disk"
+    ? normalizeDiskRule(form)
+    : form
   const response = await fetch("http://localhost:8000/user_rules", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(form),
+    body: JSON.stringify(payload),
   });
 
   const json = await response.json();
@@ -58,4 +61,49 @@ export async function userRules(form) {
   }
 
   return json;
+}
+
+function normalizeDiskRule(form) {
+  const target = {
+    type: form.targetType || "Filesystem / Mount Point",
+    host: form.host || "",
+    device: form.device || "",
+    mountpoint: form.mountPoint || "",
+    filesystem: form.filesystem || "",
+  }
+  const metric = {
+    name: form.metric,
+    conditions: [{
+      metric: form.condMetric || form.metric,
+      operator: form.condOperator,
+      threshold: form.condThreshold,
+      duration: form.condDuration,
+      durationUnit: form.condDurationUnit || "Minutes",
+    }],
+  }
+  const recovery = form.recoveryMetric || form.recoveryThreshold || form.recoveryDuration
+    ? {
+        required: true,
+        metric: [{
+          metric: form.recoveryMetric || form.metric,
+          operator: form.recoveryOperator || "Less Than (<)",
+          threshold: form.recoveryThreshold,
+          duration: form.recoveryDuration || "0",
+          durationUnit: form.recoveryDurationUnit || "Minutes",
+        }],
+      }
+    : { required: false, metric: [] }
+
+  return {
+    ...form,
+    targets: [{
+      type: target.type,
+      name: JSON.stringify(target),
+      metrics: [metric],
+    }],
+    actions: Array.isArray(form.actionTypes)
+      ? form.actionTypes
+      : (form.actionType ? [form.actionType] : []),
+    recovery,
+  }
 }

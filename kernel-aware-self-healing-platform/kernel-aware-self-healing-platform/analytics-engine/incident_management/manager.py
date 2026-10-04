@@ -10,11 +10,11 @@ active_incidents = {}
 def manage_incidents(incident):
 
     system_id = incident["system_id"]
-    metric_id = incident["violated_metric"]["id"]
-    pid = incident["pid"]
+    metric_id = incident["violated_metric"].get("id") or incident["violated_metric"].get("metric", "unknown")
+    identity = incident.get("pid") or incident.get("target") or incident.get("disk", {}).get("device") or incident.get("disk", {}).get("mountpoint")
     target_name = incident["target"]
 
-    key = f"incident:{system_id}:{metric_id}:{target_name}:{pid}"
+    key = f"incident:{system_id}:{metric_id}:{target_name}:{identity}"
 
     existing_incident = redis_client.get(key)
 

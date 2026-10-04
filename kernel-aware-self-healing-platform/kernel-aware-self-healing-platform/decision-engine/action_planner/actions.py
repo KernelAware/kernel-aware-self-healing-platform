@@ -36,11 +36,12 @@ def create_action_plan(decision, incident, rules, policy):
     else:
         action_plan = {
             "action_id": f'action-{incident["rule_id"]}',
-            "type": decision["actions"],
+            "type": decision.get("Selected_action") or (decision.get("actions") or [None])[0],
             "system_id": incident["system_id"],
             "target": incident.get("target"),
             "service": incident.get("target"),
             "pid": incident.get("pid"),
+            "disk": incident.get("disk"),
         }
 
         send_to_healing_engine(action_plan)
