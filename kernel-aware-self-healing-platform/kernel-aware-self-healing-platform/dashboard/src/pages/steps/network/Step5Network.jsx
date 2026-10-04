@@ -3,6 +3,38 @@ import { SelectBox } from "../wizardComponents"
 import { Plus } from "lucide-react"
 
 export default function Step5Network({ form, setForm }) {
+  const updateNetworkCondition = (field, value) => {
+    setForm(prev => {
+      const targets = [...(prev.targets || [])]
+      if (!targets[0]) return prev
+
+      const target = { ...targets[0] }
+      const metrics = [...(target.metrics || [])]
+      if (!metrics[0]) return prev
+
+      const metric = { ...metrics[0] }
+      const conditions = [...(metric.conditions || [])]
+
+      const condition = {
+        ...(conditions[0] || {}),
+        metric: metric.name,
+        operator: ">",
+        threshold: "",
+        duration: "2",
+        durationUnit: "minutes",
+      }
+
+      condition[field] = value
+      conditions[0] = condition
+      metric.conditions = conditions
+      metrics[0] = metric
+      target.metrics = metrics
+      targets[0] = target
+
+      return { ...prev, targets }
+    })
+  }
+
   return (
     <Panel className="p-6">
       <div className="mb-6"><p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">5. Conditions (When)</p><p className="text-xs text-muted-foreground mt-0.5">Define when this rule should trigger.</p></div>
@@ -14,7 +46,7 @@ export default function Step5Network({ form, setForm }) {
             <div className="w-32"><label className="block font-mono text-[11px] text-foreground">Threshold</label></div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <SelectBox value={form.condMetric} options={["Error Rate (errors/sec)", "Packet Loss (%)", "Throughput (Mbps)"]} onChange={v => setForm(f => ({ ...f, condMetric: v }))} className="flex-1 min-w-[140px]" />
+            <SelectBox value={form.condMetric} options={["Upload Bandwidth", "Download Bandwidth", "Incoming Packet Drop Rate"]} onChange={v => setForm(f => ({ ...f, condMetric: v }))} className="flex-1 min-w-[140px]" />
             <SelectBox value={form.condOperator} options={["Greater Than (>)","Less Than (<)","Equals (=)"]} onChange={v => setForm(f => ({ ...f, condOperator: v }))} className="w-44" />
             <div className="flex items-center gap-2 w-32">
               <input type="number" value={form.condThreshold} onChange={e => setForm(f => ({ ...f, condThreshold: e.target.value }))}
