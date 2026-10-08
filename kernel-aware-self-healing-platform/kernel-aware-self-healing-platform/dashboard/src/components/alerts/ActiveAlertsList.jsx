@@ -25,7 +25,7 @@ export default function ActiveAlertsList({
   const activeCount = alerts.length
 
   return (
-    <Panel onClick={() => selectIncident(a.id)}>
+    <Panel>
 
       <PanelHeader
         title="Active Incidents"
