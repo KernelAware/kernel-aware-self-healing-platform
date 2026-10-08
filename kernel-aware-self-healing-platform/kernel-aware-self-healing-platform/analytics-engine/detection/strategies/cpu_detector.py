@@ -29,8 +29,17 @@ class CpuDetector(DetectionStrategy):
                 if not threshold_match:
                     continue
 
-                core = result.get("metric", {}).get("core")
-                target = core or "host"
+                labels = result.get("metric", {})
+                target = (
+                    labels.get("hostname")
+                    or labels.get("instance")
+                    or rule["rule"].get("target")
+                    or rule["rule"].get("server_name")
+                    or rule["rule"].get("hostname")
+                    or rule["rule"].get("system_name")
+                    or rule.get("target")
+                    or "host"
+                )
                 duration_match = check_duration(
                     system_id=system_id,
                     target=target,
@@ -43,9 +52,9 @@ class CpuDetector(DetectionStrategy):
                 incident = {
                     "rule_id": rule["rule"]["id"],
                     "system_id": system_id,
-                    "incident_severity": rule["rule"]["severity"],
-                    "incident_type": rule["rule"]["monitor_type"],
-                    "incident_priority": rule["rule"]["priority"],
+                    "incident_type": "cpu",
+                    "severity": rule["rule"]["severity"],
+                    "priority": rule["rule"]["priority"],
                     "target": target,
                     "pid": None,
                     "violated_metric": metric,
