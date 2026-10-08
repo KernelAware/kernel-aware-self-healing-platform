@@ -75,8 +75,9 @@ def create_alert(decision, incident, rules, policy):
 
     incident_id = f"INC-{uuid.uuid4().hex[:8].upper()}"
     system = incident.get("system_id", "Unknown")
-    process = incident.get("target", "Unknown")
+    target = incident.get("target", "Unknown")
     pid = incident.get("pid")
+    incident_type = incident.get("incident_type")
 
     metric = incident["violated_metric"]["metric"]
     current_value = incident.get("value", 0)
@@ -84,8 +85,41 @@ def create_alert(decision, incident, rules, policy):
     operator = incident.get("violated_metric", 0).get("operator")
     duration = incident.get("violated_metric", 0).get("duration_seconds")
 
-    severity = incident.get("severity", "Medium")
-    priority = incident.get("priority", "P2")
+    severity = incident.get(
+        "severity",
+        incident.get("incident_severity", "WARNING")
+    )
+    priority = incident.get(
+        "priority",
+        incident.get("incident_priority", "MEDIUM")
+    )
+
+    title = f"{metric} - {target}"
+    alert_body = (
+        f"{metric} reached {current_value}, "
+        f"{operator} threshold {threshold} "
+        f"for {duration}."
+    )
+    if incident_type == "cpu":
+        title = f"High CPU Usage - {target}"
+        comparison = {
+            ">": "above",
+            "<": "below",
+            ">=": "at or above",
+            "<=": "at or below",
+            "=": "equal to",
+            "!=": "not equal to",
+        }.get(operator_map.get(operator, operator), operator)
+        duration_seconds = int(duration)
+        if duration_seconds % 60 == 0 and duration_seconds < 3600:
+            minutes = duration_seconds // 60
+            duration_text = f"{minutes} minute{'s' if minutes != 1 else ''}"
+        else:
+            duration_text = format_duration(duration_seconds)
+        alert_body = (
+            f"{metric} reached {current_value}, {comparison} threshold {threshold} "
+            f"for {duration_text}."
+        )
 
     recommended_action = decision.get("Selected_action", "No Decision")
     decision_type = decision.get("decision", "NO_ACTION")
@@ -118,13 +152,13 @@ def create_alert(decision, incident, rules, policy):
 
         "id": incident_id,
 
-        "title": f"{metric} - {process}",
+        "title": title,
 
         "priority": priority,
         "severity": severity,
 
         "system": f"server-{int(system):02d}",
-        "process": process,
+        "process": target,
         "pid": pid,
 
         "detectedAgo": "now",
@@ -196,13 +230,9 @@ def create_alert(decision, incident, rules, policy):
 
         "age": "now",
 
-        "title": f"{metric} - {process}",
+        "title": title,
 
-        "body": (
-            f"{metric} reached {current_value}, "
-            f"{operator} threshold {threshold} "
-            f"for {duration}."
-        ),
+        "body": alert_body,
 
         "acked": False,
 
@@ -210,7 +240,7 @@ def create_alert(decision, incident, rules, policy):
 
         "system": system,
 
-        "process": process,
+        "process": target,
 
         "pid": pid
     }
