@@ -11,6 +11,20 @@ operator_map = {
     "Not Equal (!=)": "!="
 }
 
+cpu_alert_names = {
+    "cpu_usage_percent": "High CPU Utilization Detected",
+    "cpu_load_1min": "High 1-Minute Load Average Detected",
+    "cpu_core_usage_percent": "High Per-Core CPU Utilization Detected",
+    "cpu_load_5min": "High 5-Minute Load Average Detected",
+    "cpu_load_15min": "High 15-Minute Load Average Detected",
+    "cpu_freq_current_mhz": "Abnormal CPU Frequency Detected",
+    "cpu_times_user": "High CPU User Time Detected",
+    "cpu_times_system": "High CPU System Time Detected",
+    "cpu_times_iowait": "High CPU I/O Wait Detected",
+    "cpu_times_steal": "High CPU Steal Time Detected",
+    "cpu_ctx_switches": "High Context Switch Rate Detected",
+}
+
 def create_action_plan(decision, incident, rules, policy):
 
 
@@ -73,7 +87,12 @@ def create_alert(decision, incident, rules, policy):
     print("")
     print("")
 
-    incident_id = f"INC-{uuid.uuid4().hex[:8].upper()}"
+    rule_id = incident.get("rule_id")
+    incident_id = (
+        f"INC-RULE-{rule_id}"
+        if rule_id is not None
+        else f"INC-{uuid.uuid4().hex[:8].upper()}"
+    )
     system = incident.get("system_id", "Unknown")
     target = incident.get("target", "Unknown")
     pid = incident.get("pid")
@@ -101,7 +120,10 @@ def create_alert(decision, incident, rules, policy):
         f"for {duration}."
     )
     if incident_type == "cpu":
-        title = f"High CPU Usage - {target}"
+        title = cpu_alert_names.get(
+            metric,
+            f"High {metric.replace('_', ' ').title()} Detected"
+        )
         comparison = {
             ">": "above",
             "<": "below",
@@ -151,6 +173,8 @@ def create_alert(decision, incident, rules, policy):
     incident_detail = {
 
         "id": incident_id,
+
+        "rule_id": rule_id,
 
         "title": title,
 
@@ -224,7 +248,7 @@ def create_alert(decision, incident, rules, policy):
 
         "id": incident_id,
 
-        "rule_id": incident.get("rule_id"),
+        "rule_id": rule_id,
 
         "level": f"{priority} - {severity}",
 
