@@ -1,0 +1,359 @@
+.
+├── analytics-engine
+│   ├── analyzer
+│   │   └── server_analyzer.py
+│   ├── detection
+│   │   ├── detector.py
+│   │   ├── duration.py
+│   │   ├── strategies
+│   │   │   ├── base_detector.py
+│   │   │   ├── cpu_detector.py
+│   │   │   ├── disk_detector.py
+│   │   │   ├── memeory_detecter.py
+│   │   │   ├── network_detector.py
+│   │   │   └── process_detector.py
+│   │   └── threshold.py
+│   ├── incident_management
+│   │   └── manager.py
+│   ├── load_data
+│   │   ├── database
+│   │   │   └── db_connection
+│   │   │       └── connection.py
+│   │   ├── redis_connection
+│   │   │   └── redis_connection.py
+│   │   ├── system_metrics
+│   │   │   └── metrics_loader.py
+│   │   ├── systems_details
+│   │   │   └── system_repository.py
+│   │   └── user_rules
+│   │       └── rule_loader.py
+│   └── main.py
+├── backend
+│   ├── app
+│   │   ├── config
+│   │   │   └── settings.py
+│   │   ├── database
+│   │   │   └── connection.py
+│   │   ├── main.py
+│   │   ├── models
+│   │   │   ├── incidents.py
+│   │   │   └── user_rules
+│   │   │       ├── rule_action.py
+│   │   │       ├── rule_metric.py
+│   │   │       ├── rule_notification.py
+│   │   │       ├── rule.py
+│   │   │       ├── rule_recovery.py
+│   │   │       └── rule_targets.py
+│   │   ├── repository
+│   │   │   └── user_rules.py
+│   │   ├── routers
+│   │   │   ├── alerts.py
+│   │   │   ├── health.py
+│   │   │   ├── incidents.py
+│   │   │   ├── recovery.py
+│   │   │   ├── user_rules.py
+│   │   │   ├── users.py
+│   │   │   └── websocket.py
+│   │   ├── schemas
+│   │   │   └── user_rules.py
+│   │   ├── services
+│   │   │   └── user_rule_service.py
+│   │   └── utils
+│   ├── Dockerfile
+│   └── requirements.txt
+├── dashboard
+│   ├── dist
+│   │   ├── assets
+│   │   │   ├── index-1ZEymK3w.css
+│   │   │   └── index-BtbeJu8j.js
+│   │   ├── icon.svg
+│   │   └── index.html
+│   ├── Dockerfile
+│   ├── index.html
+│   ├── nginx.conf
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── public
+│   │   └── icon.svg
+│   ├── src
+│   │   ├── App.jsx
+│   │   ├── components
+│   │   │   ├── alerts
+│   │   │   │   ├── ActiveAlertsList.jsx
+│   │   │   │   ├── IncidentDetailView.jsx
+│   │   │   │   └── IncidentsTable.jsx
+│   │   │   ├── cpu
+│   │   │   │   ├── ContextSwitches.jsx
+│   │   │   │   ├── CoreUtilization16Core.jsx
+│   │   │   │   ├── CpuHistoryGraph.jsx
+│   │   │   │   ├── CpuUsageGauge.jsx
+│   │   │   │   ├── CurrentFrequency.jsx
+│   │   │   │   ├── HardwareInterrupts.jsx
+│   │   │   │   ├── LoadAverageGraph.jsx
+│   │   │   │   ├── LoadAverage.jsx
+│   │   │   │   ├── LogicalCores.jsx
+│   │   │   │   ├── MaxFrequency.jsx
+│   │   │   │   ├── MinFrequency.jsx
+│   │   │   │   ├── PerCoreBreakdown.jsx
+│   │   │   │   ├── PerformanceOverview.jsx
+│   │   │   │   ├── PhysicalCores.jsx
+│   │   │   │   ├── SoftInterrupts.jsx
+│   │   │   │   ├── TopProcessesTable.jsx
+│   │   │   │   └── TotalCpuUtilization.jsx
+│   │   │   ├── disk
+│   │   │   │   ├── DiskBusyTime.jsx
+│   │   │   │   ├── DiskIOGraph.jsx
+│   │   │   │   ├── DiskReadWriteCount.jsx
+│   │   │   │   ├── DiskReadWriteIOPS.jsx
+│   │   │   │   ├── DiskReadWriteLatency.jsx
+│   │   │   │   ├── DiskReadWriteSize.jsx
+│   │   │   │   ├── DiskReadWriteSpead.jsx
+│   │   │   │   ├── DiskReadWriteTime.jsx
+│   │   │   │   └── DiskUsageTable.jsx
+│   │   │   ├── grafana
+│   │   │   │   └── GrafanaPanel.jsx
+│   │   │   ├── hardware
+│   │   │   │   ├── BatteryStatus.jsx
+│   │   │   │   ├── FanSpeedMonitor.jsx
+│   │   │   │   ├── SmartDiskStatus.jsx
+│   │   │   │   ├── SystemUptime.jsx
+│   │   │   │   └── TemperatureMonitor.jsx
+│   │   │   ├── healing
+│   │   │   │   ├── HealingHistoryTable.jsx
+│   │   │   │   ├── HealingProgressTracker.jsx
+│   │   │   │   └── SupportedActionsList.jsx
+│   │   │   ├── kit.jsx
+│   │   │   ├── logs
+│   │   │   │   ├── Authentication&Security.jsx
+│   │   │   │   ├── Kernel&System.jsx
+│   │   │   │   ├── LiveLogExplorer.jsx
+│   │   │   │   ├── LogFiles&StorageHealth.jsx
+│   │   │   │   ├── LogFilter.jsx
+│   │   │   │   ├── LogLevelChart.jsx
+│   │   │   │   ├── LogStream.jsx
+│   │   │   │   ├── OverviewSection.jsx
+│   │   │   │   ├── Services.jsx
+│   │   │   │   └── Users&Sessions .jsx
+│   │   │   ├── memory
+│   │   │   │   ├── MemoryHistoryGraph.jsx
+│   │   │   │   ├── MemoryUsageBar.jsx
+│   │   │   │   └── SwapUsageBar.jsx
+│   │   │   ├── Navbar.jsx
+│   │   │   ├── network
+│   │   │   │   ├── ConnectionsTable.jsx
+│   │   │   │   ├── NetworkSpeedDisplay.jsx
+│   │   │   │   └── NetworkTrafficGraph.jsx
+│   │   │   ├── overview
+│   │   │   │   ├── ActivityFeed.jsx
+│   │   │   │   ├── HealthSummaryCards.jsx
+│   │   │   │   ├── MetricGauges.jsx
+│   │   │   │   └── QuickStats.jsx
+│   │   │   ├── process
+│   │   │   │   ├── ProcessesStatus.jsx
+│   │   │   │   ├── ProcessesTable.jsx
+│   │   │   │   ├── ServicesTable.jsx
+│   │   │   │   ├── serviceStatus.jsx
+│   │   │   │   ├── totalProcesses.jsx
+│   │   │   │   └── total_servieses.jsx
+│   │   │   ├── Sidebar.jsx
+│   │   │   ├── StatusFooter.jsx
+│   │   │   └── TelemetryChart.jsx
+│   │   ├── constants
+│   │   │   └── thresholds.js
+│   │   ├── hooks
+│   │   │   ├── useAlerts.js
+│   │   │   ├── useIncidents.js
+│   │   │   ├── useMetrics.js
+│   │   │   └── useWebSocket.js
+│   │   ├── index.css
+│   │   ├── main.jsx
+│   │   ├── pages
+│   │   │   ├── AlertsPage.jsx
+│   │   │   ├── CpuPage.jsx
+│   │   │   ├── HardwarePage.jsx
+│   │   │   ├── HealingPage.jsx
+│   │   │   ├── LogsPage.jsx
+│   │   │   ├── MemoryDiskPage.jsx
+│   │   │   ├── NetworkPage.jsx
+│   │   │   ├── OverviewPage.jsx
+│   │   │   ├── PolicyPage.jsx
+│   │   │   ├── ProcessPage.jsx
+│   │   │   ├── SettingsPage.jsx
+│   │   │   └── steps
+│   │   │       ├── cpu
+│   │   │       │   ├── Step4Cpu.jsx
+│   │   │       │   └── Step5Cpu.jsx
+│   │   │       ├── disk
+│   │   │       │   ├── Step4Disk.jsx
+│   │   │       │   └── Step5Disk.jsx
+│   │   │       ├── hardware
+│   │   │       │   ├── Step4Hardware.jsx
+│   │   │       │   └── Step5Hardware.jsx
+│   │   │       ├── memory
+│   │   │       │   ├── Step4Memory.jsx
+│   │   │       │   └── Step5Memory.jsx
+│   │   │       ├── network
+│   │   │       │   ├── Step4Network.jsx
+│   │   │       │   └── Step5Network.jsx
+│   │   │       ├── process
+│   │   │       │   ├── step10process.jsx
+│   │   │       │   ├── step4Process.jsx
+│   │   │       │   ├── step5process.jsx
+│   │   │       │   └── step7Process.jsx
+│   │   │       ├── Step10.jsx
+│   │   │       ├── Step11.jsx
+│   │   │       ├── Step12.jsx
+│   │   │       ├── Step13.jsx
+│   │   │       ├── Step1.jsx
+│   │   │       ├── Step2.jsx
+│   │   │       ├── Step3.jsx
+│   │   │       ├── Step4.jsx
+│   │   │       ├── Step5.jsx
+│   │   │       ├── Step6.jsx
+│   │   │       ├── Step7.jsx
+│   │   │       ├── Step8.jsx
+│   │   │       ├── Step9.jsx
+│   │   │       ├── wizardComponents.jsx
+│   │   │       └── wizardConstants.js
+│   │   ├── services
+│   │   │   ├── api.js
+│   │   │   └── websocket.js
+│   │   └── utils
+│   │       ├── cn.js
+│   │       ├── formatBytes.js
+│   │       ├── formatUptime.js
+│   │       └── getAlertColor.js
+│   ├── tailwind.config.js
+│   └── vite.config.js
+├── decision-engine
+│   ├── action_planner
+│   │   ├── actions.py
+│   │   └── send_decisions
+│   │       ├── backend.py
+│   │       └── healing_engine.py
+│   ├── engine
+│   │   ├── decision.py
+│   │   └── decision_strategies
+│   │       ├── base_decisions.py
+│   │       ├── helth_decisions.py
+│   │       ├── network_decisions.py
+│   │       └── process_decisions.py
+│   ├── main.py
+│   ├── policies
+│   │   └── policy_checker.py
+│   └── rules
+│       └── rule_loader.py
+├── deployment
+│   ├── aws
+│   ├── docker
+│   │   └── docker-compose.yml
+│   ├── github-actions
+│   └── kubernetes
+├── docs
+│   ├── api
+│   ├── architecture
+│   ├── diagrams
+│   ├── meeting-notes
+│   ├── proposal
+│   ├── reports
+│   └── sprint-plans
+├── grafana
+│   ├── dashboards
+│   │   ├── CPU & Performance.json
+│   │   ├── DiskViewer.json
+│   │   ├── LogsViewer.json
+│   │   ├── network.json
+│   │   └── process.json
+│   ├── grafana.ini
+│   └── provisioning
+├── infrastructure
+│   ├── app.log
+│   ├── app.py
+│   ├── crud.py
+│   ├── database.py
+│   ├── docker-compose.yml
+│   ├── Dockerfile
+│   ├── model.py
+│   ├── nginx.conf
+│   ├── requirements.txt
+│   ├── schema.py
+│   └── test.db
+├── integrations
+│   ├── aws
+│   ├── email
+│   ├── rest-api
+│   ├── service-now
+│   ├── slack
+│   └── webhook
+├── LICENSE
+├── loki
+│   └── config
+│       └── loki.yml
+├── monitoring-agent
+│   ├── collectors
+│   │   ├── cpu.py
+│   │   ├── disk.py
+│   │   ├── ebpf
+│   │   ├── health2.py
+│   │   ├── health.py
+│   │   ├── logs.py
+│   │   ├── memory.py
+│   │   ├── network.py
+│   │   ├── process.py
+│   │   ├── __pycache__
+│   │   │   ├── cpu.cpython-312.pyc
+│   │   │   ├── disk.cpython-312.pyc
+│   │   │   ├── health.cpython-312.pyc
+│   │   │   ├── logs.cpython-312.pyc
+│   │   │   ├── memory.cpython-312.pyc
+│   │   │   ├── network.cpython-312.pyc
+│   │   │   ├── process.cpython-312.pyc
+│   │   │   └── service.cpython-312.pyc
+│   │   └── service.py
+│   ├── config
+│   ├── Dockerfile
+│   ├── main.py
+│   ├── __pycache__
+│   │   └── main.cpython-312.pyc
+│   ├── requirements.txt
+│   ├── scheduler
+│   ├── sender
+│   │   ├── exporter_cpu.py
+│   │   ├── exporter_disk.py
+│   │   ├── exporter_health.py
+│   │   ├── exporter_logs.py
+│   │   ├── exporter_memory.py
+│   │   ├── exporter_network.py
+│   │   ├── exporter_process.py
+│   │   ├── exporter_service.py
+│   │   └── __pycache__
+│   │       ├── exporter_cpu.cpython-312.pyc
+│   │       ├── exporter_disk.cpython-312.pyc
+│   │       ├── exporter_health.cpython-312.pyc
+│   │       ├── exporter_logs.cpython-312.pyc
+│   │       ├── exporter_memory.cpython-312.pyc
+│   │       ├── exporter_network.cpython-312.pyc
+│   │       ├── exporter_process.cpython-312.pyc
+│   │       └── exporter_service.cpython-312.pyc
+│   ├── tests
+│   └── utils
+├── prometheus
+│   ├── prometheus.yml
+│   └── rules
+├── README.md
+├── self-healing
+│   ├── ansible
+│   ├── logs
+│   ├── recovery
+│   ├── rollback
+│   ├── scripts
+│   └── verification
+├── testing
+│   ├── integration
+│   ├── performance
+│   ├── scenarios
+│   ├── security
+│   └── unit
+└── t.txt
+
+112 directories, 245 files

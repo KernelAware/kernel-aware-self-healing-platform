@@ -18,7 +18,8 @@ def collect_services():
                 "--no-pager"
             ],
             capture_output=True,
-            text=True
+            text=True,
+            timeout=10
         )
 
         for line in result.stdout.splitlines():
@@ -39,7 +40,8 @@ def collect_services():
                         "--property=UnitFileState"
                     ],
                     capture_output=True,
-                    text=True
+                    text=True,
+                    timeout=10
                 )
 
                 properties = {}
