@@ -63,6 +63,7 @@ threading.Thread(
 ).start()
 
 
+@app.get("/metrics")
 @app.get("/system_metrics")
 def metrics():
     return Response(
