@@ -14,35 +14,83 @@ export default function Step5Disk({ form, setForm }) {
 
   const updateCondition = (field, value) => setForm(current => {
     const targets = Array.isArray(current.targets) ? current.targets : []
+    const metricId = field === "metric" ? value : (current.condMetric || current.metric || metric.id)
+    const conditionValues = {
+      metric: metricId,
+      operator: current.condOperator || "Greater Than (>)",
+      threshold: current.condThreshold || "90",
+      duration: current.condDuration || "5",
+      durationUnit: current.condDurationUnit || "Minutes",
+      [field]: value,
+    }
     return {
       ...current,
       [field === "metric" ? "condMetric" : field === "operator" ? "condOperator" : field === "threshold" ? "condThreshold" : field === "duration" ? "condDuration" : "condDurationUnit"]: value,
       targets: targets.map(item => {
         if (!["host", "disk", "filesystem"].includes(item.type)) return item
+        const metrics = Array.isArray(item.metrics) ? item.metrics : []
+        const metricIndex = metrics.findIndex(metricItem => metricItem.name === (current.condMetric || current.metric || metric.id))
+        const selectedMetricIndex = metricIndex >= 0 ? metricIndex : 0
+        const selectedMetric = metrics[selectedMetricIndex] || { name: metricId, conditions: [] }
+        const conditions = Array.isArray(selectedMetric.conditions) ? selectedMetric.conditions : []
+        const existingCondition = conditions[0] || {}
         return {
           ...item,
-          metrics: (item.metrics || []).map(metricItem => metricItem.name !== (targetMetric?.name || metric.id) ? metricItem : {
-            ...metricItem,
-            conditions: (metricItem.conditions || []).map((itemCondition, index) => index !== 0 ? itemCondition : { ...itemCondition, [field]: value }),
-          }),
+          metrics: metrics.length > 0
+            ? metrics.map((metricItem, index) => index !== selectedMetricIndex ? metricItem : {
+              ...metricItem,
+              name: metricId,
+              conditions: [{ ...existingCondition, ...conditionValues }],
+            })
+            : [{ name: metricId, conditions: [{ ...conditionValues }] }],
         }
       }),
     }
   })
 
   useEffect(() => {
-    if (form.condMetric && form.condOperator && form.condThreshold && form.condDuration) return
-    setForm(current => ({
+    const nestedCondition = form.targets?.find(item => ["host", "disk", "filesystem"].includes(item.type))?.metrics?.[0]?.conditions?.[0]
+    if (form.condMetric && form.condOperator && form.condThreshold && form.condDuration && nestedCondition?.metric && nestedCondition?.operator && nestedCondition?.threshold && nestedCondition?.duration && nestedCondition?.durationUnit) return
+    setForm(current => {
+      const condMetric = current.condMetric || current.metric || "disk_usage_percent"
+      const condOperator = current.condOperator || "Greater Than (>)"
+      const condThreshold = current.condThreshold || "90"
+      const condDuration = current.condDuration || "5"
+      const condDurationUnit = current.condDurationUnit || "Minutes"
+      const targets = Array.isArray(current.targets) ? current.targets : []
+      return {
       ...current,
-      condMetric: current.condMetric || current.metric || "Disk Usage (%)",
-      condOperator: current.condOperator || "Greater Than (>)",
-      condThreshold: current.condThreshold || "90",
-      condDuration: current.condDuration || "5",
-      condDurationUnit: current.condDurationUnit || "Minutes",
+      condMetric,
+      condOperator,
+      condThreshold,
+      condDuration,
+      condDurationUnit,
       condInterval: current.condInterval || "Every 30 seconds",
       condOccurrences: current.condOccurrences || "8",
       condOutOf: current.condOutOf || "10",
-    }))
+      targets: targets.map(item => {
+        if (!["host", "disk", "filesystem"].includes(item.type)) return item
+        const metrics = Array.isArray(item.metrics) ? item.metrics : []
+        const selectedMetric = metrics[0] || { name: condMetric, conditions: [] }
+        const existingCondition = selectedMetric.conditions?.[0] || {}
+        return {
+          ...item,
+          metrics: [{
+            ...selectedMetric,
+            name: condMetric,
+            conditions: [{
+              ...existingCondition,
+              metric: condMetric,
+              operator: condOperator,
+              threshold: condThreshold,
+              duration: condDuration,
+              durationUnit: condDurationUnit,
+            }],
+          }],
+        }
+      }),
+    }
+    })
   }, [form.condMetric, form.metric, form.condOperator, form.condThreshold, form.condDuration, setForm])
 
   return (
