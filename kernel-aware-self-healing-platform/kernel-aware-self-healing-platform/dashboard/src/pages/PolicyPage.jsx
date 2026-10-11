@@ -17,6 +17,16 @@ import Step10 from "./steps/Step10"
 import Step11 from "./steps/Step11"
 import Step12 from "./steps/Step12"
 import Step13 from "./steps/Step13"
+import Step4Disk from "./steps/disk/Step4Disk"
+import Step5Disk from "./steps/disk/Step5Disk"
+import Step6Disk from "./steps/disk/Step6Disk"
+import Step7Disk from "./steps/disk/Step7Disk"
+import Step8Disk from "./steps/disk/Step8Disk"
+import Step9Disk from "./steps/disk/Step9Disk"
+import Step10Disk from "./steps/disk/Step10Disk"
+import Step11Disk from "./steps/disk/Step11Disk"
+import Step12Disk from "./steps/disk/Step12Disk"
+import Step13Disk from "./steps/disk/Step13Disk"
 
 const STATS = [
   { label: "Active Rules", value: "42", hint: "↑ 8 from last week", tone: "text-primary" },
@@ -49,6 +59,21 @@ export default function PolicyPage() {
   const exitWizard = () => setActiveTab("all-user_rules")
 
   const renderStep = () => {
+    if (form.monitorSource === "disk" && step >= 4) {
+      const diskSteps = {
+        4: <Step4Disk form={form} setForm={setForm} />,
+        5: <Step5Disk form={form} setForm={setForm} />,
+        6: <Step6Disk form={form} setForm={setForm} />,
+        7: <Step7Disk form={form} setForm={setForm} />,
+        8: <Step8Disk form={form} setForm={setForm} />,
+        9: <Step9Disk form={form} setForm={setForm} />,
+        10: <Step10Disk form={form} setForm={setForm} />,
+        11: <Step11Disk form={form} setForm={setForm} />,
+        12: <Step12Disk form={form} setForm={setForm} />,
+        13: <Step13Disk form={form} onCancel={exitWizard} />,
+      }
+      return diskSteps[step]
+    }
     switch (step) {
       case 1:  return <Step1 form={form} setForm={setForm} onNext={handleNext} onCancel={exitWizard} />
       case 2:  return <Step2 form={form} setForm={setForm} />
