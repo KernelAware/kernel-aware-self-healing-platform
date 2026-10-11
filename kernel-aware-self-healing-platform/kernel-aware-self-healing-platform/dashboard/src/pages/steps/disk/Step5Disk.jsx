@@ -1,13 +1,34 @@
 import { useEffect } from "react"
 import { Panel } from "@/components/kit"
 import { SelectBox } from "../wizardComponents"
-import { DISK_METRICS, OPERATORS, updateDisk } from "./diskHelpers"
+import { DISK_METRICS, OPERATORS, updateDisk, updateDiskMetric } from "./diskHelpers"
 
 export default function Step5Disk({ form, setForm }) {
   const metric = DISK_METRICS.find(item => item.id === (form.condMetric || form.metric)) || DISK_METRICS[0]
+  const diskTarget = form.targets?.find(item => ["host", "disk", "filesystem"].includes(item.type))
+  const targetMetric = diskTarget?.metrics?.[0]
+  const condition = targetMetric?.conditions?.[0]
   const duration = form.condDuration || "5"
   const target = [form.mountPoint || form.device, form.host].filter(Boolean).join(" on ")
-  const operator = form.condOperator || "Greater Than (>)"
+  const operator = form.condOperator || condition?.operator || "Greater Than (>)"
+
+  const updateCondition = (field, value) => setForm(current => {
+    const targets = Array.isArray(current.targets) ? current.targets : []
+    return {
+      ...current,
+      [field === "metric" ? "condMetric" : field === "operator" ? "condOperator" : field === "threshold" ? "condThreshold" : field === "duration" ? "condDuration" : "condDurationUnit"]: value,
+      targets: targets.map(item => {
+        if (!["host", "disk", "filesystem"].includes(item.type)) return item
+        return {
+          ...item,
+          metrics: (item.metrics || []).map(metricItem => metricItem.name !== (targetMetric?.name || metric.id) ? metricItem : {
+            ...metricItem,
+            conditions: (metricItem.conditions || []).map((itemCondition, index) => index !== 0 ? itemCondition : { ...itemCondition, [field]: value }),
+          }),
+        }
+      }),
+    }
+  })
 
   useEffect(() => {
     if (form.condMetric && form.condOperator && form.condThreshold && form.condDuration) return
@@ -29,16 +50,16 @@ export default function Step5Disk({ form, setForm }) {
       <div className="mb-6"><p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">5. DISK CONDITIONS (WHEN)</p><p className="text-xs text-muted-foreground mt-0.5">Define when this disk rule should trigger.</p></div>
       <div className="space-y-5">
         <div className="grid grid-cols-3 gap-3">
-          <SelectBox value={metric.id} options={DISK_METRICS.map(item => item.id)} onChange={v => updateDisk(setForm, { condMetric: v })} />
-          <SelectBox value={operator} options={OPERATORS} onChange={v => updateDisk(setForm, { condOperator: v })} />
-          <div className="flex items-center gap-2"><input type="number" value={form.condThreshold || "90"} onChange={e => updateDisk(setForm, { condThreshold: e.target.value })} className="w-full rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground focus:border-ring focus:outline-none" placeholder="Threshold" /><span className="font-mono text-xs text-muted-foreground">{metric.unit}</span></div>
+          <SelectBox value={metric.id} options={DISK_METRICS.map(item => item.id)} onChange={v => updateDiskMetric(setForm, v)} />
+          <SelectBox value={operator} options={OPERATORS} onChange={v => updateCondition("operator", v)} />
+          <div className="flex items-center gap-2"><input type="number" value={form.condThreshold || condition?.threshold || "90"} onChange={e => updateCondition("threshold", e.target.value)} className="w-full rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground focus:border-ring focus:outline-none" placeholder="Threshold" /><span className="font-mono text-xs text-muted-foreground">{metric.unit}</span></div>
         </div>
 
         <div>
           <label className="block font-mono text-[11px] text-foreground mb-1.5">Duration (How long it must persist)</label>
           <div className="flex items-center gap-2 flex-wrap">
-            <input type="number" value={duration} onChange={e => updateDisk(setForm, { condDuration: e.target.value })} className="w-16 rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground text-center focus:border-ring focus:outline-none" />
-            <SelectBox value={form.condDurationUnit || "Minutes"} options={["Seconds","Minutes","Hours"]} onChange={v => updateDisk(setForm, { condDurationUnit: v })} className="w-28" />
+            <input type="number" value={duration} onChange={e => updateCondition("duration", e.target.value)} className="w-16 rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground text-center focus:border-ring focus:outline-none" />
+            <SelectBox value={form.condDurationUnit || "Minutes"} options={["Seconds","Minutes","Hours"]} onChange={v => updateCondition("durationUnit", v)} className="w-28" />
             <span className="font-mono text-[11px] text-foreground">Evaluation Frequency <span className="text-primary">*</span></span>
             <SelectBox value={form.condInterval || "Every 30 seconds"} options={["Every 30 seconds","Every 1 minute","Every 5 minutes"]} onChange={v => updateDisk(setForm, { condInterval: v })} className="w-40" />
           </div>

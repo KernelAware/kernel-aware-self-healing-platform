@@ -7,9 +7,12 @@ import { ACTION_TYPES } from "../wizardConstants"
 const DISK_ACTIONS = ["alert", "free-disk", "clear-cache", "run-automation", "run-command", "trigger-webhook", "send-notification", "create-incident", "require-approval"]
 
 export default function Step7Disk({ form, setForm }) {
-  const selected = Array.isArray(form.actionTypes) ? form.actionTypes : []
+  const selected = Array.isArray(form.actions) ? form.actions : []
   const actions = ACTION_TYPES.filter(action => DISK_ACTIONS.includes(action.id))
-  const toggle = id => setForm(current => ({ ...current, actionTypes: selected.includes(id) ? selected.filter(item => item !== id) : [...selected, id] }))
+  const toggle = id => setForm(current => {
+    const currentActions = Array.isArray(current.actions) ? current.actions : []
+    return { ...current, actions: currentActions.includes(id) ? currentActions.filter(item => item !== id) : [...currentActions, id] }
+  })
   return <Panel className="p-6">
     <div className="mb-5"><p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">7. DISK ACTIONS</p><p className="text-xs text-muted-foreground mt-0.5">Choose the response to a triggered disk incident.</p></div>
     <div className="grid grid-cols-3 gap-3">{actions.map(action => { const Icon = action.icon; const active = selected.includes(action.id); return <label key={action.id} onClick={() => toggle(action.id)} className={cn("flex items-center gap-3 rounded-md border p-3.5 cursor-pointer transition-all", active ? "border-primary bg-primary/5" : "border-border hover:border-primary/30")}><div className={cn("flex size-10 shrink-0 items-center justify-center rounded-full", action.bg)}><Icon className="size-4 text-white" /></div><div className="min-w-0 flex-1"><p className="font-mono text-xs font-semibold text-foreground">{action.title}</p><p className="font-mono text-[10px] text-muted-foreground">{action.desc}</p></div><Checkbox checked={active} onClick={event => { event.stopPropagation(); toggle(action.id) }} /></label> })}</div>

@@ -22,3 +22,72 @@ export const OPERATORS = ["Greater Than (>)", "Greater Than or Equal (>=)", "Les
 export const updateDisk = (setForm, values) => setForm(form => ({ ...form, ...values }))
 export const metricFor = value => DISK_METRICS.find(metric => metric.id === value) || DISK_METRICS[0]
 export const operatorSymbol = value => value?.match(/(?:>=|<=|>|<|=)/)?.[0] || ">"
+
+export const diskTargetType = targetType => {
+  if (targetType === "Disk / Device") return "disk"
+  if (targetType === "Filesystem / Mount Point") return "filesystem"
+  return "host"
+}
+
+export const diskTargetName = form => {
+  if (form.targetType === "Disk / Device") return form.device || ""
+  if (form.targetType === "Filesystem / Mount Point") return form.mountPoint || ""
+  return form.host || ""
+}
+
+export const updateDiskTarget = (setForm, values = {}) => setForm(current => {
+  const next = { ...current, ...values }
+  const type = diskTargetType(next.targetType)
+  const name = diskTargetName(next)
+  const targets = Array.isArray(next.targets) ? next.targets : []
+  const targetIndex = targets.findIndex(target => ["host", "disk", "filesystem"].includes(target.type))
+  const existing = targetIndex >= 0 ? targets[targetIndex] : { metrics: [] }
+  const metrics = existing.metrics?.length ? existing.metrics : [{
+    name: next.metric || DISK_METRICS[0].id,
+    conditions: [{
+      metric: next.metric || DISK_METRICS[0].id,
+      operator: next.condOperator || "Greater Than (>)",
+      threshold: next.condThreshold || "",
+      duration: next.condDuration || "5",
+      durationUnit: next.condDurationUnit || "Minutes",
+    }],
+  }]
+  const target = { ...existing, type, name, host: next.host || "", metrics }
+
+  return {
+    ...next,
+    targets: targetIndex >= 0
+      ? targets.map((item, index) => index === targetIndex ? target : item)
+      : [...targets, target],
+  }
+})
+
+export const updateDiskMetric = (setForm, metricId) => setForm(current => {
+  const targets = Array.isArray(current.targets) ? current.targets : []
+  const targetIndex = targets.findIndex(target => ["host", "disk", "filesystem"].includes(target.type))
+  if (targetIndex < 0) return current
+
+  const target = targets[targetIndex]
+  const metrics = Array.isArray(target.metrics) ? target.metrics : []
+  const metricIndex = metrics.findIndex(item => item.name === metricId)
+  const metric = metricIndex >= 0
+    ? metrics[metricIndex]
+    : {
+        name: metricId,
+        conditions: [{
+          metric: metricId,
+          operator: "Greater Than (>)",
+          threshold: "",
+          duration: "5",
+          durationUnit: "Minutes",
+        }],
+      }
+
+  return {
+    ...current,
+    metric: metricId,
+    condMetric: metricId,
+    recoveryMetric: metricId,
+    targets: targets.map((item, index) => index === targetIndex ? { ...item, metrics: [{ ...metric, name: metricId, conditions: (metric.conditions || []).map((condition, conditionIndex) => conditionIndex === 0 ? { ...condition, metric: metricId } : condition) }] } : item),
+  }
+})

@@ -1,7 +1,7 @@
 import { useEffect } from "react"
 import { Panel } from "@/components/kit"
 import { SelectBox } from "../wizardComponents"
-import { DISK_METRICS, DISK_TARGET_TYPES, updateDisk } from "./diskHelpers"
+import { DISK_METRICS, DISK_TARGET_TYPES, updateDisk, updateDiskMetric, updateDiskTarget } from "./diskHelpers"
 
 export default function Step4Disk({ form, setForm }) {
   const metric = DISK_METRICS.find(item => item.id === form.metric) || DISK_METRICS[0]
@@ -12,16 +12,15 @@ export default function Step4Disk({ form, setForm }) {
     const normalizedMetric = DISK_METRICS.some(item => item.id === form.metric) ? form.metric : "Disk Usage (%)"
     const normalizedMount = form.mountPoint === "/ (Root)" ? "/" : (form.mountPoint || "/")
     if (form.targetType !== normalizedTarget || form.metric !== normalizedMetric || form.mountPoint !== normalizedMount || !form.host) {
-      setForm(current => ({
-        ...current,
+      updateDiskTarget(setForm, {
         metric: normalizedMetric,
-        condMetric: current.condMetric === "Disk Usage %" ? normalizedMetric : (current.condMetric || normalizedMetric),
-        recoveryMetric: current.recoveryMetric || normalizedMetric,
+        condMetric: form.condMetric === "Disk Usage %" ? normalizedMetric : (form.condMetric || normalizedMetric),
+        recoveryMetric: form.recoveryMetric || normalizedMetric,
         targetType: normalizedTarget,
-        host: current.host || "web-01.prod.local",
+        host: form.host || "web-01.prod.local",
         mountPoint: normalizedMount,
-        aggregation: current.aggregation?.includes("(") ? "Average" : (current.aggregation || "Average"),
-      }))
+        aggregation: form.aggregation?.includes("(") ? "Average" : (form.aggregation || "Average"),
+      })
     }
   }, [form.targetType, form.metric, form.mountPoint, form.host, form.condMetric, form.recoveryMetric, form.aggregation, setForm])
 
@@ -32,20 +31,20 @@ export default function Step4Disk({ form, setForm }) {
         <div className="col-span-2 space-y-4">
           <div>
             <label className="block font-mono text-[11px] text-foreground mb-1.5">Disk Metric <span className="text-destructive">*</span></label>
-            <SelectBox value={metric.id} options={DISK_METRICS.map(item => item.id)} onChange={v => updateDisk(setForm, { metric: v, condMetric: v, recoveryMetric: v })} />
+            <SelectBox value={metric.id} options={DISK_METRICS.map(item => item.id)} onChange={v => updateDiskMetric(setForm, v)} />
           </div>
           <div>
             <label className="block font-mono text-[11px] text-foreground mb-1.5">Target Type <span className="text-destructive">*</span></label>
-            <SelectBox value={targetType} options={DISK_TARGET_TYPES} onChange={v => updateDisk(setForm, { targetType: v })} />
+            <SelectBox value={targetType} options={DISK_TARGET_TYPES} onChange={v => updateDiskTarget(setForm, { targetType: v })} />
           </div>
           <label className="block font-mono text-[11px] text-foreground">Host <span className="text-destructive">*</span>
-            <input value={form.host || ""} onChange={e => updateDisk(setForm, { host: e.target.value })} placeholder="web-01.prod.local" className="mt-1.5 w-full rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground focus:border-ring focus:outline-none" />
+            <input value={form.host || ""} onChange={e => updateDiskTarget(setForm, { host: e.target.value })} placeholder="web-01.prod.local" className="mt-1.5 w-full rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground focus:border-ring focus:outline-none" />
           </label>
           {targetType === "Disk / Device" && <label className="block font-mono text-[11px] text-foreground">Disk Device <span className="text-destructive">*</span>
-            <input value={form.device || ""} onChange={e => updateDisk(setForm, { device: e.target.value })} placeholder="/dev/sda" className="mt-1.5 w-full rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground focus:border-ring focus:outline-none" />
+            <input value={form.device || ""} onChange={e => updateDiskTarget(setForm, { device: e.target.value })} placeholder="/dev/sda" className="mt-1.5 w-full rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground focus:border-ring focus:outline-none" />
           </label>}
           {targetType === "Filesystem / Mount Point" && <label className="block font-mono text-[11px] text-foreground">Mount Point <span className="text-destructive">*</span>
-            <input value={form.mountPoint || ""} onChange={e => updateDisk(setForm, { mountPoint: e.target.value })} placeholder="/data" className="mt-1.5 w-full rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground focus:border-ring focus:outline-none" />
+            <input value={form.mountPoint || ""} onChange={e => updateDiskTarget(setForm, { mountPoint: e.target.value })} placeholder="/data" className="mt-1.5 w-full rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground focus:border-ring focus:outline-none" />
           </label>}
           <div>
             <label className="block font-mono text-[11px] text-foreground mb-1.5">Aggregation <span className="text-destructive">*</span></label>
