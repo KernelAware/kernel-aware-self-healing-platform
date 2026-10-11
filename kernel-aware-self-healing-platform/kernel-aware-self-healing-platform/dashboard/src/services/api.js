@@ -42,6 +42,20 @@ export async function queryPrometheus(query) {
   return json.data.result
 }
 
+export async function queryPrometheusMetricNames() {
+  const response = await fetch("http://localhost:9090/api/v1/label/__name__/values")
+  if (!response.ok) {
+    throw new Error(`Prometheus returned HTTP ${response.status}`)
+  }
+
+  const json = await response.json()
+  if (json.status !== "success" || !Array.isArray(json.data)) {
+    throw new Error("Prometheus returned an invalid metric-name response")
+  }
+
+  return json.data
+}
+
 export async function userRules(form) {
   const response = await fetch("http://localhost:8000/user_rules", {
     method: "POST",
