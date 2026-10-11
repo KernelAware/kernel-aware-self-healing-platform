@@ -8,6 +8,7 @@ import {
 } from "lucide-react"
 import { Panel } from "@/components/kit"
 import {userRules} from "../../services/api.js";
+import { buildRulePayload } from "@/utils/rulePayloadBuilder";
 
 export default function Step13({ form, onCancel }) {
 
@@ -804,23 +805,59 @@ export default function Step13({ form, onCancel }) {
         </p>
       </Panel>
 
+
       <div className="flex justify-end pt-1">
+
+        {/*<button*/}
+        {/*  type="button"*/}
+        {/*  onClick={async () => {*/}
+        {/*    try {*/}
+        {/*      const data = await userRules(form);*/}
+        {/*      setCreated(true)*/}
+        {/*    } catch (error) {*/}
+        {/*      console.error(error);*/}
+        {/*    }*/}
+        {/*  }}*/}
+        {/*  className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-6 font-mono text-xs font-bold tracking-wide text-primary-foreground hover:bg-primary/90 shadow-glow-primary transition-colors cursor-pointer"*/}
+        {/*>*/}
+        {/*  Create Rule*/}
+        {/*  <ArrowRight className="size-3.5" />*/}
+        {/*</button>*/}
+
         <button
-          type="button"
-          onClick={async () => {
-            try {
-              const data = await userRules(form);
-              setCreated(true)
-            } catch (error) {
-              console.error(error);
-            }
-          }}
-          className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-6 font-mono text-xs font-bold tracking-wide text-primary-foreground hover:bg-primary/90 shadow-glow-primary transition-colors cursor-pointer"
-        >
-          Create Rule
-          <ArrowRight className="size-3.5" />
+            type="button"
+            onClick={async () => {
+                  try {
+                    const payload = buildRulePayload(form);
+
+                    // Check the complete object
+                    console.log("FORM DATA:", form);
+                    console.log("RULE PAYLOAD:", payload);
+
+                    // Pretty-print the object as JSON
+                    console.log(
+                      "RULE PAYLOAD JSON:",
+                      JSON.stringify(payload, null, 2)
+                    );
+
+                    const data = await userRules(payload);
+
+                    console.log("BACKEND RESPONSE:", data);
+                    setCreated(true);
+                  } catch (error) {
+                    console.error("CREATE RULE ERROR:", error);
+                  }
+                }}
+
+            className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-6 font-mono text-xs font-bold tracking-wide text-primary-foreground hover:bg-primary/90 shadow-glow-primary transition-colors cursor-pointer"
+          >
+            Create Rule
+            <ArrowRight className="size-3.5" />
         </button>
+
       </div>
+
+
     </div>
   )
 }
