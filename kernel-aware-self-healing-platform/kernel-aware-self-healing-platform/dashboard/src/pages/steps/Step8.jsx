@@ -3,6 +3,12 @@ import { cn } from "@/utils/cn"
 import { Toggle, Radio } from "./wizardComponents"
 
 export default function Step8({ form, setForm }) {
+
+        console.log(
+    "CURRENT FORM - form 8:\n",
+    JSON.stringify(form, null, 2)
+  )
+
   const safety = form.safety || {}
 
   return (

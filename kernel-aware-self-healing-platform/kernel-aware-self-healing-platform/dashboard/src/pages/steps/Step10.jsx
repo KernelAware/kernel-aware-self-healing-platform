@@ -4,6 +4,12 @@ import { Info } from "lucide-react"
 import Step10Process from "./process/step10process.jsx"
 
 export default function Step10({ form, setForm }) {
+
+        console.log(
+    "CURRENT FORM - form 10:\n",
+    JSON.stringify(form, null, 2)
+  )
+
   const isNetwork = form.monitorSource === "network";
   const condUnit = isNetwork ? "errors/sec" : "%";
 

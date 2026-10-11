@@ -22,6 +22,12 @@ const CHANNELS = [
 ]
 
 export default function Step11({ form, setForm }) {
+
+        console.log(
+    "CURRENT FORM - form 11:\n",
+    JSON.stringify(form, null, 2)
+  )
+
   const events = Array.isArray(form.notifications?.events)
     ? form.notifications.events
     : []

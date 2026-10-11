@@ -3,6 +3,12 @@ import { cn } from "@/utils/cn"
 import { Radio } from "./wizardComponents"
 
 export default function Step6({ form, setForm }) {
+
+          console.log(
+    "CURRENT FORM - form 6:\n",
+    JSON.stringify(form, null, 2)
+  )
+
   const sevs = [
     { id:"warning",label:"Warning",emoji:"⚠️",desc:"Needs attention",note:"Recommended for non-urgent issues.",ab:"border-warning",bb:"border-warning/40",abg:"bg-warning/10",bbg:"bg-warning/5",tc:"text-warning" },
     { id:"high",label:"High",emoji:"🔴",desc:"Affects system performance.",note:"Impacts system performance.",ab:"border-destructive",bb:"border-destructive/40",abg:"bg-destructive/10",bbg:"bg-destructive/5",tc:"text-destructive" },

@@ -10,6 +10,12 @@ import { Panel } from "@/components/kit"
 import {userRules} from "../../services/api.js";
 
 export default function Step13({ form, onCancel }) {
+
+  console.log(
+    "CURRENT FORM - form 13:\n",
+    JSON.stringify(form, null, 2)
+  )
+
   const [created, setCreated] = useState(false)
 
   const targets = Array.isArray(form.targets) ? form.targets : []

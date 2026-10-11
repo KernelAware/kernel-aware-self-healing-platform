@@ -46,6 +46,12 @@ const DAYS = [
 ]
 
 export default function Step12({ form, setForm }) {
+
+        console.log(
+    "CURRENT FORM - form 12:\n",
+    JSON.stringify(form, null, 2)
+  )
+
   const schedule = form.schedule || {}
 
   const activation = schedule.activation || "Always Active"

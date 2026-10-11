@@ -12,6 +12,12 @@ const allMetrics = [...RAM_METRICS, ...SWAP_METRICS]
 function unitFor(m) { return BYTE_METRICS.has(m) ? "bytes" : "%" }
 
 export default function Step5Memory({ form, setForm }) {
+
+      console.log(
+    "CURRENT FORM - form 5:\n",
+    JSON.stringify(form, null, 2)
+  )
+
   const category = form.memoryCategory || "ram"
   const availableMetrics = category === "swap" ? SWAP_METRICS : RAM_METRICS
 
@@ -64,12 +70,15 @@ export default function Step5Memory({ form, setForm }) {
                     {cond.metric}
                   </span>
                 </div>
+
                 <SelectBox
-                  value={cond.operator}
+                  value={cond.operator || ""}
                   options={["Greater Than (>)", "Less Than (<)", "Equals (=)"]}
                   onChange={v => updateCondition(cond.id, "operator", v)}
                   className="w-44"
+                  placeholder="Select Operator"
                 />
+
                 <div className="flex items-center gap-1.5 w-28">
                   <input
                     type="number"
@@ -108,7 +117,24 @@ export default function Step5Memory({ form, setForm }) {
               onChange={e => setForm(f => ({ ...f, condDuration: e.target.value }))}
               className="w-16 rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground text-center focus:border-ring focus:outline-none"
             />
-            <SelectBox value="Minutes" options={["Seconds", "Minutes", "Hours"]} onChange={() => {}} className="w-28" />
+            {/*<SelectBox value="Minutes" options={["Seconds", "Minutes", "Hours"]} onChange={() => {}} className="w-28" />*/}
+
+
+            <SelectBox
+              value={form.condDurationUnit || ""}
+              options={["Seconds", "Minutes", "Hours"]}
+              onChange={v =>
+                setForm(f => ({
+                  ...f,
+                  condDurationUnit: v
+                }))
+              }
+              className="w-28"
+              placeholder="Select unit"
+            />
+
+
+
             <span className="font-mono text-[11px] text-foreground">Evaluation Frequency <span className="text-primary">*</span></span>
             <SelectBox
               value={form.condInterval || "Every 30 seconds"}

@@ -3,6 +3,12 @@ import { Panel } from "@/components/kit"
 import { SelectBox, Checkbox } from "./wizardComponents"
 
 export default function Step9({ form, setForm }) {
+
+        console.log(
+    "CURRENT FORM - form 9:\n",
+    JSON.stringify(form, null, 2)
+  )
+
   const retry = form.retry || {}
 
   return (

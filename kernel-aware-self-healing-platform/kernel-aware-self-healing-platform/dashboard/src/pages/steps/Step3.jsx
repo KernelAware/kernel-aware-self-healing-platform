@@ -4,6 +4,12 @@ import { Radio } from "./wizardComponents"
 import { MONITOR_SOURCES } from "./wizardConstants"
 
 export default function Step3({ form, setForm }) {
+
+          console.log(
+    "CURRENT FORM - form 3:\n",
+    JSON.stringify(form, null, 2)
+  )
+
   return (
     <Panel className="p-6">
       <div className="mb-6"><p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">3. Monitor (Data Source)</p><p className="text-xs text-muted-foreground mt-0.5">What do you want to monitor?</p></div>
@@ -17,7 +23,7 @@ export default function Step3({ form, setForm }) {
               } else if (src.id === "disk") {
                 return { ...base, metric: "Disk Usage Percentage", targetType: "Partition (Mount Point)", aggregation: "Average (60s)", condMetric: "Disk Usage %", condThreshold: "", recoveryThreshold: "", condInterval: "Every 30 seconds", actionType: "alert", diskMetricCategory: "Disk", mountPoint: "/ (Root)" };
               } else if (src.id === "memory") {
-                return { ...base, metric: "system_memory_usage_percent", targetType: "Host", aggregation: "Average (Avg)", condMetric: "system_memory_usage_percent", condThreshold: "", recoveryThreshold: "", condInterval: "Every 30 seconds", actionType: "alert", memoryCategory: "ram", memoryMetric: "system_memory_usage_percent" };
+                return { ...base, metric: "system_memory_usage_percent", targetType: "Host", aggregation: "Latest", condMetric: "system_memory_usage_percent",condOperator: "Greater Than (>)", condThreshold: "",condDurationUnit: "Minutes", recoveryThreshold: "", condInterval: "Every 30 seconds", actionType: "alert", memoryCategory: "ram", memoryMetric: "system_memory_usage_percent" };
               } else if (src.id === "hardware") {
                 return { ...base, metric: "hardware_cpu_package_temperature_celsius", targetType: "Host", aggregation: "Average (Avg)", condMetric: "hardware_cpu_package_temperature_celsius", condThreshold: "", recoveryThreshold: "", condInterval: "Every 30 seconds", actionType: "alert", hardwareCategory: "CPU Temperature", hardwareMetric: "hardware_cpu_package_temperature_celsius" };
               } else if (src.id === "cpu") {

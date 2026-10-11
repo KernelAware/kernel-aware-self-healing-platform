@@ -6,6 +6,12 @@ import { ACTION_TYPES } from "./wizardConstants"
 import Step7Process from "./process/step7Process.jsx";
 
 export default function Step7({ form, setForm }) {
+
+          console.log(
+    "CURRENT FORM - form 7:\n",
+    JSON.stringify(form, null, 2)
+  )
+
   const selected = Array.isArray(form.actionTypes) ? form.actionTypes : (form.actionType ? [form.actionType] : [])
 
   const toggle = (id) => {

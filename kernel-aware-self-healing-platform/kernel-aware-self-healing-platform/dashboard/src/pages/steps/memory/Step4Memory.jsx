@@ -19,6 +19,12 @@ const METRIC_INFO = {
 }
 
 export default function Step4Memory({ form, setForm }) {
+
+    console.log(
+    "CURRENT FORM - form 4:\n",
+    JSON.stringify(form, null, 2)
+  )
+
   const [category, setCategory] = useState(form.memoryCategory || "ram")
 
   const metrics = METRIC_INFO[category]
