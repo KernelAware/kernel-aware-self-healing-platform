@@ -43,21 +43,22 @@ const INITIAL_ALERTS = [
     process: "system",
     pid: null
   },
-    {
-    id: "INC-1049",
-    level: "P1 - High",
-    tone: "warning",
-    age: "6m ago",
-    title: "Memory Usage High - python",
-    body: "Memory usage reached 87.2%, above the 80% threshold for 5 minutes.",
-    acked: false,
-    status: "HEALING",
-    system: "server-01",
-    process: "python-app",
-    pid: 9231
-  },
 ]
 
+function getAlertKey(alert) {
+  const ruleId = alert.rule_id ?? alert.ruleId
+  if (ruleId !== undefined && ruleId !== null) {
+    return `rule:${ruleId}`
+  }
+
+  return [
+    alert.title,
+    alert.system,
+    alert.process
+  ]
+    .map((value) => String(value ?? '').trim().toLowerCase())
+    .join('|')
+}
 
 export function useAlerts() {
   const [alerts, setAlerts] = useState(INITIAL_ALERTS)
@@ -70,10 +71,26 @@ export function useAlerts() {
       return
     }
 
-    setAlerts((prev) => [
-      socketAlert,
-      ...prev
-    ])
+    setAlerts((previousAlerts) => {
+      const key = getAlertKey(socketAlert)
+      const existingAlert = previousAlerts.find(
+        (alert) => getAlertKey(alert) === key
+      )
+      const updatedAlert = {
+        ...socketAlert,
+        updatedAt: Date.now(),
+        acked: existingAlert ? existingAlert.acked : Boolean(socketAlert.acked),
+        id: existingAlert ? existingAlert.id : socketAlert.id
+      }
+
+      if (!existingAlert) {
+        return [updatedAlert, ...previousAlerts]
+      }
+
+      return previousAlerts.map((alert) =>
+        getAlertKey(alert) === key ? updatedAlert : alert
+      )
+    })
 
   }, [socketAlert])
 

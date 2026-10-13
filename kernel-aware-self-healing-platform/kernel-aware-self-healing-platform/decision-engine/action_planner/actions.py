@@ -224,6 +224,8 @@ def create_alert(decision, incident, rules, policy):
 
         "id": incident_id,
 
+        "rule_id": incident.get("rule_id"),
+
         "level": f"{priority} - {severity}",
 
         "tone": tone_map.get(severity, "muted"),

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   TriangleAlert,
   Server,
@@ -13,6 +13,29 @@ import {
   StatusBadge
 } from '@/components/kit'
 
+function formatAlertAge(updatedAt, now, fallbackAge) {
+  if (!updatedAt) {
+    return fallbackAge
+  }
+
+  const timestamp = new Date(updatedAt).getTime()
+  if (Number.isNaN(timestamp)) {
+    return fallbackAge
+  }
+
+  const elapsedSeconds = Math.max(0, Math.floor((now - timestamp) / 1000))
+  if (elapsedSeconds < 60) {
+    return 'now'
+  }
+  if (elapsedSeconds < 3600) {
+    return `${Math.floor(elapsedSeconds / 60)}m ago`
+  }
+  if (elapsedSeconds < 86400) {
+    return `${Math.floor(elapsedSeconds / 3600)}h ago`
+  }
+
+  return `${Math.floor(elapsedSeconds / 86400)}d ago`
+}
 
 export default function ActiveAlertsList({
   alerts,
@@ -23,6 +46,12 @@ export default function ActiveAlertsList({
 }) {
 
   const activeCount = alerts.length
+  const [now, setNow] = useState(Date.now())
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 15000)
+    return () => clearInterval(interval)
+  }, [])
 
   return (
     <Panel>
@@ -71,7 +100,7 @@ export default function ActiveAlertsList({
                 </StatusBadge>
 
                 <span className="font-mono text-[10px] text-muted-foreground">
-                  {a.age}
+                  {formatAlertAge(a.updatedAt, now, a.age)}
                 </span>
 
               </div>
