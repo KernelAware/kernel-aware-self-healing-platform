@@ -1,6 +1,83 @@
 import {useEffect, useState} from 'react'
 import {useWebSocket} from "@/hooks/useWebSocket.js";
 
+const INCIDENTS_STORAGE_KEY = 'kernel-sentinel-active-incident-details'
+
+function loadIncidents() {
+  try {
+    const storedIncidents = window.localStorage.getItem(INCIDENTS_STORAGE_KEY)
+    if (storedIncidents === null) {
+      return INITIAL_INCIDENTS
+    }
+
+    const parsedIncidents = JSON.parse(storedIncidents)
+    if (!Array.isArray(parsedIncidents)) {
+      throw new TypeError('Saved incident details must be an array')
+    }
+
+    return parsedIncidents.map((incident) => incident.rule_id != null
+      ? { ...incident, id: `INC-RULE-${incident.rule_id}` }
+      : incident)
+  } catch (error) {
+    console.error('Unable to restore incident details from browser storage:', error)
+    return INITIAL_INCIDENTS
+  }
+}
+
+function getIncidentKey(incident) {
+  const ruleId = incident.rule_id ?? incident.ruleId
+  if (ruleId !== undefined && ruleId !== null) {
+    return `rule:${ruleId}`
+  }
+
+  return [
+    incident.title,
+    incident.system,
+    incident.process
+  ]
+    .map((value) => String(value ?? '').trim().toLowerCase())
+    .join('|')
+}
+
+function upsertIncident(previousIncidents, incident) {
+  const key = getIncidentKey(incident)
+  const existingIncident = previousIncidents.find(
+    (item) => getIncidentKey(item) === key
+  )
+  const updatedIncident = {
+    ...existingIncident,
+    ...incident,
+    id: existingIncident?.id ?? incident.id,
+    trigger: {
+      ...existingIncident?.trigger,
+      ...incident.trigger
+    },
+    decision: {
+      ...existingIncident?.decision,
+      ...incident.decision
+    },
+    policy: {
+      ...existingIncident?.policy,
+      ...incident.policy
+    },
+    rootCause: {
+      ...existingIncident?.rootCause,
+      ...incident.rootCause
+    },
+    operatorAction: {
+      ...existingIncident?.operatorAction,
+      ...incident.operatorAction
+    }
+  }
+
+  if (!existingIncident) {
+    return [updatedIncident, ...previousIncidents]
+  }
+
+  return previousIncidents.map((item) =>
+    getIncidentKey(item) === key ? updatedIncident : item
+  )
+}
 
 const INITIAL_INCIDENTS = [
   {
@@ -352,9 +429,17 @@ const INITIAL_INCIDENTS = [
 
 export function useIncidentDetails() {
 
-  const [incidents, setIncidents] = useState(INITIAL_INCIDENTS)
+  const [incidents, setIncidents] = useState(loadIncidents)
 
   const socket_incidents = useWebSocket('incident_detail')
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(INCIDENTS_STORAGE_KEY, JSON.stringify(incidents))
+    } catch (error) {
+      console.error('Unable to save incident details to browser storage:', error)
+    }
+  }, [incidents])
 
   useEffect(() => {
 
@@ -367,7 +452,9 @@ export function useIncidentDetails() {
       || metric?.startsWith('cpu_')
 
     if (!isCpuIncident) {
-      setIncidents((prev) => [socket_incidents, ...prev])
+      setIncidents((previousIncidents) =>
+        upsertIncident(previousIncidents, socket_incidents)
+      )
       return
     }
 
@@ -406,10 +493,9 @@ export function useIncidentDetails() {
       },
     }
 
-    setIncidents((prev) => [
-      cpuIncident,
-      ...prev
-    ])
+    setIncidents((previousIncidents) =>
+      upsertIncident(previousIncidents, cpuIncident)
+    )
 
   }, [socket_incidents])
 

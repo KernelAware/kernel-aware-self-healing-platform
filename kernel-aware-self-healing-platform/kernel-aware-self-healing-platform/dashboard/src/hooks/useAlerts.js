@@ -59,7 +59,9 @@ function loadActiveAlerts() {
       throw new TypeError('Saved alerts must be an array')
     }
 
-    return parsedAlerts
+    return parsedAlerts.map((alert) => alert.rule_id != null
+      ? { ...alert, id: `INC-RULE-${alert.rule_id}` }
+      : alert)
   } catch (error) {
     console.error('Unable to restore active alerts from browser storage:', error)
     return INITIAL_ALERTS
@@ -109,7 +111,9 @@ export function useAlerts() {
         ...socketAlert,
         updatedAt: Date.now(),
         acked: existingAlert ? existingAlert.acked : Boolean(socketAlert.acked),
-        id: existingAlert ? existingAlert.id : socketAlert.id
+        id: socketAlert.rule_id != null
+          ? `INC-RULE-${socketAlert.rule_id}`
+          : existingAlert ? existingAlert.id : socketAlert.id
       }
 
       if (!existingAlert) {
