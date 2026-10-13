@@ -45,6 +45,27 @@ const INITIAL_ALERTS = [
   },
 ]
 
+const ALERTS_STORAGE_KEY = 'kernel-sentinel-active-alerts'
+
+function loadActiveAlerts() {
+  try {
+    const storedAlerts = window.localStorage.getItem(ALERTS_STORAGE_KEY)
+    if (storedAlerts === null) {
+      return INITIAL_ALERTS
+    }
+
+    const parsedAlerts = JSON.parse(storedAlerts)
+    if (!Array.isArray(parsedAlerts)) {
+      throw new TypeError('Saved alerts must be an array')
+    }
+
+    return parsedAlerts
+  } catch (error) {
+    console.error('Unable to restore active alerts from browser storage:', error)
+    return INITIAL_ALERTS
+  }
+}
+
 function getAlertKey(alert) {
   const ruleId = alert.rule_id ?? alert.ruleId
   if (ruleId !== undefined && ruleId !== null) {
@@ -61,9 +82,17 @@ function getAlertKey(alert) {
 }
 
 export function useAlerts() {
-  const [alerts, setAlerts] = useState(INITIAL_ALERTS)
+  const [alerts, setAlerts] = useState(loadActiveAlerts)
 
   const socketAlert = useWebSocket('alerts')
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(ALERTS_STORAGE_KEY, JSON.stringify(alerts))
+    } catch (error) {
+      console.error('Unable to save active alerts to browser storage:', error)
+    }
+  }, [alerts])
 
   useEffect(() => {
 
