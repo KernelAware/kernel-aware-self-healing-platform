@@ -39,7 +39,8 @@ def user_rules_service(userRules):
         rule_target = RuleTarget(
             rule_id=rule.id,
             target_type=target["type"],
-            target=target["name"]
+            target=target["name"],
+            host=target.get("host")
         )
         targets.append(rule_target)
 
