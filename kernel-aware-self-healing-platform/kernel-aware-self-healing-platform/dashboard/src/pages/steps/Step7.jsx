@@ -4,6 +4,7 @@ import { cn } from "@/utils/cn"
 import { Checkbox } from "./wizardComponents"
 import { ACTION_TYPES } from "./wizardConstants"
 import Step7Process from "./process/step7Process.jsx";
+import Step7Network from "./network/Step7Network.jsx";
 
 export default function Step7({ form, setForm }) {
   const selected = Array.isArray(form.actionTypes) ? form.actionTypes : (form.actionType ? [form.actionType] : [])
@@ -16,6 +17,7 @@ export default function Step7({ form, setForm }) {
     })
   }
   if (form.monitorSource === "process") return <Step7Process form={form} setForm={setForm} />
+  if (form.monitorSource === "network") return <Step7Network form={form} setForm={setForm} />
   return (
     <Panel className="p-6">
       <div className="mb-5"><p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">7. Actions (What to Do)</p><p className="text-xs text-muted-foreground mt-0.5">Select the action type to perform when the condition is triggered.</p></div>
