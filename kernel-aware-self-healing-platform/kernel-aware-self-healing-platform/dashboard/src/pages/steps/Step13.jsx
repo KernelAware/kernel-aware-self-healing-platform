@@ -808,6 +808,10 @@ export default function Step13({ form, onCancel }) {
 
       <div className="flex justify-end pt-1">
 
+        {/*--------------*/}
+        {/*default*/}
+        {/*-------------*/}
+
         {/*<button*/}
         {/*  type="button"*/}
         {/*  onClick={async () => {*/}
@@ -824,36 +828,80 @@ export default function Step13({ form, onCancel }) {
         {/*  <ArrowRight className="size-3.5" />*/}
         {/*</button>*/}
 
+        {/*------------*/}
+        {/*memory*/}
+        {/*------------*/}
+
+        {/*<button*/}
+        {/*    type="button"*/}
+        {/*    onClick={async () => {*/}
+        {/*          try {*/}
+        {/*            const payload = buildRulePayload(form);*/}
+
+        {/*            // Check the complete object*/}
+        {/*            console.log("FORM DATA:", form);*/}
+        {/*            console.log("RULE PAYLOAD:", payload);*/}
+
+        {/*            // Pretty-print the object as JSON*/}
+        {/*            console.log(*/}
+        {/*              "RULE PAYLOAD JSON:",*/}
+        {/*              JSON.stringify(payload, null, 2)*/}
+        {/*            );*/}
+
+        {/*            const data = await userRules(payload);*/}
+
+        {/*            console.log("BACKEND RESPONSE:", data);*/}
+        {/*            setCreated(true);*/}
+        {/*          } catch (error) {*/}
+        {/*            console.error("CREATE RULE ERROR:", error);*/}
+        {/*          }*/}
+        {/*        }}*/}
+
+        {/*    className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-6 font-mono text-xs font-bold tracking-wide text-primary-foreground hover:bg-primary/90 shadow-glow-primary transition-colors cursor-pointer"*/}
+        {/*  >*/}
+        {/*    Create Rule*/}
+        {/*    <ArrowRight className="size-3.5" />*/}
+        {/*</button>*/}
+
+        {/*----------------------*/}
+        {/*combind*/}
+        {/*---------------------*/}
+
         <button
-            type="button"
-            onClick={async () => {
-                  try {
-                    const payload = buildRulePayload(form);
+          type="button"
+          onClick={async () => {
+            try {
+              let payload;
 
-                    // Check the complete object
-                    console.log("FORM DATA:", form);
-                    console.log("RULE PAYLOAD:", payload);
+              if (form.monitorSource === "memory") {
+                // Memory rules: build the backend-compatible payload
+                payload = buildRulePayload(form);
+              } else {
+                // CPU and other rules: preserve existing behavior
+                payload = form;
+              }
 
-                    // Pretty-print the object as JSON
-                    console.log(
-                      "RULE PAYLOAD JSON:",
-                      JSON.stringify(payload, null, 2)
-                    );
+              console.log("RULE PAYLOAD:", payload);
+              console.log(
+                "RULE PAYLOAD JSON:",
+                JSON.stringify(payload, null, 2)
+              );
 
-                    const data = await userRules(payload);
+              const data = await userRules(payload);
 
-                    console.log("BACKEND RESPONSE:", data);
-                    setCreated(true);
-                  } catch (error) {
-                    console.error("CREATE RULE ERROR:", error);
-                  }
-                }}
-
-            className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-6 font-mono text-xs font-bold tracking-wide text-primary-foreground hover:bg-primary/90 shadow-glow-primary transition-colors cursor-pointer"
-          >
-            Create Rule
-            <ArrowRight className="size-3.5" />
+              console.log("BACKEND RESPONSE:", data);
+              setCreated(true);
+            } catch (error) {
+              console.error("CREATE RULE ERROR:", error);
+            }
+          }}
+          className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-6 font-mono text-xs font-bold tracking-wide text-primary-foreground hover:bg-primary/90 shadow-glow-primary transition-colors cursor-pointer"
+        >
+          Create Rule
+          <ArrowRight className="size-3.5" />
         </button>
+
+
 
       </div>
 

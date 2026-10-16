@@ -1,12 +1,21 @@
 
 const OPERATOR_MAP = {
-  "Greater Than (>)": ">",
-  "Less Than (<)": "<",
-  "Equals (=)": "=",
+  "Greater Than (>)": "Greater Than (>)",
+  "Greater Than or Equal (>=)": "Greater Than or Equal (>=)",
+  "Less Than (<)": "Less Than (<)",
+  "Less Than or Equal (<=)": "Less Than or Equal (<=)",
+  "Equals (=)": "Equals (=)",
+
+  // Support symbolic values as input too
+  ">": "Greater Than (>)",
+  ">=": "Greater Than or Equal (>=)",
+  "<": "Less Than (<)",
+  "<=": "Less Than or Equal (<=)",
+  "=": "Equals (=)",
 };
 
 function normalizeOperator(operator) {
-  return OPERATOR_MAP[operator] || operator || ">";
+  return OPERATOR_MAP[operator] || operator || "Greater Than (>)";
 }
 
 function toNumberOrNull(value) {
@@ -48,7 +57,9 @@ function buildCondition({
     threshold: toNumberOrNull(threshold),
     duration: toNumberOrNull(duration) ?? 0,
     durationUnit: durationUnit || "Minutes",
-    evaluationFrequency: parseEvaluationFrequency(evaluationFrequency),
+    evaluationFrequency: parseEvaluationFrequency(
+      evaluationFrequency
+    ),
   };
 }
 
@@ -59,11 +70,15 @@ function buildTarget({
   condition,
 }) {
   if (!name) {
-    throw new Error("A target name is required before creating this rule.");
+    throw new Error(
+      "A target name is required before creating this rule."
+    );
   }
 
   if (!metric) {
-    throw new Error("A monitoring metric is required before creating this rule.");
+    throw new Error(
+      "A monitoring metric is required before creating this rule."
+    );
   }
 
   return {
@@ -78,7 +93,19 @@ function buildTarget({
   };
 }
 
-// Memory mapper
+
+function buildActions(form) {
+  const types = Array.isArray(form.actionTypes)
+    ? form.actionTypes
+    : form.actionType
+      ? [form.actionType]
+      : [];
+
+  return types;
+}
+
+
+// Memory rule mapper
 function buildMemoryPayload(form) {
   const metric = form.memoryMetric || form.metric;
 
@@ -93,6 +120,7 @@ function buildMemoryPayload(form) {
 
   return {
     ...form,
+    actions: buildActions(form),
     targets: [
       buildTarget({
         type: form.targetType || "Host",
@@ -104,105 +132,20 @@ function buildMemoryPayload(form) {
   };
 }
 
-// CPU mapper
-function buildCpuPayload(form) {
-  // Keep existing CPU targets if the CPU wizard already creates them.
-  if (Array.isArray(form.targets) && form.targets.length > 0) {
-    return { ...form };
-  }
-
-  const metric = form.condMetric || form.metric;
-
-  const condition = buildCondition({
-    metric,
-    operator: form.condOperator,
-    threshold: form.condThreshold,
-    duration: form.condDuration,
-    durationUnit: form.condDurationUnit,
-    evaluationFrequency: form.condInterval,
-  });
-
-  return {
-    ...form,
-    targets: [
-      buildTarget({
-        type: form.targetType || "Host",
-        name: form.host,
-        metric,
-        condition,
-      }),
-    ],
-  };
-}
-
-// Disk mapper
-function buildDiskPayload(form) {
-  if (Array.isArray(form.targets) && form.targets.length > 0) {
-    return { ...form };
-  }
-
-  const metric = form.diskMetric || form.condMetric || form.metric;
-  const targetName = form.mountPoint || form.host;
-
-  const condition = buildCondition({
-    metric,
-    operator: form.condOperator,
-    threshold: form.condThreshold,
-    duration: form.condDuration,
-    durationUnit: form.condDurationUnit,
-    evaluationFrequency: form.condInterval,
-  });
-
-  return {
-    ...form,
-    targets: [
-      buildTarget({
-        type: form.targetType || "Partition",
-        name: targetName,
-        metric,
-        condition,
-      }),
-    ],
-  };
-}
-
-// Network mapper
-function buildNetworkPayload(form) {
-  if (Array.isArray(form.targets) && form.targets.length > 0) {
-    return { ...form };
-  }
-
-  const metric = form.networkMetric || form.condMetric || form.metric;
-
-  const condition = buildCondition({
-    metric,
-    operator: form.condOperator,
-    threshold: form.condThreshold,
-    duration: form.condDuration,
-    durationUnit: form.condDurationUnit,
-    evaluationFrequency: form.condInterval,
-  });
-
-  return {
-    ...form,
-    targets: [
-      buildTarget({
-        type: form.targetType || "Network Interface",
-        name: form.host,
-        metric,
-        condition,
-      }),
-    ],
-  };
-}
-
-// Hardware mapper
+// Hardware health rule mapper
 function buildHardwarePayload(form) {
-  if (Array.isArray(form.targets) && form.targets.length > 0) {
+  // Preserve existing targets when already populated
+  if (
+    Array.isArray(form.targets) &&
+    form.targets.length > 0
+  ) {
     return { ...form };
   }
 
-  const metric = form.hardwareMetric || form.condMetric || form.metric;
+  const metric =
+    form.hardwareMetric ||
+    form.condMetric ||
+    form.metric;
 
   const condition = buildCondition({
     metric,
@@ -215,6 +158,7 @@ function buildHardwarePayload(form) {
 
   return {
     ...form,
+    actions: buildActions(form),
     targets: [
       buildTarget({
         type: form.targetType || "Host",
@@ -226,42 +170,19 @@ function buildHardwarePayload(form) {
   };
 }
 
-// Process mapper
-function buildProcessPayload(form) {
-  // Preserve the process team's existing nested target configuration.
-  if (!Array.isArray(form.targets) || form.targets.length === 0) {
-    throw new Error(
-      "Process rules require the process target configuration."
-    );
-  }
-
-  return { ...form };
-}
-
-// Shared entry point
+// Shared entry point: Memory and Hardware Health only
 export function buildRulePayload(form) {
   switch (form.monitorSource) {
     case "memory":
       return buildMemoryPayload(form);
 
-    case "cpu":
-      return buildCpuPayload(form);
-
-    case "disk":
-      return buildDiskPayload(form);
-
-    case "network":
-      return buildNetworkPayload(form);
-
     case "hardware":
       return buildHardwarePayload(form);
 
-    case "process":
-      return buildProcessPayload(form);
-
     default:
       throw new Error(
-        `Unsupported monitor source: ${form.monitorSource}`
+        `rulePayloadBuilder does not support: ${form.monitorSource}`
       );
   }
 }
+

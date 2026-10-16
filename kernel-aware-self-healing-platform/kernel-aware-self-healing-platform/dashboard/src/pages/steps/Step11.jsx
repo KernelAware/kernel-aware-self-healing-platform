@@ -114,6 +114,31 @@ export default function Step11({ form, setForm }) {
     })
   }
 
+  // const addRecipient = (input) => {
+  //   const value = input.trim();
+  //
+  //   if (!value) return;
+  //
+  //   setForm((f) => {
+  //     const notifications = f.notifications || {};
+  //     const current = Array.isArray(notifications.recipients)
+  //       ? notifications.recipients
+  //       : [];
+  //
+  //     if (current.includes(value)) {
+  //       return f;
+  //     }
+  //
+  //     return {
+  //       ...f,
+  //       notifications: {
+  //         ...notifications,
+  //         recipients: [...current, value],
+  //       },
+  //     };
+  //   });
+  // };
+
   return (
     <Panel className="p-6">
       <div className="mb-6">
