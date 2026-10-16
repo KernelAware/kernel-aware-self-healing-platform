@@ -27,6 +27,7 @@ import Step10Disk from "./steps/disk/Step10Disk"
 import Step11Disk from "./steps/disk/Step11Disk"
 import Step12Disk from "./steps/disk/Step12Disk"
 import Step13Disk from "./steps/disk/Step13Disk"
+import { DISK_METRICS } from "./steps/disk/diskHelpers"
 
 const STATS = [
   { label: "Active Rules", value: "42", hint: "↑ 8 from last week", tone: "text-primary" },
@@ -46,22 +47,37 @@ export default function PolicyPage() {
   const [activeTab, setActiveTab] = useState("create-rule")
   const [step, setStep] = useState(1)
   const [form, setForm] = useState(INITIAL_FORM)
+  const [stepValidationError, setStepValidationError] = useState("")
 
-  const handleNext = () => setStep(s => {
+  const handleNext = () => {
     if (form.monitorSource === "disk") {
-      const targetField = form.targetType === "Disk / Device" ? form.device : form.targetType === "Filesystem / Mount Point" || form.targetType === "Partition (Mount Point)" ? form.mountPoint : true
-      const required = { 4: [form.metric, form.targetType, form.host, targetField], 5: [form.condOperator, form.condThreshold, form.condDuration], 6: [form.severity], 7: [form.actions?.length], 10: [form.recoveryMetric || form.metric, form.recoveryThreshold, form.recoveryDuration] }
-      if (required[s]?.some(value => !value)) return s
+      if (step === 4) {
+        const target = form.targets?.find(item => ["host", "disk", "filesystem", "process"].includes(item.type))
+        const validSystemTarget = form.selectionType === "system" && target?.type === "host" && target.name === "Whole System"
+        const validProcessTarget = form.selectionType === "process" && target?.type === "process" && !!form.processId && String(target.pid) === String(form.processId)
+        if (!validSystemTarget && !validProcessTarget) {
+          setStepValidationError(form.selectionType === "process" ? "Select a discovered process before continuing." : "Select Whole System or Process before continuing.")
+          return
+        }
+        const hasValidMetric = DISK_METRICS.some(metric => metric.id === form.metric)
+        if (!hasValidMetric || target.metrics?.[0]?.conditions?.[0]?.metric !== form.metric) {
+          setStepValidationError("Disk metric details are still loading. Please wait and try again.")
+          return
+        }
+      }
+      const required = { 5: [form.condOperator, form.condThreshold, form.condDuration], 6: [form.severity], 7: [form.actions?.length], 10: [form.recoveryMetric || form.metric, form.recoveryThreshold, form.recoveryDuration] }
+      if (required[step]?.some(value => !value)) return
     }
-    return Math.min(13, s + 1)
-  })
+    setStepValidationError("")
+    setStep(s => Math.min(13, s + 1))
+  }
   const handleBack = () => { if (step === 1) setActiveTab("all-user_rules"); else setStep(s => Math.max(1, s - 1)) }
   const exitWizard = () => setActiveTab("all-user_rules")
 
   const renderStep = () => {
     if (form.monitorSource === "disk" && step >= 4) {
       const diskSteps = {
-        4: <Step4Disk form={form} setForm={setForm} />,
+        4: <Step4Disk form={form} setForm={setForm} validationError={stepValidationError} clearValidationError={() => setStepValidationError("")} />,
         5: <Step5Disk form={form} setForm={setForm} />,
         6: <Step6Disk form={form} setForm={setForm} />,
         7: <Step7Disk form={form} setForm={setForm} />,

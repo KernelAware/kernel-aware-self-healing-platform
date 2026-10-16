@@ -52,6 +52,7 @@ export const diskTargetType = targetType => {
 }
 
 export const diskTargetName = form => {
+  if (form.targetName) return form.targetName
   if (form.targetType === "Disk / Device") return form.device || ""
   if (form.targetType === "Filesystem / Mount Point") return form.mountPoint || ""
   return form.host || ""
@@ -59,10 +60,10 @@ export const diskTargetName = form => {
 
 export const updateDiskTarget = (setForm, values = {}) => setForm(current => {
   const next = { ...current, ...values }
-  const type = diskTargetType(next.targetType)
+  const type = next.selectionType === "process" ? "process" : diskTargetType(next.targetType)
   const name = diskTargetName(next)
   const targets = Array.isArray(next.targets) ? next.targets : []
-  const targetIndex = targets.findIndex(target => ["host", "disk", "filesystem"].includes(target.type))
+  const targetIndex = targets.findIndex(target => ["host", "disk", "filesystem", "process"].includes(target.type))
   const existing = targetIndex >= 0 ? targets[targetIndex] : { metrics: [] }
   const metrics = existing.metrics?.length ? existing.metrics : [{
     name: next.metric || "",
@@ -74,7 +75,8 @@ export const updateDiskTarget = (setForm, values = {}) => setForm(current => {
       durationUnit: next.condDurationUnit || "Minutes",
     }],
   }]
-  const target = { ...existing, type, name, host: next.host || "", metrics }
+  const { pid, processName, ...existingTarget } = existing
+  const target = { ...existingTarget, type, name, host: next.host ?? "", metrics }
 
   return {
     ...next,
@@ -86,8 +88,8 @@ export const updateDiskTarget = (setForm, values = {}) => setForm(current => {
 
 export const updateDiskMetric = (setForm, metricId) => setForm(current => {
   const targets = Array.isArray(current.targets) ? current.targets : []
-  const targetIndex = targets.findIndex(target => ["host", "disk", "filesystem"].includes(target.type))
-  if (targetIndex < 0) return current
+  const targetIndex = targets.findIndex(target => ["host", "disk", "filesystem", "process"].includes(target.type))
+  if (targetIndex < 0) return { ...current, metric: metricId, condMetric: metricId, recoveryMetric: metricId }
 
   const target = targets[targetIndex]
   const metrics = Array.isArray(target.metrics) ? target.metrics : []
