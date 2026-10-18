@@ -151,4 +151,7 @@ def publish_incident(incident: dict, event: str) -> dict:
         timeout=10,
     )
     response.raise_for_status()
-    return response.json()
+    result = response.json()
+    if not isinstance(result, dict) or result.get("status") != "success":
+        raise RuntimeError("Backend did not confirm incident persistence")
+    return result

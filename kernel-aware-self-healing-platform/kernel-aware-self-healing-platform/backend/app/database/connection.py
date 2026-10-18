@@ -7,6 +7,8 @@ engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
     pool_recycle=300,
+    pool_timeout=3,
+    connect_args={"connect_timeout": 3},
 )
 
 SessionLocal = sessionmaker(

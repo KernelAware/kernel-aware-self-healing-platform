@@ -1,5 +1,7 @@
 import unittest
+from unittest.mock import patch
 
+from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
@@ -180,6 +182,30 @@ class IncidentApiTests(unittest.IsolatedAsyncioTestCase):
             websocket.connected_clients.clear()
             db.close()
             engine.dispose()
+
+    async def test_persistence_failure_rolls_back_and_returns_server_error(self):
+        class FailedSession:
+            rolled_back = False
+
+            def get_bind(self):
+                return object()
+
+            def rollback(self):
+                self.rolled_back = True
+
+        db = FailedSession()
+        payload = {
+            "event": "opened",
+            "incident_detail": {"id": "INC-failure", "system_id": 1},
+            "alert": {},
+        }
+        with patch("routers.alerts.persist_incident", side_effect=RuntimeError("database unavailable")), \
+             patch("routers.alerts.logger.exception"):
+            with self.assertRaises(HTTPException) as raised:
+                await alert_incidents(payload, db)
+        self.assertEqual(raised.exception.status_code, 500)
+        self.assertEqual(raised.exception.detail, "Incident persistence failed")
+        self.assertTrue(db.rolled_back)
 
 
 if __name__ == "__main__":

@@ -54,6 +54,32 @@ def _event(incident: dict, status: str, label: str, tone: str) -> dict:
     }
 
 
+def _publishable_incident(incident: dict) -> dict:
+    """Keep retry bookkeeping in Redis without exposing it in API payloads."""
+    return {key: value for key, value in incident.items() if key != "_backend_pending_event"}
+
+
+def _retry_pending_event(key: str, incident: dict) -> bool:
+    event = incident.get("_backend_pending_event")
+    if not event:
+        return True
+    try:
+        publish_incident(_publishable_incident(incident), event)
+        incident.pop("_backend_pending_event", None)
+        if event == "resolved":
+            redis_client.delete(key)
+        else:
+            redis_client.set(key, json.dumps(incident))
+    except Exception:
+        logger.exception(
+            "Unable to complete pending %s event for incident %s",
+            event,
+            incident.get("incident_id"),
+        )
+        return False
+    return True
+
+
 def _has_remediation(rule: dict | None) -> bool:
     for action in (rule or {}).get("actions") or []:
         action_type = action.get("action_type") if isinstance(action, dict) else action
@@ -91,14 +117,21 @@ def manage_incidents(incident: dict, condition_violated: bool = True):
         if stored:
             try:
                 current = json.loads(stored)
-                if str(current.get("status", "")).upper() == "RESOLVED":
-                    current = {}
-                    is_new = True
             except (TypeError, json.JSONDecodeError):
+                current = {}
+                is_new = True
+            if current.get("_backend_pending_event") == "resolved":
+                if not _retry_pending_event(key, current):
+                    return current
+                current = {}
+                is_new = True
+            elif str(current.get("status", "")).upper() == "RESOLVED":
                 current = {}
                 is_new = True
         else:
             current = {}
+
+        publish_event = current.get("_backend_pending_event") or ("opened" if is_new else "updated")
 
         incident = {
             **current,
@@ -110,6 +143,7 @@ def manage_incidents(incident: dict, condition_violated: bool = True):
             "updated_at": now,
             "resolved_at": None,
             "timeline": list(current.get("timeline") or []),
+            "_backend_pending_event": publish_event,
         }
         if is_new:
             incident["timeline"].append(_event(incident, "OPEN", "Incident opened", "warning"))
@@ -120,14 +154,27 @@ def manage_incidents(incident: dict, condition_violated: bool = True):
             return None
 
         try:
-            response = publish_incident(incident, "opened" if is_new else "updated")
+            response = publish_incident(_publishable_incident(incident), publish_event)
+        except Exception:
+            logger.exception(
+                "Unable to publish %s event for incident %s to the backend; will retry that event",
+                publish_event,
+                incident["incident_id"],
+            )
+        else:
             persisted = (response or {}).get("incident") or {}
             persisted_id = persisted.get("incident_id") or persisted.get("id")
             if persisted_id and persisted_id != incident["incident_id"]:
                 incident["incident_id"] = persisted_id
+            incident.pop("_backend_pending_event", None)
+            try:
                 redis_client.set(key, json.dumps(incident))
-        except Exception:
-            logger.exception("Unable to publish incident %s to the backend", incident["incident_id"])
+            except Exception:
+                logger.exception(
+                    "Backend accepted %s event for incident %s, but Redis did not clear the retry marker",
+                    publish_event,
+                    incident["incident_id"],
+                )
 
         if (
             is_new
@@ -147,6 +194,14 @@ def manage_incidents(incident: dict, condition_violated: bool = True):
     if not current.get("incident_id"):
         return None
 
+    if current.get("_backend_pending_event") == "resolved":
+        if not _retry_pending_event(key, current):
+            return current
+        return current
+
+    if current.get("_backend_pending_event") and not _retry_pending_event(key, current):
+        return current
+
     resolved = {
         **current,
         "value": incident.get("value", current.get("value")),
@@ -157,8 +212,14 @@ def manage_incidents(incident: dict, condition_violated: bool = True):
     resolved["timeline"] = list(current.get("timeline") or []) + [
         _event(resolved, "RESOLVED", "Condition recovered", "success")
     ]
+    resolved["_backend_pending_event"] = "resolved"
     try:
-        publish_incident(resolved, "resolved")
+        redis_client.set(key, json.dumps(resolved))
+    except Exception:
+        logger.exception("Unable to queue resolution for incident %s in Redis", current["incident_id"])
+        return resolved
+    try:
+        publish_incident(_publishable_incident(resolved), "resolved")
     except Exception:
         logger.exception("Unable to publish resolution for incident %s", current["incident_id"])
         return resolved

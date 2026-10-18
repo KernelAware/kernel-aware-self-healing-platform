@@ -1,10 +1,14 @@
-from fastapi import FastAPI
-from contextlib import asynccontextmanager
 import asyncio
+import logging
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
 
 from load_data.database.db_connection.connection import SessionLocal
 from load_data.systems_details.system_repository import get_active_systems
 from analyzer.server_analyzer import analyze_server
+
+logger = logging.getLogger(__name__)
 
 
 def run_analysis():
@@ -16,17 +20,13 @@ def run_analysis():
 
         for system in systems:
             try:
-                analyze_server(
-                    system=system
-                )
+                analyze_server(system=system)
 
-            except Exception as error:
-                print(
-                    f"Error analyzing system {system}: {error}"
-                )
+            except Exception:
+                logger.exception("Analysis failed for system %s", system)
 
-    except Exception as error:
-        print("Analysis cycle error:", error)
+    except Exception:
+        logger.exception("Analysis cycle failed while loading active systems")
 
     finally:
         db.close()
@@ -34,7 +34,7 @@ def run_analysis():
 
 async def analysis_loop():
     while True:
-        run_analysis()
+        await asyncio.to_thread(run_analysis)
         await asyncio.sleep(15)
 
 

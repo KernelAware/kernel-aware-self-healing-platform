@@ -29,6 +29,7 @@ from detection.duration import check_duration, clear_duration
 from detection.strategies.disk_detector import DiskDetector
 from incident_management import manager
 from incident_management.alert_service import build_payload
+from load_data.system_metrics.metrics_loader import get_disk_metric
 
 
 def sample_rule(target_type="filesystem", target="/mnt/data", duration=30, recovery=None):
@@ -79,6 +80,11 @@ class MemoryRedis:
 
 
 class DiskDetectorTests(unittest.TestCase):
+    def test_disk_usage_metric_queries_the_monitoring_agent_series(self):
+        with patch("load_data.system_metrics.metrics_loader.query_prometheus") as query:
+            get_disk_metric(1, "disk_usage_percent")
+        query.assert_called_once_with('disk_usage_percent{system_id="1"}')
+
     def test_below_threshold_does_not_open_an_incident(self):
         with patch("detection.strategies.disk_detector.get_disk_metric", return_value=[sample_result(70)]), \
              patch("detection.strategies.disk_detector.manage_incidents") as manage:
@@ -161,6 +167,17 @@ class DiskDetectorTests(unittest.TestCase):
         self.assertEqual(manage.call_args.args[0]["monitor_type"], "disk")
         self.assertEqual(manage.call_args.args[0]["pid"], "123")
 
+    def test_disk_usage_for_process_target_uses_disk_exporter_series(self):
+        rule = sample_rule("process", "worker (PID 123)")
+        disk_sample = sample_result(91)
+        with patch("detection.strategies.disk_detector.get_disk_metric", return_value=[disk_sample]) as disk_query, \
+             patch("detection.strategies.disk_detector.get_process_metric") as process_query, \
+             patch("detection.strategies.disk_detector.manage_incidents") as manage:
+            DiskDetector().detect(rule)
+        disk_query.assert_called_once_with(1, "disk_usage_percent")
+        process_query.assert_not_called()
+        manage.assert_not_called()
+
     def test_alert_payload_preserves_severity_and_priority(self):
         incident = {
             "incident_id": "INC-test", "fingerprint": "fp", "rule_id": 12,
@@ -210,6 +227,32 @@ class IncidentManagerTests(unittest.TestCase):
         self.assertNotEqual(first["incident_id"], later["incident_id"])
         self.assertEqual([call.args[1] for call in self.publish.call_args_list], ["opened", "updated", "resolved", "opened"])
         self.send_decision.assert_not_called()
+
+    def test_failed_open_retries_as_opened_before_later_updates(self):
+        self.publish.side_effect = TimeoutError("backend response timed out")
+        with patch.object(manager.logger, "exception"):
+            first = manager.manage_incidents(self.incident(), True)
+        self.publish.side_effect = lambda item, event: {"incident": {"id": item["incident_id"]}}
+        second = manager.manage_incidents(self.incident(), True)
+        manager.manage_incidents(self.incident(), True)
+        self.assertEqual(first["incident_id"], second["incident_id"])
+        self.assertEqual(
+            [call.args[1] for call in self.publish.call_args_list],
+            ["opened", "opened", "updated"],
+        )
+
+    def test_failed_resolution_is_retried_before_a_new_open(self):
+        first = manager.manage_incidents(self.incident(), True)
+        self.publish.side_effect = TimeoutError("backend response timed out")
+        with patch.object(manager.logger, "exception"):
+            manager.manage_incidents(self.incident(), False)
+        self.publish.side_effect = lambda item, event: {"incident": {"id": item["incident_id"]}}
+        reopened = manager.manage_incidents(self.incident(), True)
+        self.assertNotEqual(first["incident_id"], reopened["incident_id"])
+        self.assertEqual(
+            [call.args[1] for call in self.publish.call_args_list],
+            ["opened", "resolved", "resolved", "opened"],
+        )
 
     def test_separate_filesystems_get_distinct_incident_identities(self):
         first = manager.manage_incidents(self.incident("/mnt/a"), True)

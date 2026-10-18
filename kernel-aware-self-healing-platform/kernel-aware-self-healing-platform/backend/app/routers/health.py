@@ -1,14 +1,10 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy import text
-from sqlalchemy.orm import Session
-
-from database.connection import get_db
+from fastapi import APIRouter
 
 
 router = APIRouter()
 
 
 @router.get("/health")
-def health(db: Session = Depends(get_db)):
-    db.execute(text("SELECT 1"))
+def health():
+    # Liveness must stay responsive when the external database is slow or down.
     return {"status": "healthy"}

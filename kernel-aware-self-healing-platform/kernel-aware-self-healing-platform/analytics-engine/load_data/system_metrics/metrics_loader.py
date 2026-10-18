@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 
@@ -18,17 +19,27 @@ METRIC_MAP = {
 }
 
 PROMETHEUS_URL = os.environ.get("PROMETHEUS_URL", "http://localhost:9090").rstrip("/")
+logger = logging.getLogger(__name__)
 
 
 def query_prometheus(query: str):
-    response = requests.get(
-        f"{PROMETHEUS_URL}/api/v1/query",
-        params={"query": query},
-        timeout=10,
-    )
-    response.raise_for_status()
-    data = response.json()
+    url = f"{PROMETHEUS_URL}/api/v1/query"
+    try:
+        response = requests.get(
+            url,
+            params={"query": query},
+            timeout=10,
+        )
+        response.raise_for_status()
+        data = response.json()
+    except requests.RequestException as error:
+        logger.error("Prometheus query request failed: GET %s (query=%s): %s", url, query, error)
+        raise
+    except ValueError as error:
+        logger.error("Prometheus returned invalid JSON: GET %s (query=%s): %s", url, query, error)
+        raise
     if data.get("status") != "success":
+        logger.error("Prometheus query returned a non-success status: query=%s", query)
         raise RuntimeError("Prometheus query failed")
     return data.get("data", {}).get("result", [])
 

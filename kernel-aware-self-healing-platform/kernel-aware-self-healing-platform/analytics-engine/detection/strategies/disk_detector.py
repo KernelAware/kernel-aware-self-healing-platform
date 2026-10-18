@@ -59,9 +59,10 @@ def _process_target(target: str) -> tuple[str, str | None]:
 
 
 def _query_metric(system_id, metric_name: str, target_type: str, target_name: str):
-    if target_type == "process":
-        if metric_name not in {"disk_read_bytes", "disk_write_bytes"}:
-            raise ValueError(f"No Process exporter mapping exists for Disk metric {metric_name}")
+    # Process-scoped disk I/O is exported separately by the Process collector.
+    # All other Disk metrics, including disk_usage_percent, come from the Disk
+    # collector and must be queried by their actual Prometheus metric name.
+    if target_type == "process" and metric_name in {"disk_read_bytes", "disk_write_bytes"}:
         process_name, pid = _process_target(target_name)
         samples = get_process_metric(system_id, process_name, {"metric": metric_name})
         if pid:
