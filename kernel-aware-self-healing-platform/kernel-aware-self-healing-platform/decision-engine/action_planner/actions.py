@@ -73,7 +73,7 @@ def create_alert(decision, incident, rules, policy):
     print("")
     print("")
 
-    incident_id = f"INC-{uuid.uuid4().hex[:8].upper()}"
+    incident_id = incident.get("incident_id") or f"INC-{uuid.uuid4().hex[:8].upper()}"
     system = incident.get("system_id", "Unknown")
     process = incident.get("target", "Unknown")
     pid = incident.get("pid")
@@ -84,8 +84,8 @@ def create_alert(decision, incident, rules, policy):
     operator = incident.get("violated_metric", 0).get("operator")
     duration = incident.get("violated_metric", 0).get("duration_seconds")
 
-    severity = incident.get("severity", "Medium")
-    priority = incident.get("priority", "P2")
+    severity = incident.get("incident_severity", incident.get("severity", "Medium"))
+    priority = incident.get("incident_priority", incident.get("priority", "P2"))
 
     recommended_action = decision.get("Selected_action", "No Decision")
     decision_type = decision.get("decision", "NO_ACTION")
@@ -117,6 +117,11 @@ def create_alert(decision, incident, rules, policy):
     incident_detail = {
 
         "id": incident_id,
+        "incident_id": incident_id,
+        "rule_id": incident.get("rule_id"),
+        "monitor_type": incident.get("monitor_type") or incident.get("incident_type"),
+        "system_id": system,
+        "target": incident.get("target"),
 
         "title": f"{metric} - {process}",
 
@@ -189,6 +194,17 @@ def create_alert(decision, incident, rules, policy):
     alert = {
 
         "id": incident_id,
+        "incident_id": incident_id,
+        "rule_id": incident.get("rule_id"),
+        "monitor_type": incident.get("monitor_type") or incident.get("incident_type"),
+        "system_id": system,
+        "target": incident.get("target"),
+        "metric": metric,
+        "current_value": current_value,
+        "threshold": threshold,
+        "operator": operator,
+        "severity": severity,
+        "priority": priority,
 
         "level": f"{priority} - {severity}",
 

@@ -15,7 +15,13 @@ strategies = {
 
 
 def detect(rule):
-    monitor_type = rule["rule"]["monitor_type"]
+    if not isinstance(rule, dict) or not isinstance(rule.get("rule"), dict):
+        return None
+
+    if str(rule["rule"].get("status", "ENABLED")).upper() != "ENABLED":
+        return None
+
+    monitor_type = str(rule["rule"].get("monitor_type", "")).lower()
     strategy = strategies.get(monitor_type)
 
     if strategy is None:

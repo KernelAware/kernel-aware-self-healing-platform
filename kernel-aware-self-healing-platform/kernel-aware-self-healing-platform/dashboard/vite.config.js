@@ -20,7 +20,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/prometheus': {
-        target: 'http://localhost:7070',
+        target: 'http://localhost:9090',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/prometheus/, ''),
       },

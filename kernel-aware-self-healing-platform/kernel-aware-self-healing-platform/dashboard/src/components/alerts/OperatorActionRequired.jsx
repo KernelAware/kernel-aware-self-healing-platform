@@ -46,6 +46,19 @@ export default function OperatorActionRequired({
     )
   }
 
+  if (selectedIncident.monitor_type === 'disk' || selectedIncident.category === 'disk') {
+    return (
+      <Panel>
+        <PanelHeader title="Disk Alert Handling" icon={TriangleAlert} />
+        <div className="p-4 pt-0">
+          <p className="rounded-md border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground">
+            Alert only. Disk alerts do not run healing or remediation. The incident resolves when its saved recovery condition is met.
+          </p>
+        </div>
+      </Panel>
+    )
+  }
+
 
   // Auto execution without approval = operator cannot change anything
   const autoExecuting =

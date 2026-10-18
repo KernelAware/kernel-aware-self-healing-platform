@@ -1,98 +1,85 @@
-import {useEffect, useState} from 'react'
-import {useWebSocket} from "@/hooks/useWebSocket.js";
+import { useEffect, useMemo, useState } from "react"
+import { fetchIncidents } from "@/services/incidents"
+import { useWebSocket } from "@/hooks/useWebSocket.js"
 
-const INITIAL_ALERTS = [
-  {
-    id: "INC-1042",
-    level: "P0 - Critical",
-    tone: "danger",
-    age: "2m ago",
-    title: "High CPU Usage - nginx",
-    body: "CPU usage reached 96.4%, above the 90% threshold for 5 minutes.",
-    acked: false,
-    status: "WAITING_APPROVAL",
-    system: "server-01",
-    process: "nginx",
-    pid: 8842
-  },
+const SYSTEM_ID = import.meta.env.VITE_SYSTEM_ID || "1"
 
-  {
-    id: "INC-1043",
-    level: "P1 - High",
-    tone: "warning",
-    age: "6m ago",
-    title: "Memory Usage High - python",
-    body: "Memory usage reached 87.2%, above the 80% threshold for 5 minutes.",
-    acked: false,
-    status: "HEALING",
-    system: "server-01",
-    process: "python-app",
-    pid: 9231
-  },
+function ageFor(value) {
+  const seconds = Math.max(0, Math.floor((Date.now() - Date.parse(value || "")) / 1000))
+  if (!Number.isFinite(seconds)) return ""
+  if (seconds < 60) return `${seconds}s ago`
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
+  return `${Math.floor(seconds / 86400)}d ago`
+}
 
-  {
-    id: "INC-1044",
-    level: "P2 - Medium",
-    tone: "muted",
-    age: "15m ago",
-    title: "Disk Space Low - /var",
-    body: "Disk usage reached 92.8%, above the 80% threshold for 10 minutes.",
-    acked: false,
-    status: "WAITING_APPROVAL",
-    system: "server-02",
-    process: "system",
-    pid: null
-  },
-    {
-    id: "INC-1049",
-    level: "P1 - High",
-    tone: "warning",
-    age: "6m ago",
-    title: "Memory Usage High - python",
-    body: "Memory usage reached 87.2%, above the 80% threshold for 5 minutes.",
-    acked: false,
-    status: "HEALING",
-    system: "server-01",
-    process: "python-app",
-    pid: 9231
-  },
-]
+const toneForSeverity = severity => ({
+  critical: "danger",
+  high: "warning",
+  medium: "muted",
+  warning: "muted",
+  low: "muted",
+}[String(severity || "").toLowerCase()] || "muted")
 
-
-export function useAlerts() {
-  const [alerts, setAlerts] = useState(INITIAL_ALERTS)
-
-  const socketAlert = useWebSocket('alerts')
+export function useAlerts(providedIncidents) {
+  const [acknowledged, setAcknowledged] = useState(() => new Set())
+  const [loadedIncidents, setLoadedIncidents] = useState([])
+  const liveIncident = useWebSocket("incident_update")
+  const incidents = providedIncidents ?? loadedIncidents
 
   useEffect(() => {
+    if (providedIncidents !== undefined) return
+    let active = true
+    fetchIncidents(SYSTEM_ID).then(rows => {
+      if (active) setLoadedIncidents(rows)
+    }).catch(() => {})
+    return () => { active = false }
+  }, [providedIncidents])
 
-    if (!socketAlert) {
-      return
-    }
+  useEffect(() => {
+    if (providedIncidents !== undefined || !liveIncident) return
+    setLoadedIncidents(current => {
+      const id = liveIncident.incident_id || liveIncident.id
+      const index = current.findIndex(item => (item.incident_id || item.id) === id)
+      if (index < 0) return [liveIncident, ...current]
+      return current.map((item, itemIndex) => itemIndex === index ? { ...item, ...liveIncident } : item)
+    })
+  }, [liveIncident, providedIncidents])
 
-    setAlerts((prev) => [
-      socketAlert,
-      ...prev
-    ])
+  const alerts = useMemo(() => incidents
+    .filter(incident => !["RESOLVED", "CLOSED"].includes(String(incident.status).toUpperCase()))
+    .map(incident => {
+      const original = incident.alert || {}
+      return {
+        ...original,
+        id: incident.id,
+        incident_id: incident.id,
+        category: incident.category,
+        monitor_type: incident.monitor_type,
+        target: incident.target,
+        metric: incident.trigger?.metric || incident.metric,
+        current_value: incident.trigger?.currentValue ?? incident.current_value,
+        threshold: incident.trigger?.threshold ?? incident.threshold,
+        operator: incident.trigger?.operator || incident.operator,
+        severity: incident.severity,
+        priority: incident.priority,
+        status: incident.status,
+        title: incident.title,
+        system: incident.system,
+        system_id: incident.system_id,
+        process: incident.process,
+        pid: incident.pid,
+        age: incident.created_at ? ageFor(incident.created_at) : original.age || "",
+        tone: original.tone || toneForSeverity(incident.severity),
+        level: original.level || `${incident.priority} - ${incident.severity}`,
+        acked: acknowledged.has(incident.id),
+      }
+    }), [incidents, acknowledged])
 
-  }, [socketAlert])
-
-  const acknowledgeAlert = (id) => {
-    setAlerts((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, acked: true } : a))
-    )
-  }
-
-  const resolveAlert = (id) => {
-    setAlerts((prev) => prev.filter((a) => a.id !== id))
-  }
-
-
+  const acknowledgeAlert = id => setAcknowledged(current => new Set(current).add(id))
   return {
     alerts,
-    setAlerts,
     acknowledgeAlert,
-    resolveAlert,
-    criticalCount: alerts.filter((a) => a.tone === 'danger').length,
+    criticalCount: alerts.filter(alert => alert.tone === "danger").length,
   }
 }

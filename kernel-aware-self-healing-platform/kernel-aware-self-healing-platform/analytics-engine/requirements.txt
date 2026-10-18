@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+requests
+httpx
+redis
+sqlalchemy
+psycopg2-binary

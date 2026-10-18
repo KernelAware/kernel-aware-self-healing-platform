@@ -1,6 +1,7 @@
 import httpx
+import os
 
-BACKEND_URL = "http://localhost:8000"
+BACKEND_URL = os.environ.get("KAISP_BACKEND_URL", "http://localhost:8000").rstrip("/")
 
 def load_rules(system_id):
     response = httpx.get(

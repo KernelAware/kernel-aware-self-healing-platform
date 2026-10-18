@@ -1,4 +1,7 @@
 // Mock API endpoints to simulate backend operations
+const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')
+const PROMETHEUS_URL = (import.meta.env.VITE_PROMETHEUS_URL || 'http://localhost:9090').replace(/\/$/, '')
+
 export const api = {
   async purgeCache() {
     await new Promise((resolve) => setTimeout(resolve, 800))
@@ -34,16 +37,18 @@ export const api = {
 export async function queryPrometheus(query) {
 
   const response = await fetch(
-    `http://localhost:9090/api/v1/query?query=${encodeURIComponent(query)}`
+    `${PROMETHEUS_URL}/api/v1/query?query=${encodeURIComponent(query)}`
   )
+  if (!response.ok) throw new Error(`Prometheus request failed: ${response.status}`)
 
   const json = await response.json()
+  if (json.status !== 'success') throw new Error('Prometheus query failed')
 
-  return json.data.result
+  return json.data?.result || []
 }
 
 export async function queryPrometheusMetricNames() {
-  const response = await fetch("http://localhost:9090/api/v1/label/__name__/values")
+  const response = await fetch(`${PROMETHEUS_URL}/api/v1/label/__name__/values`)
   if (!response.ok) {
     throw new Error(`Prometheus returned HTTP ${response.status}`)
   }
@@ -57,7 +62,7 @@ export async function queryPrometheusMetricNames() {
 }
 
 export async function userRules(form) {
-  const response = await fetch("http://localhost:8000/user_rules", {
+  const response = await fetch(`${BACKEND_URL}/user_rules`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

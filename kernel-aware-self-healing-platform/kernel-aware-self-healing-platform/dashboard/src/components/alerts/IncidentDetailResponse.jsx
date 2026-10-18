@@ -25,6 +25,11 @@ export default function IncidentDetailsResponse({ selectedIncident }) {
     )
   }
 
+  const trigger = selectedIncident.trigger || {}
+  const decision = selectedIncident.decision || {}
+  const policy = selectedIncident.policy || {}
+  const category = selectedIncident.monitor_type || selectedIncident.category
+
   return (
     <Panel>
 
@@ -51,7 +56,10 @@ export default function IncidentDetailsResponse({ selectedIncident }) {
             </h2>
 
             <span className="rounded border border-destructive/40 bg-destructive/10 px-2 py-1 font-mono text-[10px] uppercase text-destructive">
-              {selectedIncident.priority} - {selectedIncident.severity}
+              {selectedIncident.priority || '—'} - {selectedIncident.severity || '—'}
+            </span>
+            <span className="rounded border border-primary/30 bg-primary/5 px-2 py-1 font-mono text-[10px] uppercase text-primary">
+              {category || 'Unknown category'}
             </span>
 
           </div>
@@ -61,11 +69,11 @@ export default function IncidentDetailsResponse({ selectedIncident }) {
 
             <span className="flex items-center gap-1">
               <Server className="size-3" />
-              {selectedIncident.system}
+              {selectedIncident.system}{selectedIncident.system_id != null ? ` (ID ${selectedIncident.system_id})` : ''}
             </span>
 
             <span>
-              {selectedIncident.process}
+              {selectedIncident.target || selectedIncident.process || category}
             </span>
 
             {selectedIncident.pid && (
@@ -76,7 +84,7 @@ export default function IncidentDetailsResponse({ selectedIncident }) {
 
             <span className="flex items-center gap-1">
               <Clock className="size-3" />
-              Detected: {selectedIncident.detectedAgo}
+              Detected: {selectedIncident.detectedAgo || selectedIncident.created_at || '—'}
             </span>
 
           </div>
@@ -106,7 +114,7 @@ export default function IncidentDetailsResponse({ selectedIncident }) {
               </p>
 
               <p className="mt-1 text-foreground">
-                {selectedIncident.trigger.metric}
+                {trigger.metric || selectedIncident.metric || '—'}
               </p>
             </div>
 
@@ -117,7 +125,7 @@ export default function IncidentDetailsResponse({ selectedIncident }) {
               </p>
 
               <p className="mt-1 font-semibold text-destructive">
-                {selectedIncident.trigger.currentValue}
+                {trigger.currentValue ?? selectedIncident.current_value ?? '—'}
               </p>
             </div>
 
@@ -128,8 +136,8 @@ export default function IncidentDetailsResponse({ selectedIncident }) {
               </p>
 
               <p className="mt-1 text-foreground">
-                {selectedIncident.trigger.operator}{' '}
-                {selectedIncident.trigger.threshold}
+                {trigger.operator || selectedIncident.operator || '—'}{' '}
+                {trigger.threshold ?? selectedIncident.threshold ?? '—'}
               </p>
             </div>
 
@@ -140,7 +148,7 @@ export default function IncidentDetailsResponse({ selectedIncident }) {
               </p>
 
               <p className="mt-1 text-foreground">
-                {selectedIncident.trigger.duration}
+                {trigger.duration || '—'}
               </p>
             </div>
 
@@ -157,7 +165,7 @@ export default function IncidentDetailsResponse({ selectedIncident }) {
             <Brain className="size-4 text-purple-400" />
 
             <p className="text-xs font-medium text-foreground">
-              Decision Engine
+              {category === 'disk' ? 'Alert Handling' : 'Decision Engine'}
             </p>
 
           </div>
@@ -171,7 +179,7 @@ export default function IncidentDetailsResponse({ selectedIncident }) {
               </p>
 
               <p className="mt-1 font-semibold text-primary">
-                {selectedIncident.decision.recommendedAction}
+                {decision.recommendedAction || '—'}
               </p>
             </div>
 
@@ -182,7 +190,7 @@ export default function IncidentDetailsResponse({ selectedIncident }) {
               </p>
 
               <p className="mt-1 text-foreground">
-                {selectedIncident.decision.decision}
+                {decision.decision || '—'}
               </p>
             </div>
 
@@ -193,7 +201,7 @@ export default function IncidentDetailsResponse({ selectedIncident }) {
               </p>
 
               <p className="mt-1 text-muted-foreground">
-                {selectedIncident.decision.reason}
+                {decision.reason || '—'}
               </p>
             </div>
 
@@ -224,7 +232,7 @@ export default function IncidentDetailsResponse({ selectedIncident }) {
               </p>
 
               <p className="mt-1 font-semibold text-primary">
-                {selectedIncident.policy.ruleEnabled ? '✓ Yes' : '✕ No'}
+                {policy.ruleEnabled ? '✓ Yes' : '✕ No'}
               </p>
             </div>
 
@@ -235,7 +243,7 @@ export default function IncidentDetailsResponse({ selectedIncident }) {
               </p>
 
               <p className="mt-1 font-semibold text-primary">
-                {selectedIncident.policy.automaticExecution ? '✓ Yes' : '✕ No'}
+                {policy.automaticExecution ? '✓ Yes' : '✕ No'}
               </p>
             </div>
 
@@ -246,7 +254,7 @@ export default function IncidentDetailsResponse({ selectedIncident }) {
               </p>
 
               <p className="mt-1 font-semibold text-warning">
-                {selectedIncident.policy.approvalRequired
+                {policy.approvalRequired
                   ? '! Required'
                   : '✓ Not Required'}
               </p>
@@ -259,7 +267,7 @@ export default function IncidentDetailsResponse({ selectedIncident }) {
               </p>
 
               <p className="mt-1 font-semibold text-primary">
-                {selectedIncident.policy.cooldownPassed ? '✓ Yes' : '✕ No'}
+                {policy.cooldownPassed == null ? '—' : policy.cooldownPassed ? '✓ Yes' : '✕ No'}
               </p>
             </div>
 

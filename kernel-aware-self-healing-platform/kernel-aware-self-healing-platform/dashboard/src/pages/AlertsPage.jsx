@@ -6,19 +6,18 @@ import IncidentDetailView from '@/components/alerts/IncidentDetailView'
 import IncidentsTable from '@/components/alerts/IncidentsTable'
 import { useAlerts } from '@/hooks/useAlerts'
 import { useIncidents } from '@/hooks/useIncidents'
-import HealingExecution from '@/components/alerts/HealingExecution.jsx'
 import {useIncidentDetails} from "@/hooks/alertDetails.js";
 
 export default function AlertsPage() {
-  const { alerts, acknowledgeAlert, resolveAlert, criticalCount } = useAlerts()
-  const { incidents, timeline } = useIncidents()
-  const { selectedIncident, selectedIncidentId, selectIncident, selectAction, approveIncident, rejectIncident, addIncident}  = useIncidentDetails()
+  const { incidents, updateIncident, loading, error } = useIncidents()
+  const { alerts, acknowledgeAlert, criticalCount } = useAlerts(incidents)
+  const { selectedIncident, selectedIncidentId, selectIncident, approveIncident, rejectIncident } = useIncidentDetails(incidents, updateIncident)
 
   return (
     <>
       <PageHeader
         title="Alerts & Incidents"
-        description="Prioritized kernel and application incidents with autonomous root cause analysis."
+        description="Live monitoring alerts and persisted incident history."
         actions={
           <ActionButton variant="primary" icon={TriangleAlert}>
             {criticalCount} Critical
@@ -27,6 +26,9 @@ export default function AlertsPage() {
       />
 
       <div className="space-y-4">
+
+        {loading && <p role="status" className="rounded-md border border-border bg-card px-4 py-3 font-mono text-xs text-muted-foreground">Loading incidents…</p>}
+        {error && <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 px-4 py-3 font-mono text-xs text-destructive">Incident API unavailable: {error}</p>}
 
           <div className="grid h-full grid-cols-1 gap-4 overflow-y-auto lg:grid-cols-[300px_minmax(0,1fr)_260px]">
           <div
@@ -49,16 +51,15 @@ export default function AlertsPage() {
               <ActiveAlertsList
                 alerts={alerts}
                 acknowledgeAlert={acknowledgeAlert}
-                resolveAlert={resolveAlert}
                 selectIncident={selectIncident}
                 selectedIncidentId={selectedIncidentId}
               />
             </div>
 
-          <IncidentDetailView timeline={timeline} selectedIncident = {selectedIncident}  approveIncident={approveIncident} rejectIncident={rejectIncident} selectIncident={selectIncident}/>
+          <IncidentDetailView timeline={selectedIncident?.rootCause?.timeline || []} selectedIncident={selectedIncident} approveIncident={approveIncident} rejectIncident={rejectIncident} selectIncident={selectIncident}/>
         </div>
 
-        <IncidentsTable incidents={incidents} />
+        <IncidentsTable incidents={incidents} loading={loading} />
 
       </div>
     </>

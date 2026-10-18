@@ -3,42 +3,26 @@ import { TriangleAlert } from 'lucide-react'
 
 import {
   Panel,
-  PanelHeader,
-  StatusBadge
+  PanelHeader
 } from '@/components/kit'
 
 
 export default function IncidentRootCause({ timeline }) {
+  const events = Array.isArray(timeline) ? timeline : []
   return (
     <Panel>
 
       <PanelHeader
-        title="Incident Root Cause Analysis"
+        title="Incident Timeline"
         icon={TriangleAlert}
-        action={
-          <div className="flex gap-2">
-            <StatusBadge tone="success">
-              Verified
-            </StatusBadge>
-
-            <StatusBadge tone="info">
-              eBPF Telemetry
-            </StatusBadge>
-          </div>
-        }
       />
 
 
       <div className="p-4 pt-0">
 
-        <p className="mb-4 font-mono text-[11px] text-muted-foreground">
-          Trace: IX-9942 (Kernel Thread Staleness)
-        </p>
-
-
         <ol className="relative flex flex-col gap-4 border-l border-border pl-6">
 
-          {(timeline || []).map((t, i) => (
+          {events.map((t, i) => (
 
             <li
               key={i}
@@ -111,6 +95,12 @@ export default function IncidentRootCause({ timeline }) {
           ))}
 
         </ol>
+
+        {events.length === 0 && (
+          <p className="py-4 text-center font-mono text-xs text-muted-foreground">
+            No incident events have been recorded yet.
+          </p>
+        )}
 
       </div>
 

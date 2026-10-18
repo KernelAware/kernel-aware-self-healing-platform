@@ -1,8 +1,7 @@
 import React from 'react'
 import {
   TriangleAlert,
-  Server,
-  Cpu,
+  HardDrive,
   Activity,
   ChevronRight
 } from 'lucide-react'
@@ -17,7 +16,6 @@ import {
 export default function ActiveAlertsList({
   alerts,
   acknowledgeAlert,
-  resolveAlert,
   selectIncident,
   selectedIncidentId
 }) {
@@ -25,7 +23,7 @@ export default function ActiveAlertsList({
   const activeCount = alerts.length
 
   return (
-    <Panel onClick={() => selectIncident(a.id)}>
+    <Panel>
 
       <PanelHeader
         title="Active Incidents"
@@ -42,7 +40,7 @@ export default function ActiveAlertsList({
 
         {alerts.map((a) => {
           const isSelected = a.id === selectedIncidentId
-          const isCritical = a.id === selectedIncidentId
+          const isCritical = a.tone === 'danger'
           const isWarning = a.tone === 'warning'
 
           return (
@@ -82,6 +80,10 @@ export default function ActiveAlertsList({
                 {a.title}
               </h4>
 
+              <span className="mt-1 inline-block font-mono text-[9px] uppercase tracking-wider text-primary">
+                {a.category || 'unknown category'}
+              </span>
+
 
               {/* DETAILS */}
               <div className="mt-3 space-y-1.5 text-[14px] text-muted-foreground">
@@ -90,9 +92,9 @@ export default function ActiveAlertsList({
 
 
                 <div className="flex items-center gap-2">
-                  <Cpu className="size-5 shrink-0" />
+                  <HardDrive className="size-5 shrink-0" />
                   <span>
-                    {a.process || a.body}
+                    {a.target || a.process || a.body}
                   </span>
                 </div>
 
@@ -138,11 +140,13 @@ export default function ActiveAlertsList({
                         }
                       `}
                     >
-                      {isCritical
+                      {a.status === 'WAITING_APPROVAL'
                         ? 'Waiting Approval'
-                        : isWarning
+                        : a.status === 'HEALING'
                           ? 'Healing'
-                          : 'Open'}
+                          : String(a.status).toUpperCase() === 'RESOLVED'
+                            ? 'Resolved'
+                            : 'Open'}
                     </span>
 
                   )}
@@ -178,25 +182,6 @@ export default function ActiveAlertsList({
                     Acknowledge
                   </button>
 
-
-                  <button
-                    onClick={() => resolveAlert(a.id)}
-                    className="
-                      flex-1
-                      rounded-md
-                      border
-                      border-border
-                      py-1.5
-                      font-mono
-                      text-[10px]
-                      uppercase
-                      tracking-wider
-                      text-muted-foreground
-                      hover:bg-secondary
-                    "
-                  >
-                    Resolve
-                  </button>
 
                 </div>
               )}

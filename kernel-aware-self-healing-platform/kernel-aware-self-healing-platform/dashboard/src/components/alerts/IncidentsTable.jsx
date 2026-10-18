@@ -2,14 +2,23 @@ import React, { useState } from 'react'
 import { ListFilter, Search } from 'lucide-react'
 import { Panel, PanelHeader, ActionButton, StatusBadge, Dot } from '@/components/kit'
 
-export default function IncidentsTable({ incidents }) {
+export default function IncidentsTable({ incidents, loading = false }) {
   const [search, setSearch] = useState('')
 
-  const filtered = incidents.filter((h) =>
-    h.title.toLowerCase().includes(search.toLowerCase()) ||
-    h.id.toLowerCase().includes(search.toLowerCase()) ||
-    h.prio.toLowerCase().includes(search.toLowerCase())
-  )
+  const rows = Array.isArray(incidents) ? incidents : []
+  const filtered = rows.filter((h) => [h.title, h.id, h.priority, h.severity, h.status]
+    .some(value => String(value || '').toLowerCase().includes(search.toLowerCase())))
+  const formatTime = value => {
+    if (!value) return '—'
+    const date = new Date(value)
+    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString()
+  }
+  const resolutionTime = incident => {
+    if (!incident.created_at || !incident.resolved_at) return '—'
+    const seconds = Math.max(0, Math.round((Date.parse(incident.resolved_at) - Date.parse(incident.created_at)) / 1000))
+    if (!Number.isFinite(seconds)) return '—'
+    return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`
+  }
 
   return (
     <Panel className="mt-4">
@@ -50,22 +59,29 @@ export default function IncidentsTable({ incidents }) {
                 <td className="px-4 py-3 font-mono text-muted-foreground">{h.id}</td>
                 <td className="px-4 py-3 font-medium text-foreground">{h.title}</td>
                 <td className="px-4 py-3">
-                  <StatusBadge tone={h.prio === 'P0' ? 'danger' : h.prio === 'P1' ? 'warning' : 'muted'}>
-                    {h.prio}
+                  <StatusBadge tone={String(h.severity).toLowerCase() === 'critical' ? 'danger' : String(h.severity).toLowerCase() === 'high' ? 'warning' : 'muted'}>
+                    {h.priority || '—'}
                   </StatusBadge>
                 </td>
                 <td className="px-4 py-3">
                   <span className="flex items-center gap-1.5 font-mono text-foreground/80">
-                    <Dot tone={h.status === 'Resolved' ? 'success' : 'muted'} />{h.status}
+                    <Dot tone={['RESOLVED', 'CLOSED'].includes(String(h.status).toUpperCase()) ? 'success' : 'muted'} />{h.status}
                   </span>
                 </td>
-                <td className="px-4 py-3 font-mono text-muted-foreground">{h.start}</td>
-                <td className="px-4 py-3 font-mono text-foreground/80">{h.res}</td>
+                <td className="px-4 py-3 font-mono text-muted-foreground">{formatTime(h.created_at)}</td>
+                <td className="px-4 py-3 font-mono text-foreground/80">{resolutionTime(h)}</td>
                 <td className="px-4 py-3 text-right text-accent hover:underline">
                   <button className="cursor-pointer">View Log</button>
                 </td>
               </tr>
             ))}
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan="7" className="px-4 py-8 text-center font-mono text-xs text-muted-foreground">
+                  {loading ? 'Loading incident history…' : rows.length === 0 ? 'No incident history is available.' : 'No incidents match this search.'}
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
