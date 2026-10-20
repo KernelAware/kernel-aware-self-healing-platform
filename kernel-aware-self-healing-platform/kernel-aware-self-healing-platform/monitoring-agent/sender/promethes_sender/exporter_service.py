@@ -1,5 +1,5 @@
 from prometheus_client import Gauge, generate_latest, CONTENT_TYPE_LATEST
-from collectors.service import collect_services, get_service_summary
+from collectors.system_metrics.service import collect_services, get_service_summary
 
 service_total = Gauge(
     "service_total",

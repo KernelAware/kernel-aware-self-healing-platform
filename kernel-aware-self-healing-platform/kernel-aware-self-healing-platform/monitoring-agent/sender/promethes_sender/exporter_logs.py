@@ -18,7 +18,7 @@ from pathlib import Path
 from prometheus_client import Gauge
 from prometheus_client import generate_latest
 
-from collectors.logs import (
+from collectors.system_metrics.logs import (
     refresh_sources,
     get_logs_snapshot
 )
