@@ -15,13 +15,12 @@ class ProcessDetector(DetectionStrategy):
 
         for rule_target in rule["targets"]:
             for metric in rule["metrics"]:
-
                 results = get_process_metric(
                     system_id=rule["rule"]["system_id"],
                     process_details=rule_target["target"],
                     metric=metric
                 )
-
+                print(results)
                 for result in results:
 
                     pid = result["metric"]["pid"]
