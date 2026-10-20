@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react"
-import { fetchIncidents } from "@/services/incidents"
-import { useWebSocket } from "@/hooks/useWebSocket.js"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { wsBroker } from "@/services/websocket"
 
-const SYSTEM_ID = import.meta.env.VITE_SYSTEM_ID || "1"
+const LIVE_INCIDENT_EVENTS = new Set(["opened", "updated", "resolved"])
+const USER_RULE_CATEGORIES = new Set(["cpu", "memory", "disk", "process"])
 
 function ageFor(value) {
   const seconds = Math.max(0, Math.floor((Date.now() - Date.parse(value || "")) / 1000))
@@ -21,39 +21,45 @@ const toneForSeverity = severity => ({
   low: "muted",
 }[String(severity || "").toLowerCase()] || "muted")
 
-export function useAlerts(providedIncidents) {
+export function useAlerts({ ruleAlertsOnly = false } = {}) {
   const [acknowledged, setAcknowledged] = useState(() => new Set())
-  const [loadedIncidents, setLoadedIncidents] = useState([])
-  const liveIncident = useWebSocket("incident_update")
-  const incidents = providedIncidents ?? loadedIncidents
+  // Active alerts are session-local: history and browser storage never hydrate this list.
+  const [liveIncidents, setLiveIncidents] = useState([])
 
   useEffect(() => {
-    if (providedIncidents !== undefined) return
-    let active = true
-    fetchIncidents(SYSTEM_ID).then(rows => {
-      if (active) setLoadedIncidents(rows)
-    }).catch(() => {})
-    return () => { active = false }
-  }, [providedIncidents])
-
-  useEffect(() => {
-    if (providedIncidents !== undefined || !liveIncident) return
-    setLoadedIncidents(current => {
-      const id = liveIncident.incident_id || liveIncident.id
-      const index = current.findIndex(item => (item.incident_id || item.id) === id)
-      if (index < 0) return [liveIncident, ...current]
-      return current.map((item, itemIndex) => itemIndex === index ? { ...item, ...liveIncident } : item)
+    const unsubscribe = wsBroker.subscribe(message => {
+      if (message?.type !== "incident_update" || !LIVE_INCIDENT_EVENTS.has(message.event)) return
+      const liveIncident = message.data
+      if (!liveIncident) return
+      const monitorType = String(liveIncident.monitor_type || liveIncident.incident_type || liveIncident.category || "").toLowerCase()
+      if (ruleAlertsOnly && !USER_RULE_CATEGORIES.has(monitorType)) return
+      setLiveIncidents(current => {
+        const id = liveIncident.incident_id || liveIncident.id
+        if (!id) return current
+        const normalizedIncident = { ...liveIncident, id, incident_id: id }
+        const index = current.findIndex(item => (item.incident_id || item.id) === id)
+        // The Disk evaluator can resume a still-active rule violation from
+        // Redis and publish its first event in this page session as "updated".
+        // The backend sends no historical snapshot on WebSocket connect, so
+        // accept that live Disk update while keeping other workflows unchanged.
+        const startsLiveEntry = message.event === "opened"
+          || (monitorType === "disk" && message.event === "updated")
+        if (index < 0) return startsLiveEntry ? [normalizedIncident, ...current] : current
+        return current.map((item, itemIndex) => itemIndex === index ? { ...item, ...normalizedIncident } : item)
+      })
     })
-  }, [liveIncident, providedIncidents])
+    return unsubscribe
+  }, [ruleAlertsOnly])
 
-  const alerts = useMemo(() => incidents
+  const alerts = useMemo(() => liveIncidents
     .filter(incident => !["RESOLVED", "CLOSED"].includes(String(incident.status).toUpperCase()))
     .map(incident => {
       const original = incident.alert || {}
+      const id = incident.incident_id || incident.id
       return {
         ...original,
-        id: incident.id,
-        incident_id: incident.id,
+        id,
+        incident_id: id,
         category: incident.category,
         monitor_type: incident.monitor_type,
         target: incident.target,
@@ -72,13 +78,23 @@ export function useAlerts(providedIncidents) {
         age: incident.created_at ? ageFor(incident.created_at) : original.age || "",
         tone: original.tone || toneForSeverity(incident.severity),
         level: original.level || `${incident.priority} - ${incident.severity}`,
-        acked: acknowledged.has(incident.id),
+        acked: acknowledged.has(id),
       }
-    }), [incidents, acknowledged])
+    }), [liveIncidents, acknowledged])
 
   const acknowledgeAlert = id => setAcknowledged(current => new Set(current).add(id))
+  const updateLiveIncident = useCallback((incidentId, updates) => {
+    setLiveIncidents(current => current.map(incident =>
+      (incident.incident_id || incident.id) === incidentId
+        ? { ...incident, ...updates }
+        : incident,
+    ))
+  }, [])
+
   return {
     alerts,
+    liveIncidents,
+    updateLiveIncident,
     acknowledgeAlert,
     criticalCount: alerts.filter(alert => alert.tone === "danger").length,
   }

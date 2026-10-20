@@ -1,190 +1,283 @@
-import hashlib
-import json
-import re
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from models.alert_incident import AlertIncident
+from models.incidents import Incident
 
 
-def _as_datetime(value):
-    if isinstance(value, datetime):
-        return value
-    if not value:
-        return None
-    try:
-        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
-    except ValueError:
-        return None
+def _first_value(*values):
+    for value in values:
+        if value is not None and (not isinstance(value, str) or value.strip()):
+            return value
+    return None
 
 
-def _system_id(detail: dict, alert: dict):
-    value = detail.get("system_id", alert.get("system_id"))
+def _as_int(value, field: str, *, required: bool = False) -> int | None:
     if value is None:
-        match = re.search(r"(\d+)$", str(detail.get("system") or alert.get("system") or ""))
-        value = match.group(1) if match else None
-    try:
-        return int(value) if value is not None else None
-    except (TypeError, ValueError):
+        if required:
+            raise ValueError(f"Incident is missing {field}")
         return None
+    if isinstance(value, bool):
+        raise ValueError(f"Incident has an invalid {field}")
+    try:
+        return int(value)
+    except (TypeError, ValueError) as error:
+        raise ValueError(f"Incident has an invalid {field}") from error
 
 
-def _fingerprint(detail: dict, alert: dict) -> str:
-    supplied = detail.get("fingerprint") or alert.get("fingerprint")
-    if supplied:
-        return str(supplied)
-    trigger = detail.get("trigger") or {}
-    metric = trigger.get("metric") or detail.get("metric") or alert.get("metric")
-    category = detail.get("monitor_type") or detail.get("category") or alert.get("category")
-    if not category:
-        category = "process" if detail.get("process") or detail.get("pid") or alert.get("pid") else "unknown"
-    identity = {
-        "category": str(category).lower(),
-        "system_id": _system_id(detail, alert),
-        "rule_id": detail.get("rule_id") or alert.get("rule_id"),
-        "target_type": detail.get("target_type") or ("process" if category == "process" else None),
-        "target": detail.get("target") or detail.get("process") or alert.get("target"),
-        "pid": detail.get("pid") or alert.get("pid"),
-        "metric": metric,
-    }
-    encoded = json.dumps(identity, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+def _as_datetime(value, field: str) -> datetime | None:
+    if value is None or value == "":
+        return None
+    if isinstance(value, datetime):
+        parsed = value
+    else:
+        try:
+            parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        except ValueError as error:
+            raise ValueError(f"Incident has an invalid {field}") from error
+    return parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed
 
 
-def persist_incident(db: Session, event: str, incident_detail: dict, alert: dict | None = None):
-    alert = alert or {}
-    incident_id = str(
-        incident_detail.get("incident_id")
-        or incident_detail.get("id")
-        or alert.get("incident_id")
-        or alert.get("id")
-        or ""
+def _required_string(value, field: str, max_length: int) -> str:
+    if value is None or not str(value).strip():
+        raise ValueError(f"Incident is missing {field}")
+    result = str(value)
+    if len(result) > max_length:
+        raise ValueError(f"Incident {field} exceeds {max_length} characters")
+    return result
+
+
+def _incident_id(incident_detail: dict, alert: dict) -> str:
+    value = _first_value(
+        incident_detail.get("incident_id"),
+        incident_detail.get("id"),
+        alert.get("incident_id"),
+        alert.get("id"),
     )
-    if not incident_id:
-        raise ValueError("Incident update is missing an incident ID")
+    return _required_string(value, "id", 40)
 
-    fingerprint = _fingerprint(incident_detail, alert)
-    record = db.get(AlertIncident, incident_id)
-    if record is None:
-        record = (
-            db.query(AlertIncident)
-            .filter(
-                AlertIncident.fingerprint == fingerprint,
-                AlertIncident.status != "RESOLVED",
-            )
-            .order_by(AlertIncident.created_at.desc())
-            .first()
-        )
+
+def persist_incident(
+    db: Session,
+    event: str,
+    incident_detail: dict,
+    alert: dict | None = None,
+):
+    """Insert or update the existing incidents row using its existing identity."""
+    alert = alert or {}
+    record_id = _incident_id(incident_detail, alert)
+    record = db.get(Incident, record_id)
     created = record is None
-
     trigger = incident_detail.get("trigger") or {}
-    status = "RESOLVED" if event == "resolved" else str(
-        incident_detail.get("status") or alert.get("status") or "OPEN"
-    ).upper()
-    monitor_type = str(
-        incident_detail.get("monitor_type")
-        or incident_detail.get("category")
-        or alert.get("category")
-        or "unknown"
-    ).lower()
     now = datetime.now(timezone.utc)
 
+    rule_id = _as_int(
+        _first_value(incident_detail.get("rule_id"), alert.get("rule_id")),
+        "rule_id",
+    )
+    if rule_id is None and record is not None:
+        rule_id = record.rule_id
+
+    system_id = _as_int(
+        _first_value(incident_detail.get("system_id"), alert.get("system_id")),
+        "system_id",
+        required=record is None,
+    )
+    if system_id is None and record is not None:
+        system_id = record.system_id
+
+    category_value = _first_value(
+        incident_detail.get("monitor_type"),
+        incident_detail.get("category"),
+        incident_detail.get("incident_type"),
+        alert.get("monitor_type"),
+        alert.get("category"),
+        record.category if record is not None else None,
+    )
+    category = _required_string(category_value, "category", 30).lower()
+
+    target_value = _first_value(
+        incident_detail.get("target"),
+        incident_detail.get("process"),
+        alert.get("target"),
+        alert.get("process"),
+        record.target if record is not None else None,
+    )
+    target = _required_string(target_value, "target", 255)
+
+    metric_value = _first_value(
+        trigger.get("metric"),
+        incident_detail.get("metric"),
+        alert.get("metric"),
+        record.metric if record is not None else None,
+    )
+    metric = _required_string(metric_value, "metric", 150)
+
+    severity_value = _first_value(
+        incident_detail.get("severity"),
+        incident_detail.get("incident_severity"),
+        alert.get("severity"),
+        record.severity if record is not None else None,
+    )
+    severity = _required_string(severity_value, "severity", 30)
+
+    priority_value = _first_value(
+        incident_detail.get("priority"),
+        incident_detail.get("incident_priority"),
+        alert.get("priority"),
+        record.priority if record is not None else None,
+    )
+    priority = _required_string(priority_value, "priority", 30)
+
+    event_name = str(event or "opened").lower()
+    status_value = "RESOLVED" if event_name == "resolved" else _first_value(
+        incident_detail.get("status"),
+        alert.get("status"),
+        record.status if record is not None else None,
+        "OPEN",
+    )
+    status = _required_string(status_value, "status", 20).upper()
+
+    opened_at = _as_datetime(
+        _first_value(
+            incident_detail.get("opened_at"),
+            incident_detail.get("openedAt"),
+            incident_detail.get("created_at"),
+            incident_detail.get("createdAt"),
+            alert.get("opened_at"),
+            alert.get("openedAt"),
+        ),
+        "opened_at",
+    ) or (record.opened_at if record is not None else now)
+    updated_at = _as_datetime(
+        _first_value(
+            incident_detail.get("updated_at"),
+            incident_detail.get("updatedAt"),
+            alert.get("updated_at"),
+            alert.get("updatedAt"),
+        ),
+        "updated_at",
+    ) or now
+    if status in {"RESOLVED", "CLOSED"}:
+        resolved_at = _as_datetime(
+            _first_value(
+                incident_detail.get("resolved_at"),
+                incident_detail.get("resolvedAt"),
+                alert.get("resolved_at"),
+                alert.get("resolvedAt"),
+            ),
+            "resolved_at",
+        ) or (record.resolved_at if record is not None else None) or now
+    else:
+        resolved_at = None
+
+    detail_payload = dict(incident_detail)
+    detail_payload.update(
+        {
+            "id": record_id,
+            "incident_id": record_id,
+            "rule_id": rule_id,
+            "system_id": system_id,
+            "category": category,
+            "monitor_type": category,
+            "target": target,
+            "metric": metric,
+            "severity": severity,
+            "priority": priority,
+            "status": status,
+            "opened_at": opened_at.isoformat(),
+            "updated_at": updated_at.isoformat(),
+            "resolved_at": resolved_at.isoformat() if resolved_at else None,
+        }
+    )
+    alert_payload = dict(alert or (record.alert if record is not None else {}))
+    alert_payload.update(
+        {
+            "id": record_id,
+            "incident_id": record_id,
+            "rule_id": rule_id,
+            "system_id": system_id,
+            "category": category,
+            "monitor_type": category,
+            "target": target,
+            "metric": metric,
+            "severity": severity,
+            "priority": priority,
+            "status": status,
+        }
+    )
+
     if record is None:
-        record = AlertIncident(
-            incident_id=incident_id,
-            fingerprint=fingerprint,
-            created_at=_as_datetime(incident_detail.get("created_at")) or now,
-            incident_detail={},
+        record = Incident(
+            id=record_id,
+            rule_id=rule_id,
+            system_id=system_id,
+            category=category,
+            target=target,
+            metric=metric,
+            severity=severity,
+            priority=priority,
+            status=status,
+            opened_at=opened_at,
+            updated_at=updated_at,
+            resolved_at=resolved_at,
+            detail=detail_payload,
+            alert=alert_payload,
         )
         db.add(record)
+    else:
+        record.rule_id = rule_id
+        record.system_id = system_id
+        record.category = category
+        record.target = target
+        record.metric = metric
+        record.severity = severity
+        record.priority = priority
+        record.status = status
+        record.opened_at = opened_at
+        record.updated_at = updated_at
+        record.resolved_at = resolved_at
+        record.detail = detail_payload
+        record.alert = alert_payload
 
-    incident_detail = {
-        **incident_detail,
-        "id": record.incident_id,
-        "incident_id": record.incident_id,
-        "fingerprint": fingerprint,
-    }
-    if alert:
-        alert = {
-            **alert,
-            "id": record.incident_id,
-            "incident_id": record.incident_id,
-        }
-
-    record.fingerprint = fingerprint
-    record.system_id = _system_id(incident_detail, alert)
-    try:
-        record.rule_id = int(incident_detail.get("rule_id") or alert.get("rule_id"))
-    except (TypeError, ValueError):
-        record.rule_id = None
-    record.monitor_type = monitor_type
-    record.target_type = incident_detail.get("target_type") or alert.get("target_type")
-    record.target = (
-        incident_detail.get("target")
-        or incident_detail.get("process")
-        or alert.get("target")
-    )
-    record.metric = trigger.get("metric") or incident_detail.get("metric") or alert.get("metric")
-    try:
-        value = trigger.get("currentValue", alert.get("current_value"))
-        record.current_value = float(value) if value is not None else None
-    except (TypeError, ValueError):
-        record.current_value = None
-    try:
-        threshold = trigger.get("threshold", alert.get("threshold"))
-        record.threshold = float(threshold) if threshold is not None else None
-    except (TypeError, ValueError):
-        record.threshold = None
-    record.operator = trigger.get("operator") or alert.get("operator")
-    record.severity = incident_detail.get("severity") or alert.get("severity")
-    record.priority = incident_detail.get("priority") or alert.get("priority")
-    record.status = status
-    record.updated_at = _as_datetime(incident_detail.get("updated_at")) or now
-    record.resolved_at = (
-        _as_datetime(incident_detail.get("resolved_at")) or now
-        if status == "RESOLVED"
-        else None
-    )
-    record.incident_detail = incident_detail
-    record.alert_payload = alert or record.alert_payload
     db.commit()
     db.refresh(record)
     return record, created
 
 
-def list_incidents(db: Session, system_id: int | None = None):
-    query = db.query(AlertIncident)
+def list_incidents(
+    db: Session,
+    system_id: int | None = None,
+    exclude_monitor_type: str | None = None,
+):
+    query = db.query(Incident)
     if system_id is not None:
-        query = query.filter(AlertIncident.system_id == system_id)
-    return query.order_by(AlertIncident.created_at.desc()).all()
+        query = query.filter(Incident.system_id == int(system_id))
+    if exclude_monitor_type:
+        query = query.filter(Incident.category != exclude_monitor_type.lower())
+    return query.order_by(Incident.created_at.desc(), Incident.id.desc()).all()
 
 
-def incident_to_dict(record: AlertIncident) -> dict:
-    detail = dict(record.incident_detail or {})
-    detail.update(
-        {
-            "id": record.incident_id,
-            "incident_id": record.incident_id,
-            "fingerprint": record.fingerprint,
-            "system_id": record.system_id,
-            "rule_id": record.rule_id,
-            "monitor_type": record.monitor_type,
-            "category": record.monitor_type,
-            "target_type": record.target_type,
-            "target": record.target,
-            "metric": record.metric,
-            "current_value": record.current_value,
-            "threshold": record.threshold,
-            "operator": record.operator,
-            "severity": record.severity,
-            "priority": record.priority,
-            "status": record.status,
-            "created_at": _as_datetime(record.created_at).isoformat() if record.created_at else None,
-            "updated_at": _as_datetime(record.updated_at).isoformat() if record.updated_at else None,
-            "resolved_at": _as_datetime(record.resolved_at).isoformat() if record.resolved_at else None,
-            "alert": record.alert_payload,
-        }
-    )
-    return detail
+def incident_to_dict(record: Incident) -> dict:
+    detail = dict(record.detail or {})
+    result = {
+        **detail,
+        "id": record.id,
+        "incident_id": record.id,
+        "rule_id": record.rule_id,
+        "system_id": record.system_id,
+        "category": record.category,
+        "monitor_type": record.category,
+        "target": record.target,
+        "metric": record.metric,
+        "severity": record.severity,
+        "priority": record.priority,
+        "status": record.status,
+        "opened_at": record.opened_at,
+        "created_at": record.created_at,
+        "updated_at": record.updated_at,
+        "resolved_at": record.resolved_at,
+        "detail": detail,
+        "alert": dict(record.alert or {}),
+    }
+    return result

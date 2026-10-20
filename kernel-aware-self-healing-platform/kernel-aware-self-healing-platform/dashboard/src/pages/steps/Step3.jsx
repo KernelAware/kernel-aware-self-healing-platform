@@ -15,7 +15,27 @@ export default function Step3({ form, setForm }) {
               if (src.id === "network") {
                 return { ...base, metric: "Network Error Rate (Incoming)", targetType: "Network Interface", aggregation: "Average (60s)", condMetric: "Error Rate (errors/sec)", condThreshold: "", recoveryThreshold: "", condInterval: "Every 20 seconds", actionType: "alert" };
               } else if (src.id === "disk") {
-                return { ...base, metric: "Disk Usage Percentage", targetType: "Partition (Mount Point)", aggregation: "Average (60s)", condMetric: "Disk Usage %", condThreshold: "", recoveryThreshold: "", condInterval: "Every 30 seconds", actionType: "alert", diskMetricCategory: "Disk", mountPoint: "/ (Root)" };
+                const targets = Array.isArray(f.targets)
+                  ? f.targets.filter(target => !["host", "disk", "filesystem", "partition", "process"].includes(String(target?.type || "").toLowerCase()))
+                  : [];
+                return {
+                  ...base,
+                  targets,
+                  selectionType: "",
+                  processId: "",
+                  processName: "",
+                  partitionDevice: "",
+                  metric: "",
+                  targetType: "Partition (Mount Point)",
+                  aggregation: "Average (60s)",
+                  condMetric: "",
+                  condThreshold: "",
+                  recoveryThreshold: "",
+                  condInterval: "Every 30 seconds",
+                  actionType: "alert",
+                  diskMetricCategory: "Disk",
+                  mountPoint: "",
+                };
               } else if (src.id === "memory") {
                 return { ...base, metric: "system_memory_usage_percent", targetType: "Host", aggregation: "Average (Avg)", condMetric: "system_memory_usage_percent", condThreshold: "", recoveryThreshold: "", condInterval: "Every 30 seconds", actionType: "alert", memoryCategory: "ram", memoryMetric: "system_memory_usage_percent" };
               } else if (src.id === "hardware") {

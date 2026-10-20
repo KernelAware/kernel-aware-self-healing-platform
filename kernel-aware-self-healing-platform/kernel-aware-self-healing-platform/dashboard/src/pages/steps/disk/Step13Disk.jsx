@@ -7,7 +7,7 @@ import { DISK_METRICS } from "./diskHelpers"
 export default function Step13Disk({ form, onCancel }) {
   const [saveState, setSaveState] = useState("idle")
   const [saveError, setSaveError] = useState("")
-  const target = form.targets?.find(item => ["host", "disk", "filesystem", "process"].includes(item.type))
+  const target = form.targets?.find(item => ["host", "disk", "filesystem", "partition", "process"].includes(item.type))
   const condition = target?.metrics?.[0]?.conditions?.[0]
   const targets = Array.isArray(form.targets) ? form.targets : []
   const actions = Array.isArray(form.actions) ? form.actions : []
@@ -39,7 +39,7 @@ export default function Step13Disk({ form, onCancel }) {
     const targets = Array.isArray(form.targets) ? form.targets : []
     const normalizedTargets = targets.map(target => ({
       ...target,
-      ...(["host", "disk", "filesystem", "process"].includes(target.type) ? { host: null } : {}),
+      ...(["host", "disk", "filesystem", "partition", "process"].includes(target.type) ? { host: null } : {}),
       metrics: Array.isArray(target.metrics) ? target.metrics.map(metric => ({
         ...metric,
         conditions: Array.isArray(metric.conditions) ? metric.conditions.map(condition => ({
@@ -71,6 +71,7 @@ export default function Step13Disk({ form, onCancel }) {
       },
     }
     delete payload.notifications.recipientDraft
+    delete payload.partitionDevice
 
     try {
       await userRules(payload)

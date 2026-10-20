@@ -8,8 +8,12 @@ async function parseResponse(response) {
   return body
 }
 
-export async function fetchIncidents(systemId) {
-  const query = systemId ? `?system_id=${encodeURIComponent(systemId)}` : ""
+export async function fetchIncidents(systemId, options = {}) {
+  const params = new URLSearchParams()
+  if (systemId) params.set("system_id", systemId)
+  if (options.excludeMonitorType) params.set("exclude_monitor_type", options.excludeMonitorType)
+  const queryString = params.toString()
+  const query = queryString ? `?${queryString}` : ""
   const response = await fetch(`${BACKEND_URL}/incidents${query}`)
   const data = await parseResponse(response)
   return Array.isArray(data) ? data : data.incidents || []

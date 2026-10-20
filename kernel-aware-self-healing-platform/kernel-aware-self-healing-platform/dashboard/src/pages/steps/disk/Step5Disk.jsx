@@ -5,13 +5,15 @@ import { DISK_METRICS, OPERATORS, updateDisk } from "./diskHelpers"
 
 export default function Step5Disk({ form, setForm }) {
   const metric = DISK_METRICS.find(item => item.id === form.metric)
-  const diskTarget = form.targets?.find(item => ["host", "disk", "filesystem", "process"].includes(item.type))
+  const diskTarget = form.targets?.find(item => ["host", "disk", "filesystem", "partition", "process"].includes(item.type))
   const targetMetric = diskTarget?.metrics?.[0]
   const condition = targetMetric?.conditions?.[0]
   const duration = form.condDuration || "5"
   const target = diskTarget?.type === "process"
     ? `${diskTarget.processName || form.processName || "Process"} (PID ${diskTarget.pid || form.processId || "?"})`
-    : [form.mountPoint || form.device, form.host].filter(Boolean).join(" on ")
+    : ["host", "partition"].includes(diskTarget?.type)
+      ? diskTarget.name
+      : [form.mountPoint || form.device, form.host].filter(Boolean).join(" on ")
   const operator = form.condOperator || condition?.operator || "Greater Than (>)"
 
   const updateCondition = (field, value) => setForm(current => {
@@ -29,7 +31,7 @@ export default function Step5Disk({ form, setForm }) {
       ...current,
       [field === "operator" ? "condOperator" : field === "threshold" ? "condThreshold" : field === "duration" ? "condDuration" : "condDurationUnit"]: value,
       targets: targets.map(item => {
-        if (!["host", "disk", "filesystem", "process"].includes(item.type)) return item
+        if (!["host", "disk", "filesystem", "partition", "process"].includes(item.type)) return item
         const metrics = Array.isArray(item.metrics) ? item.metrics : []
         const metricIndex = metrics.findIndex(metricItem => metricItem.name === metricId)
         const selectedMetricIndex = metricIndex >= 0 ? metricIndex : 0
@@ -51,7 +53,7 @@ export default function Step5Disk({ form, setForm }) {
   })
 
   useEffect(() => {
-    const diskTargetForCondition = form.targets?.find(item => ["host", "disk", "filesystem", "process"].includes(item.type))
+    const diskTargetForCondition = form.targets?.find(item => ["host", "disk", "filesystem", "partition", "process"].includes(item.type))
     const nestedCondition = diskTargetForCondition?.metrics?.[0]?.conditions?.[0]
     const baseConditionComplete = form.condOperator && form.condThreshold && form.condDuration && form.condDurationUnit
     if ((!form.metric || !diskTargetForCondition) && baseConditionComplete) return
@@ -74,7 +76,7 @@ export default function Step5Disk({ form, setForm }) {
       condOccurrences: current.condOccurrences || "8",
       condOutOf: current.condOutOf || "10",
       targets: targets.map(item => {
-        if (!["host", "disk", "filesystem", "process"].includes(item.type)) return item
+        if (!["host", "disk", "filesystem", "partition", "process"].includes(item.type)) return item
         if (!current.metric) return item
         const metrics = Array.isArray(item.metrics) ? item.metrics : []
         const selectedMetric = metrics[0] || { name: condMetric, conditions: [] }

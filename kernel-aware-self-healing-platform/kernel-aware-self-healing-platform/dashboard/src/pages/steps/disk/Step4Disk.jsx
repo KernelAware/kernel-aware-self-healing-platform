@@ -1,14 +1,25 @@
 import { useEffect, useMemo, useState } from "react"
+import { ChevronDown } from "lucide-react"
 import { Panel } from "@/components/kit"
 import { SelectBox } from "../wizardComponents"
 import { queryPrometheus, queryPrometheusMetricNames } from "@/services/api"
-import { DISK_METRICS, diskMetricsFromPrometheus, updateDiskMetric, updateDiskTarget } from "./diskHelpers"
+import { DISK_METRICS, diskMetricsFromPrometheus, diskPartitionsFromPrometheus, updateDiskMetric, updateDiskTarget } from "./diskHelpers"
 
 const TARGET_OPTIONS = [
-  { value: "", label: "Select a target..." },
-  { value: "system", label: "Whole System" },
-  { value: "process", label: "Process" },
+  { value: "system", label: "Whole system" },
+  { value: "partition", label: "Specific partition" },
 ]
+
+function TargetScopeSelect({ value, onChange }) {
+  return <div className="relative">
+    <select value={value} onChange={event => onChange(event.target.value)} className="w-full appearance-none rounded-md border border-border bg-card px-3 pr-8 py-2.5 font-mono text-xs text-foreground focus:border-ring focus:outline-none cursor-pointer">
+      {!value && <option value="" disabled hidden>Select a target scope...</option>}
+      {TARGET_OPTIONS.map(option => <option key={option.value} value={option.value} className="bg-card">{option.label}</option>)}
+    </select>
+    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+  </div>
+}
+const SYSTEM_ID = import.meta.env.VITE_SYSTEM_ID || "1"
 const SYSTEM_MORE_METRICS = [
   "disk_read_bytes", "disk_write_bytes", "disk_read_count", "disk_write_count",
   "disk_read_time_ms", "disk_write_time_ms", "disk_busy_time_ms",
@@ -60,6 +71,9 @@ export default function Step4Disk({ form, setForm, validationError, clearValidat
   const [processes, setProcesses] = useState([])
   const [processState, setProcessState] = useState("loading")
   const [processError, setProcessError] = useState("")
+  const [partitions, setPartitions] = useState([])
+  const [partitionState, setPartitionState] = useState("idle")
+  const [partitionError, setPartitionError] = useState("")
   const [systemDetails, setSystemDetails] = useState([])
   const [systemState, setSystemState] = useState("loading")
   const [processDetails, setProcessDetails] = useState(null)
@@ -70,12 +84,23 @@ export default function Step4Disk({ form, setForm, validationError, clearValidat
   const [processListExpanded, setProcessListExpanded] = useState(false)
   const [systemPartitionsExpanded, setSystemPartitionsExpanded] = useState(false)
 
-  const diskTarget = useMemo(() => form.targets?.find(item => ["host", "disk", "filesystem", "process"].includes(item.type)), [form.targets])
-  const selectedTarget = form.selectionType || (diskTarget?.type === "process" ? "process" : diskTarget ? "system" : "")
+  const diskTarget = useMemo(() => form.targets?.find(item => ["host", "disk", "filesystem", "partition", "process"].includes(item.type)), [form.targets])
+  const selectedTarget = form.selectionType === "partition" || diskTarget?.type === "partition"
+    ? "partition"
+    : form.selectionType === "system" || (diskTarget && diskTarget.type !== "process")
+      ? "system"
+      : ""
+  const selectedPartition = form.partitionDevice || (diskTarget?.type === "partition" ? diskTarget.name : "")
   const selectedProcess = processes.find(item => item.pid === String(form.processId || diskTarget?.pid || "")) || (diskTarget?.type === "process" && diskTarget.pid
     ? { pid: String(diskTarget.pid), name: diskTarget.processName || diskTarget.name?.replace(/\s+\(PID \d+\)$/, "") || "Unknown process" }
     : null)
-  const metric = availableMetrics.find(item => item.id === form.metric) || DISK_METRICS.find(item => item.id === form.metric)
+  const metricOptions = !selectedTarget
+    ? []
+    : selectedTarget === "partition"
+      ? availableMetrics.filter(item => item.labels.some(label => label === "disk" || label === "device"))
+      : availableMetrics.filter(item => item.labels.length === 0)
+  const canChooseMetric = selectedTarget === "system" || (selectedTarget === "partition" && Boolean(selectedPartition))
+  const metric = metricOptions.find(item => item.id === form.metric) || DISK_METRICS.find(item => item.id === form.metric)
   const displayedProcesses = processListExpanded ? processes : processes.slice(0, 3)
   const displayedSystemDetails = systemPartitionsExpanded ? systemDetails : systemDetails.slice(0, 3)
 
@@ -88,8 +113,6 @@ export default function Step4Disk({ form, setForm, validationError, clearValidat
         setAvailableMetrics(metrics)
         setMetricState(metrics.length ? "ready" : "empty")
         setMetricError("")
-        const selected = metrics.find(item => item.id === form.metric) || metrics.find(item => item.id === "disk_usage_percent") || metrics[0]
-        if (selected && selected.id !== form.metric) updateDiskMetric(setForm, selected.id)
       })
       .catch(error => {
         if (!active) return
@@ -99,6 +122,44 @@ export default function Step4Disk({ form, setForm, validationError, clearValidat
       })
     return () => { active = false }
   }, [setForm])
+
+  useEffect(() => {
+    if (!metricOptions.length || metricOptions.some(item => item.id === form.metric)) return
+    const preferred = metricOptions.find(item => item.id === "disk_usage_percent") || metricOptions[0]
+    updateDiskMetric(setForm, preferred.id)
+  }, [metricOptions, form.metric, setForm])
+
+  useEffect(() => {
+    if (selectedTarget !== "partition") {
+      setPartitions([])
+      setPartitionState("idle")
+      setPartitionError("")
+      return
+    }
+
+    let active = true
+    const loadPartitions = async () => {
+      try {
+        const systemId = String(SYSTEM_ID).replace(/\\/g, "\\\\").replace(/"/g, '\\"')
+        const rows = await queryPrometheus(`disk_partition_info{system_id="${systemId}"}`)
+        if (!active) return
+        const discovered = diskPartitionsFromPrometheus(rows)
+        setPartitions(discovered)
+        setPartitionState(discovered.length ? "ready" : "empty")
+        setPartitionError("")
+      } catch (error) {
+        if (!active) return
+        setPartitions([])
+        setPartitionState("error")
+        setPartitionError(error.message || "Unable to query Prometheus")
+      }
+    }
+
+    setPartitionState("loading")
+    loadPartitions()
+    const timer = window.setInterval(loadPartitions, 15000)
+    return () => { active = false; window.clearInterval(timer) }
+  }, [selectedTarget])
 
   useEffect(() => {
     if (!["system", "process"].includes(selectedTarget)) {
@@ -240,15 +301,46 @@ export default function Step4Disk({ form, setForm, validationError, clearValidat
     clearValidationError?.()
     setShowMore(false)
     if (type === "system") {
-      updateDiskTarget(setForm, { selectionType: type, targetType: "Host", host: null, mountPoint: "", device: "", targetName: "Whole System" })
+      updateDiskTarget(setForm, { selectionType: type, targetType: "Host", host: null, mountPoint: "", device: "", partitionDevice: "", targetName: "whole system" })
+    } else if (type === "partition") {
+      setForm(current => {
+        const currentTargets = Array.isArray(current.targets) ? current.targets : []
+        const existingPartition = currentTargets.find(item => item.type === "partition")
+        return {
+          ...current,
+          selectionType: type,
+          partitionDevice: existingPartition?.name || "",
+          targets: existingPartition
+            ? currentTargets.filter(item => item === existingPartition || !["host", "disk", "filesystem", "process", "partition"].includes(item.type))
+            : currentTargets.filter(item => !["host", "disk", "filesystem", "process", "partition"].includes(item.type)),
+        }
+      })
     } else {
       setForm(current => ({
         ...current,
         targets: (Array.isArray(current.targets) ? current.targets : []).filter(item => item !== diskTarget),
         selectionType: type,
         processId: "",
+        partitionDevice: "",
       }))
     }
+  }
+
+  const choosePartition = device => {
+    const partition = partitions.find(item => item.device === device)
+    if (!partition) return
+    clearValidationError?.()
+    setShowMore(false)
+    updateDiskTarget(setForm, {
+      selectionType: "partition",
+      targetType: "Partition",
+      targetName: partition.device,
+      partitionDevice: partition.device,
+      device: partition.device,
+      mountPoint: partition.mountpoint,
+      filesystem: partition.filesystem,
+      host: null,
+    })
   }
 
   const chooseProcess = pid => {
@@ -280,6 +372,7 @@ export default function Step4Disk({ form, setForm, validationError, clearValidat
       selectionType: "process",
       processId: process.pid,
       processName: process.name,
+      partitionDevice: "",
       targets: [...(Array.isArray(current.targets) ? current.targets.filter(item => item !== diskTarget) : []), nextTarget],
     }))
   }
@@ -291,6 +384,7 @@ export default function Step4Disk({ form, setForm, validationError, clearValidat
       ...current,
       selectionType: "",
       processId: "",
+      partitionDevice: "",
       targets: (Array.isArray(current.targets) ? current.targets : []).filter(item => item !== diskTarget),
     }))
   }
@@ -299,16 +393,29 @@ export default function Step4Disk({ form, setForm, validationError, clearValidat
     <div className="mb-6"><p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">4. DISK TARGET & METRIC</p><p className="mt-0.5 text-xs text-muted-foreground">Choose where this Disk rule should apply.</p></div>
     <div className="space-y-5">
       <div>
+        <label className="mb-1.5 block font-mono text-[11px] text-foreground">Target scope — Where should this Disk rule apply?</label>
+        <TargetScopeSelect value={selectedTarget} onChange={chooseTarget} />
+      </div>
+      {!selectedTarget && diskTarget?.type === "process"
+        ? <p role="status" className="rounded-md border border-warning/40 bg-warning/5 px-3 py-2.5 font-mono text-xs text-warning">This rule still has a Process target from its previous monitor selection. Disk rules require Whole system or Specific partition; choose a Disk scope before continuing.</p>
+        : !selectedTarget && <p className="font-mono text-xs text-muted-foreground">Choose a target scope before selecting a disk metric.</p>}
+      {selectedTarget === "partition" && <div>
+        <label className="mb-1.5 block font-mono text-[11px] text-foreground">Select partition</label>
+        {partitionState === "loading" && <p className="rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-muted-foreground">Discovering mounted partitions from Prometheus...</p>}
+        {partitionState === "error" && <p className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2.5 font-mono text-xs text-destructive">Unable to load partitions: {partitionError}</p>}
+        {partitionState === "empty" && <p className="rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-muted-foreground">No selectable mounted partitions are available from Prometheus.</p>}
+        {partitionState === "ready" && <SelectBox value={selectedPartition} options={[{ value: "", label: "Choose a partition..." }, ...partitions.map(item => ({ value: item.device, label: `${item.device}${item.mountpoint ? ` — ${item.mountpoint}` : ""}${item.filesystem ? ` (${item.filesystem})` : ""}` }))]} onChange={choosePartition} />}
+      </div>}
+      {selectedTarget === "partition" && !selectedPartition && <p className="font-mono text-xs text-muted-foreground">Choose a partition before selecting a disk metric.</p>}
+      {canChooseMetric && <div>
         <label className="mb-1.5 block font-mono text-[11px] text-foreground">Disk Metric <span className="text-destructive">*</span></label>
         {metricState === "loading" && <p className="rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-muted-foreground">Loading metrics from Prometheus...</p>}
         {metricState === "error" && <p className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2.5 font-mono text-xs text-destructive">Unable to load disk metrics: {metricError}</p>}
         {metricState === "empty" && <p className="rounded-md border border-warning/40 bg-warning/5 px-3 py-2.5 font-mono text-xs text-warning">Prometheus returned no KAISP disk metrics.</p>}
-        {metricState === "ready" && <SelectBox value={metric?.id || availableMetrics[0]?.id || ""} options={availableMetrics.map(item => ({ value: item.id, label: item.title }))} onChange={value => updateDiskMetric(setForm, value)} />}
-      </div>
-      <div>
-        <label className="mb-1.5 block font-mono text-[11px] text-foreground">Target — Where should this Disk rule apply?</label>
-        <SelectBox value={selectedTarget} options={TARGET_OPTIONS} onChange={chooseTarget} />
-      </div>
+        {metricState === "ready" && (metricOptions.length
+          ? <SelectBox value={metricOptions.find(item => item.id === form.metric)?.id || metricOptions[0]?.id || ""} options={metricOptions.map(item => ({ value: item.id, label: item.id }))} onChange={value => updateDiskMetric(setForm, value)} />
+          : <p className="rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-muted-foreground">No compatible disk metrics are available for this target scope.</p>)}
+      </div>}
       {validationError && <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2.5 font-mono text-xs text-destructive">{validationError}</p>}
 
       {selectedTarget === "process" && <div>
@@ -321,7 +428,7 @@ export default function Step4Disk({ form, setForm, validationError, clearValidat
 
       {selectedTarget === "system" && <section className="space-y-3 rounded-md border border-emerald-700/20 bg-emerald-500/10 p-4">
         <div className="flex items-start justify-between gap-4">
-          <div><h2 className="font-mono text-xs font-bold text-emerald-800 dark:text-emerald-300">Whole-System Disk Overview</h2><p className="mt-1 font-mono text-[11px] leading-relaxed text-muted-foreground">KAISP is monitoring disk capacity and usage across the selected system. This rule will apply to the system-wide disk target.</p></div>
+          <div><h2 className="font-mono text-xs font-bold text-emerald-800 dark:text-emerald-300">Whole-System Disk Overview</h2><p className="mt-1 font-mono text-[11px] leading-relaxed text-muted-foreground">Whole-system rules use aggregate Disk I/O metrics. Capacity and usage figures below are informational summaries of the selected system’s partitions.</p></div>
           <button type="button" onClick={removeTarget} className="shrink-0 rounded border border-border px-2.5 py-1.5 font-mono text-[10px] text-foreground hover:bg-card">Remove</button>
         </div>
         {systemState === "loading" && <p className="font-mono text-[11px] text-muted-foreground">Loading live disk details...</p>}

@@ -143,15 +143,29 @@ def build_payload(incident: dict, event: str) -> dict:
     return {"incident_detail": detail, "alert": alert}
 
 
-def publish_incident(incident: dict, event: str) -> dict:
+def _post_alert_event(endpoint: str, incident: dict, event: str, persistence_required: bool) -> dict:
     payload = build_payload(incident, event)
     response = requests.post(
-        f"{BACKEND_URL}/alert_incidents",
+        f"{BACKEND_URL}/{endpoint}",
         json={"event": event, "incident": incident, **payload},
         timeout=10,
     )
     response.raise_for_status()
     result = response.json()
     if not isinstance(result, dict) or result.get("status") != "success":
+        raise RuntimeError("Backend did not confirm alert event delivery")
+    if persistence_required and not result.get("incident"):
         raise RuntimeError("Backend did not confirm incident persistence")
     return result
+
+
+def publish_rule_alert(incident: dict, event: str) -> dict:
+    """Persist a Disk rule incident before delivering its WebSocket event."""
+    return _post_alert_event("rule-alerts", incident, event, persistence_required=True)
+
+
+def publish_incident(incident: dict, event: str) -> dict:
+    """Keep the persistent incident route for non-Disk incident workflows."""
+    if str(incident.get("monitor_type") or incident.get("incident_type") or "").lower() == "disk":
+        return publish_rule_alert(incident, event)
+    return _post_alert_event("alert_incidents", incident, event, persistence_required=True)

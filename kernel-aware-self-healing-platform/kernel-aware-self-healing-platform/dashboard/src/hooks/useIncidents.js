@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
 import { fetchIncidents } from "@/services/incidents"
-import { useWebSocket } from "@/hooks/useWebSocket.js"
 
 const SYSTEM_ID = import.meta.env.VITE_SYSTEM_ID || "1"
 
@@ -70,14 +69,13 @@ export function useIncidents() {
   const [incidents, setIncidents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
-  const socketIncident = useWebSocket("incident_update")
 
   useEffect(() => {
     let active = true
     fetchIncidents(SYSTEM_ID)
       .then(rows => {
         if (!active) return
-        setIncidents(current => mergeIncidents(rows, current))
+        setIncidents(mergeIncidents(rows))
         setError("")
       })
       .catch(requestError => {
@@ -88,11 +86,6 @@ export function useIncidents() {
       })
     return () => { active = false }
   }, [])
-
-  useEffect(() => {
-    if (!socketIncident) return
-    setIncidents(current => mergeIncidents(current, [socketIncident]))
-  }, [socketIncident])
 
   const updateIncident = useCallback((incidentId, updates) => {
     setIncidents(current => current.map(item => item.id === incidentId ? { ...item, ...updates } : item))

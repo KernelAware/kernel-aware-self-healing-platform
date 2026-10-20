@@ -1,3 +1,16 @@
+SUPPORTED_OPERATORS = {
+    "Greater Than (>)",
+    "Less Than (<)",
+    "Greater Than or Equal (>=)",
+    "Less Than or Equal (<=)",
+    "Equal (=)",
+}
+
+
+def is_supported_operator(operator):
+    return operator in SUPPORTED_OPERATORS
+
+
 def check_threshold(value, operator, threshold):
 
     if operator == "Greater Than (>)":

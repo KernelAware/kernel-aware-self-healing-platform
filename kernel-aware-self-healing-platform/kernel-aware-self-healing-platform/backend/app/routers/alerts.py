@@ -29,8 +29,7 @@ def _persist_incident_in_worker(event: str, incident_detail: dict, alert: dict):
         db.close()
 
 
-@router.post("/alert_incidents")
-async def alert_incidents(data: dict, db: Session = Depends(get_db)):
+async def _persist_and_broadcast(data: dict, db: Session):
     incident_detail = data.get("incident_detail") or {}
     alert = data.get("alert") or {}
     event = str(data.get("event") or incident_detail.get("event") or "opened").lower()
@@ -60,21 +59,70 @@ async def alert_incidents(data: dict, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Incident persistence failed") from error
 
     saved = incident_to_dict(record)
-    system_id = saved.get("system_id")
+    saved_incident = {
+        **incident_detail,
+        **saved,
+        "id": saved["id"],
+        "incident_id": saved["id"],
+        "status": saved["status"],
+    }
+    if alert:
+        saved_alert = {
+            **alert,
+            "id": saved["id"],
+            "incident_id": saved["id"],
+            "status": saved["status"],
+        }
+        saved_incident["alert"] = saved_alert
+    else:
+        saved_alert = {}
+
+    system_id = incident_detail.get("system_id") or alert.get("system_id")
+    try:
+        system_id = int(system_id) if system_id is not None else None
+    except (TypeError, ValueError):
+        system_id = None
     if system_id is not None:
         await give_message(
-            {"type": "incident_detail", "data": saved},
-            systemid=system_id,
+            {"type": "incident_detail", "data": saved_incident},
+            systemid=int(system_id),
         )
         await give_message(
-            {"type": "incident_update", "event": event, "data": saved},
-            systemid=system_id,
+            {"type": "incident_update", "event": event, "data": saved_incident},
+            systemid=int(system_id),
         )
-        if created and saved.get("status") != "RESOLVED" and saved.get("alert"):
-            delivered_alert = {**saved["alert"], "status": saved.get("status"), "event": event}
+        if created and saved["status"] != "RESOLVED" and saved_alert:
+            delivered_alert = {**saved_alert, "event": event}
             await give_message(
                 {"type": "alerts", "data": delivered_alert},
-                systemid=system_id,
+                systemid=int(system_id),
             )
 
-    return {"status": "success", "event": event, "incident": saved}
+    return {"status": "success", "event": event, "incident": saved_incident}
+
+
+@router.post("/alert_incidents")
+async def alert_incidents(data: dict, db: Session = Depends(get_db)):
+    """Compatibility endpoint; incident history is stored in incidents."""
+    return await _persist_and_broadcast(data, db)
+
+
+@router.post("/rule-alerts")
+async def publish_rule_alert(data: dict, db: Session = Depends(get_db)):
+    """Persist a Disk rule incident before broadcasting it."""
+    incident_detail = data.get("incident_detail") or {}
+    alert = data.get("alert") or {}
+    if not incident_detail or not alert:
+        raise HTTPException(status_code=422, detail="incident_detail and alert are required")
+    category = str(
+        incident_detail.get("monitor_type")
+        or incident_detail.get("category")
+        or ""
+    ).lower()
+    if category != "disk":
+        raise HTTPException(status_code=400, detail="This route accepts Disk rule alerts only")
+    try:
+        int(incident_detail.get("system_id"))
+    except (TypeError, ValueError) as error:
+        raise HTTPException(status_code=422, detail="A numeric system_id is required") from error
+    return await _persist_and_broadcast(data, db)

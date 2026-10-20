@@ -52,16 +52,23 @@ export default function PolicyPage() {
   const handleNext = () => {
     if (form.monitorSource === "disk") {
       if (step === 4) {
-        const target = form.targets?.find(item => ["host", "disk", "filesystem", "process"].includes(item.type))
-        const validSystemTarget = form.selectionType === "system" && target?.type === "host" && target.name === "Whole System"
-        const validProcessTarget = form.selectionType === "process" && target?.type === "process" && !!form.processId && String(target.pid) === String(form.processId)
-        if (!validSystemTarget && !validProcessTarget) {
-          setStepValidationError(form.selectionType === "process" ? "Select a discovered process before continuing." : "Select Whole System or Process before continuing.")
+        const target = form.targets?.find(item => ["host", "disk", "filesystem", "partition", "process"].includes(item.type))
+        const validSystemTarget = form.selectionType === "system" && target?.type === "host" && target.name === "whole system"
+        const validPartitionTarget = form.selectionType === "partition" && target?.type === "partition" && !!form.partitionDevice && target.name === form.partitionDevice
+        if (!validSystemTarget && !validPartitionTarget) {
+          setStepValidationError(target?.type === "process" || form.selectionType === "process"
+            ? "Disk rules cannot target a Process. Choose Whole system or Specific partition."
+            : form.selectionType === "partition"
+              ? "Select a discovered partition before continuing."
+              : "Select Whole system or Specific partition before continuing.")
           return
         }
-        const hasValidMetric = DISK_METRICS.some(metric => metric.id === form.metric)
-        if (!hasValidMetric || target.metrics?.[0]?.conditions?.[0]?.metric !== form.metric) {
-          setStepValidationError("Disk metric details are still loading. Please wait and try again.")
+        const metric = DISK_METRICS.find(item => item.id === form.metric)
+        const metricMatchesTarget = validSystemTarget
+          ? metric?.labels.length === 0
+          : metric?.labels.some(label => label === "disk" || label === "device")
+        if (!metricMatchesTarget || target.metrics?.[0]?.conditions?.[0]?.metric !== form.metric) {
+          setStepValidationError("Select a Disk metric whose Prometheus labels match the chosen target scope.")
           return
         }
       }

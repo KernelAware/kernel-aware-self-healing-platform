@@ -37,7 +37,43 @@ export const DISK_METRICS = [
   description: `${metric.title} exported by the KAISP monitoring agent.`,
 }))
 
+export const PARTITION_METRIC_IDS = new Set([
+  "disk_partition_info",
+  "disk_partition_total_gb",
+  "disk_usage_percent",
+])
+
 export const diskMetricsFromPrometheus = names => DISK_METRICS.filter(metric => names.includes(metric.id))
+
+const isLoopDevice = device => /^(?:\/dev\/)?loop\d+(?:p\d+)?$/i.test(String(device || "").trim())
+
+export const diskPartitionsFromPrometheus = rows => {
+  const series = (Array.isArray(rows) ? rows : []).map(row => row?.metric || {})
+  const loopMountpoints = new Set(
+    series
+      .filter(labels => isLoopDevice(labels.device))
+      .map(labels => String(labels.mountpoint || "").trim())
+      .filter(Boolean),
+  )
+  const byDevice = new Map()
+
+  series.forEach(labels => {
+    const device = String(labels.device || "").trim()
+    const mountpoint = String(labels.mountpoint || "").trim()
+    const filesystem = String(labels.filesystem || "").trim()
+    if (!device || isLoopDevice(device) || (mountpoint && loopMountpoints.has(mountpoint))) return
+
+    const partition = { device, mountpoint, filesystem }
+    const previous = byDevice.get(device)
+    if (!previous || `${mountpoint}\u0000${filesystem}` < `${previous.mountpoint}\u0000${previous.filesystem}`) {
+      byDevice.set(device, partition)
+    }
+  })
+
+  return [...byDevice.values()].sort((a, b) =>
+    a.device.localeCompare(b.device) || a.mountpoint.localeCompare(b.mountpoint),
+  )
+}
 
 export const DISK_TARGET_TYPES = ["Host", "Disk / Device", "Filesystem / Mount Point"]
 export const OPERATORS = ["Greater Than (>)", "Greater Than or Equal (>=)", "Less Than (<)", "Less Than or Equal (<=)", "Equal (=)"]
@@ -46,6 +82,7 @@ export const metricFor = value => DISK_METRICS.find(metric => metric.id === valu
 export const operatorSymbol = value => value?.match(/(?:>=|<=|>|<|=)/)?.[0] || ">"
 
 export const diskTargetType = targetType => {
+  if (targetType === "Partition") return "partition"
   if (targetType === "Disk / Device") return "disk"
   if (targetType === "Filesystem / Mount Point") return "filesystem"
   return "host"
@@ -60,10 +97,14 @@ export const diskTargetName = form => {
 
 export const updateDiskTarget = (setForm, values = {}) => setForm(current => {
   const next = { ...current, ...values }
-  const type = next.selectionType === "process" ? "process" : diskTargetType(next.targetType)
+  const type = next.selectionType === "process"
+    ? "process"
+    : next.selectionType === "partition"
+      ? "partition"
+      : diskTargetType(next.targetType)
   const name = diskTargetName(next)
   const targets = Array.isArray(next.targets) ? next.targets : []
-  const targetIndex = targets.findIndex(target => ["host", "disk", "filesystem", "process"].includes(target.type))
+  const targetIndex = targets.findIndex(target => ["host", "disk", "filesystem", "partition", "process"].includes(target.type))
   const existing = targetIndex >= 0 ? targets[targetIndex] : { metrics: [] }
   const metrics = existing.metrics?.length ? existing.metrics : [{
     name: next.metric || "",
@@ -88,7 +129,7 @@ export const updateDiskTarget = (setForm, values = {}) => setForm(current => {
 
 export const updateDiskMetric = (setForm, metricId) => setForm(current => {
   const targets = Array.isArray(current.targets) ? current.targets : []
-  const targetIndex = targets.findIndex(target => ["host", "disk", "filesystem", "process"].includes(target.type))
+  const targetIndex = targets.findIndex(target => ["host", "disk", "filesystem", "partition", "process"].includes(target.type))
   if (targetIndex < 0) return { ...current, metric: metricId, condMetric: metricId, recoveryMetric: metricId }
 
   const target = targets[targetIndex]
