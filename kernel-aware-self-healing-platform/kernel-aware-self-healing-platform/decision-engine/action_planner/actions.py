@@ -26,31 +26,40 @@ cpu_alert_names = {
 }
 
 def create_action_plan(decision, incident, rules, policy):
+    # Publish every threshold violation so the dashboard reflects the breach
+    # even when policy allows automatic healing to continue.
+    incident_detail, alert = create_alert(decision, incident, rules, policy)
 
 
     if not policy["allowed"]:
-        incident_detail, alert = create_alert(
-            decision,
-            incident,
-            rules,
-            policy
-        )
-
         if policy["reason"] != "Rule is disabled":
-            dash_board_alert = {}
-
             notify_backend(incident_detail,alert)
-            save_incident(dash_board_alert)
+            save_incident(incident_detail)
 
         return {
             "status": "BLOCKED",
             "reason": policy["reason"]
         }
 
+    notify_backend(incident_detail, alert)
+
+    # Process decisions currently expose `all_actions`; support both that
+    # shape and the older `actions` shape used by other strategies.
+    action_types = (
+        decision.get("actions")
+        or decision.get("all_actions")
+        or policy.get("actions", [])
+    )
+    if not action_types:
+        return {
+            "status": "NO_ACTION",
+            "reason": decision.get("reason", "No action selected")
+        }
+
     else:
         action_plan = {
             "action_id": f'action-{incident["rule_id"]}',
-            "type": decision["actions"],
+            "type": action_types,
             "system_id": incident["system_id"],
             "target": incident.get("target"),
             "service": incident.get("target"),
@@ -147,7 +156,11 @@ def create_alert(decision, incident, rules, policy):
     decision_type = decision.get("decision", "NO_ACTION")
     decision_reason = decision.get("reason", "No reason provided")
 
-    automatic_execution = rules["actions"][0]["automatic_execution"]
+    configured_actions = rules.get("actions", [])
+    automatic_execution = bool(
+        configured_actions
+        and configured_actions[0].get("automatic_execution", False)
+    )
     approval_required = policy.get("reason", False) == "Approval required"
 
     if automatic_execution and not approval_required:
@@ -202,7 +215,7 @@ def create_alert(decision, incident, rules, policy):
         },
 
         "policy": {
-            "ruleEnabled": rules.get("rule", True).get("status", True),
+            "ruleEnabled": rules.get("rule", {}).get("status", True),
             "automaticExecution": automatic_execution,
             "approvalRequired": approval_required,
             "cooldownPassed": policy.get("cooldown_passed", False)
