@@ -1,6 +1,83 @@
 import {useEffect, useState} from 'react'
 import {useWebSocket} from "@/hooks/useWebSocket.js";
 
+const INCIDENTS_STORAGE_KEY = 'kernel-sentinel-active-incident-details'
+
+function loadIncidents() {
+  try {
+    const storedIncidents = window.localStorage.getItem(INCIDENTS_STORAGE_KEY)
+    if (storedIncidents === null) {
+      return INITIAL_INCIDENTS
+    }
+
+    const parsedIncidents = JSON.parse(storedIncidents)
+    if (!Array.isArray(parsedIncidents)) {
+      throw new TypeError('Saved incident details must be an array')
+    }
+
+    return parsedIncidents.map((incident) => incident.rule_id != null
+      ? { ...incident, id: `INC-RULE-${incident.rule_id}` }
+      : incident)
+  } catch (error) {
+    console.error('Unable to restore incident details from browser storage:', error)
+    return INITIAL_INCIDENTS
+  }
+}
+
+function getIncidentKey(incident) {
+  const ruleId = incident.rule_id ?? incident.ruleId
+  if (ruleId !== undefined && ruleId !== null) {
+    return `rule:${ruleId}`
+  }
+
+  return [
+    incident.title,
+    incident.system,
+    incident.process
+  ]
+    .map((value) => String(value ?? '').trim().toLowerCase())
+    .join('|')
+}
+
+function upsertIncident(previousIncidents, incident) {
+  const key = getIncidentKey(incident)
+  const existingIncident = previousIncidents.find(
+    (item) => getIncidentKey(item) === key
+  )
+  const updatedIncident = {
+    ...existingIncident,
+    ...incident,
+    id: existingIncident?.id ?? incident.id,
+    trigger: {
+      ...existingIncident?.trigger,
+      ...incident.trigger
+    },
+    decision: {
+      ...existingIncident?.decision,
+      ...incident.decision
+    },
+    policy: {
+      ...existingIncident?.policy,
+      ...incident.policy
+    },
+    rootCause: {
+      ...existingIncident?.rootCause,
+      ...incident.rootCause
+    },
+    operatorAction: {
+      ...existingIncident?.operatorAction,
+      ...incident.operatorAction
+    }
+  }
+
+  if (!existingIncident) {
+    return [updatedIncident, ...previousIncidents]
+  }
+
+  return previousIncidents.map((item) =>
+    getIncidentKey(item) === key ? updatedIncident : item
+  )
+}
 
 const INITIAL_INCIDENTS = [
   {
@@ -352,9 +429,17 @@ const INITIAL_INCIDENTS = [
 
 export function useIncidentDetails() {
 
-  const [incidents, setIncidents] = useState(INITIAL_INCIDENTS)
+  const [incidents, setIncidents] = useState(loadIncidents)
 
   const socket_incidents = useWebSocket('incident_detail')
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(INCIDENTS_STORAGE_KEY, JSON.stringify(incidents))
+    } catch (error) {
+      console.error('Unable to save incident details to browser storage:', error)
+    }
+  }, [incidents])
 
   useEffect(() => {
 
@@ -362,10 +447,55 @@ export function useIncidentDetails() {
       return
     }
 
-    setIncidents((prev) => [
-      socket_incidents,
-      ...prev
-    ])
+    const metric = socket_incidents.trigger?.metric
+    const isCpuIncident = socket_incidents.incident_type === 'cpu'
+      || metric?.startsWith('cpu_')
+
+    if (!isCpuIncident) {
+      setIncidents((previousIncidents) =>
+        upsertIncident(previousIncidents, socket_incidents)
+      )
+      return
+    }
+
+    const formatPercent = (value) => {
+      if (value == null || value === '') {
+        return value
+      }
+
+      const text = String(value)
+      return text.endsWith('%') ? text : `${text}%`
+    }
+
+    const duration = socket_incidents.trigger?.duration
+    const minutesMatch = typeof duration === 'string'
+      ? duration.match(/^(\d+(?:\.\d+)?) minutes?$/)
+      : null
+    const minutes = minutesMatch ? Number(minutesMatch[1]) : null
+    const formattedDuration = minutesMatch && Number.isInteger(minutes)
+      ? `${minutes} minute${minutes === 1 ? '' : 's'}`
+      : duration
+
+    const cpuIncident = {
+      ...socket_incidents,
+      incident_type: 'cpu',
+      process: 'Host CPU',
+      pid: null,
+      trigger: {
+        ...socket_incidents.trigger,
+        currentValue: metric?.endsWith('_percent')
+          ? formatPercent(socket_incidents.trigger.currentValue)
+          : socket_incidents.trigger.currentValue,
+        threshold: metric?.endsWith('_percent')
+          ? formatPercent(socket_incidents.trigger.threshold)
+          : socket_incidents.trigger.threshold,
+        duration: formattedDuration,
+      },
+    }
+
+    setIncidents((previousIncidents) =>
+      upsertIncident(previousIncidents, cpuIncident)
+    )
 
   }, [socket_incidents])
 

@@ -1,14 +1,14 @@
 import httpx
 
 BACKEND_URL = "http://localhost:8000"
+RULES_REQUEST_TIMEOUT_SECONDS = 20
 
-async def load_rules(system_id):
-
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.get(
-            f"{BACKEND_URL}/get_user_rules",
-            params={"system_id": system_id}
-        )
+def load_rules(system_id):
+    response = httpx.get(
+        f"{BACKEND_URL}/get_user_rules",
+        params={"system_id": system_id},
+        timeout=RULES_REQUEST_TIMEOUT_SECONDS,
+    )
 
     response.raise_for_status()
 

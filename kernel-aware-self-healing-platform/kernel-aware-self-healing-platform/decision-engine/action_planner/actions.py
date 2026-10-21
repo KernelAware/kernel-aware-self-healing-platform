@@ -11,32 +11,55 @@ operator_map = {
     "Not Equal (!=)": "!="
 }
 
+cpu_alert_names = {
+    "cpu_usage_percent": "High CPU Utilization Detected",
+    "cpu_load_1min": "High 1-Minute Load Average Detected",
+    "cpu_core_usage_percent": "High Per-Core CPU Utilization Detected",
+    "cpu_load_5min": "High 5-Minute Load Average Detected",
+    "cpu_load_15min": "High 15-Minute Load Average Detected",
+    "cpu_freq_current_mhz": "Abnormal CPU Frequency Detected",
+    "cpu_times_user": "High CPU User Time Detected",
+    "cpu_times_system": "High CPU System Time Detected",
+    "cpu_times_iowait": "High CPU I/O Wait Detected",
+    "cpu_times_steal": "High CPU Steal Time Detected",
+    "cpu_ctx_switches": "High Context Switch Rate Detected",
+}
+
 def create_action_plan(decision, incident, rules, policy):
+    # Publish every threshold violation so the dashboard reflects the breach
+    # even when policy allows automatic healing to continue.
+    incident_detail, alert = create_alert(decision, incident, rules, policy)
 
 
     if not policy["allowed"]:
-        incident_detail, alert = create_alert(
-            decision,
-            incident,
-            rules,
-            policy
-        )
-
         if policy["reason"] != "Rule is disabled":
-            dash_board_alert = {}
-
             notify_backend(incident_detail,alert)
-            save_incident(dash_board_alert)
+            save_incident(incident_detail)
 
         return {
             "status": "BLOCKED",
             "reason": policy["reason"]
         }
 
+    notify_backend(incident_detail, alert)
+
+    # Process decisions currently expose `all_actions`; support both that
+    # shape and the older `actions` shape used by other strategies.
+    action_types = (
+        decision.get("actions")
+        or decision.get("all_actions")
+        or policy.get("actions", [])
+    )
+    if not action_types:
+        return {
+            "status": "NO_ACTION",
+            "reason": decision.get("reason", "No action selected")
+        }
+
     else:
         action_plan = {
             "action_id": f'action-{incident["rule_id"]}',
-            "type": decision["actions"],
+            "type": action_types,
             "system_id": incident["system_id"],
             "target": incident.get("target"),
             "service": incident.get("target"),
@@ -52,31 +75,16 @@ def create_action_plan(decision, incident, rules, policy):
 
 
 def create_alert(decision, incident, rules, policy):
-    print("incident")
-    print(incident)
-    print("")
-    print("")
-    print("decision")
-    print(decision)
-    print("")
-    print("")
-    print("rules")
-    print(rules)
-    print("")
-    print("")
-    print("incident")
-    print(incident)
-    print("")
-    print("")
-    print("policy")
-    print(policy)
-    print("")
-    print("")
-
-    incident_id = f"INC-{uuid.uuid4().hex[:8].upper()}"
+    rule_id = incident.get("rule_id")
+    incident_id = (
+        f"INC-RULE-{rule_id}"
+        if rule_id is not None
+        else f"INC-{uuid.uuid4().hex[:8].upper()}"
+    )
     system = incident.get("system_id", "Unknown")
-    process = incident.get("target", "Unknown")
+    target = incident.get("target", "Unknown")
     pid = incident.get("pid")
+    incident_type = incident.get("incident_type")
 
     metric = incident["violated_metric"]["metric"]
     current_value = incident.get("value", 0)
@@ -84,14 +92,54 @@ def create_alert(decision, incident, rules, policy):
     operator = incident.get("violated_metric", 0).get("operator")
     duration = incident.get("violated_metric", 0).get("duration_seconds")
 
-    severity = incident.get("severity", "Medium")
-    priority = incident.get("priority", "P2")
+    severity = incident.get(
+        "severity",
+        incident.get("incident_severity", "WARNING")
+    )
+    priority = incident.get(
+        "priority",
+        incident.get("incident_priority", "MEDIUM")
+    )
+
+    title = f"{metric} - {target}"
+    alert_body = (
+        f"{metric} reached {current_value}, "
+        f"{operator} threshold {threshold} "
+        f"for {duration}."
+    )
+    if incident_type == "cpu":
+        title = cpu_alert_names.get(
+            metric,
+            f"High {metric.replace('_', ' ').title()} Detected"
+        )
+        comparison = {
+            ">": "above",
+            "<": "below",
+            ">=": "at or above",
+            "<=": "at or below",
+            "=": "equal to",
+            "!=": "not equal to",
+        }.get(operator_map.get(operator, operator), operator)
+        duration_seconds = int(duration)
+        if duration_seconds % 60 == 0 and duration_seconds < 3600:
+            minutes = duration_seconds // 60
+            duration_text = f"{minutes} minute{'s' if minutes != 1 else ''}"
+        else:
+            duration_text = format_duration(duration_seconds)
+        alert_body = (
+            f"{metric} reached {current_value}, {comparison} threshold {threshold} "
+            f"for {duration_text}."
+        )
 
     recommended_action = decision.get("Selected_action", "No Decision")
     decision_type = decision.get("decision", "NO_ACTION")
     decision_reason = decision.get("reason", "No reason provided")
 
-    automatic_execution = rules["actions"][0]["automatic_execution"]
+    configured_actions = rules.get("actions", [])
+    automatic_execution = bool(
+        configured_actions
+        and configured_actions[0].get("automatic_execution", False)
+    )
     approval_required = policy.get("reason", False) == "Approval required"
 
     if automatic_execution and not approval_required:
@@ -118,13 +166,15 @@ def create_alert(decision, incident, rules, policy):
 
         "id": incident_id,
 
-        "title": f"{metric} - {process}",
+        "rule_id": rule_id,
+
+        "title": title,
 
         "priority": priority,
         "severity": severity,
 
         "system": f"server-{int(system):02d}",
-        "process": process,
+        "process": target,
         "pid": pid,
 
         "detectedAgo": "now",
@@ -144,7 +194,7 @@ def create_alert(decision, incident, rules, policy):
         },
 
         "policy": {
-            "ruleEnabled": rules.get("rule", True).get("status", True),
+            "ruleEnabled": rules.get("rule", {}).get("status", True),
             "automaticExecution": automatic_execution,
             "approvalRequired": approval_required,
             "cooldownPassed": policy.get("cooldown_passed", False)
@@ -190,19 +240,17 @@ def create_alert(decision, incident, rules, policy):
 
         "id": incident_id,
 
+        "rule_id": rule_id,
+
         "level": f"{priority} - {severity}",
 
         "tone": tone_map.get(severity, "muted"),
 
         "age": "now",
 
-        "title": f"{metric} - {process}",
+        "title": title,
 
-        "body": (
-            f"{metric} reached {current_value}, "
-            f"{operator} threshold {threshold} "
-            f"for {duration}."
-        ),
+        "body": alert_body,
 
         "acked": False,
 
@@ -210,7 +258,7 @@ def create_alert(decision, incident, rules, policy):
 
         "system": system,
 
-        "process": process,
+        "process": target,
 
         "pid": pid
     }

@@ -26,6 +26,7 @@ last_metrix = ""
 
 
 def collect_metrics():
+
     initialize_cpu_measurement()
     time.sleep(2)
     while True:
@@ -44,13 +45,14 @@ def collect_metrics():
         update_cpu_metrics()
 
         update_network_metrics()
-
+        
         update_memory_metrics()
 
         update_health_metrics()
 
 
 def collect_process_inventory():
+
     while True:
         try:
             processes = get_processes()
@@ -75,7 +77,6 @@ threading.Thread(
     target=collect_process_inventory,
     daemon=True
 ).start()
-
 
 @app.get("/system_metrics")
 def metrics():

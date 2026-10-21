@@ -129,3 +129,58 @@ def get_rule_details(rule_id: int):
 
     finally:
         db.close()
+
+
+def get_rules_with_details(system_id: int | None = None, rule_id: int | None = None):
+    if system_id is None and rule_id is None:
+        return []
+
+    db = SessionLocal()
+
+    try:
+        query = db.query(Rule)
+        if rule_id is not None:
+            query = query.filter(Rule.id == rule_id)
+        else:
+            query = query.filter(Rule.system_id == system_id)
+
+        rules = query.all()
+        if not rules:
+            return []
+
+        rule_ids = [rule.id for rule in rules]
+        details_by_rule_id = {
+            rule_id: {
+                "targets": [],
+                "metrics": [],
+                "actions": [],
+                "notifications": [],
+                "recovery": [],
+            }
+            for rule_id in rule_ids
+        }
+
+        detail_models = (
+            ("targets", RuleTarget),
+            ("metrics", RuleMetric),
+            ("actions", RuleAction),
+            ("notifications", RuleNotification),
+            ("recovery", RuleRecovery),
+        )
+
+        for detail_name, model in detail_models:
+            rows = (
+                db.query(model)
+                .filter(model.rule_id.in_(rule_ids))
+                .all()
+            )
+            for row in rows:
+                details_by_rule_id[row.rule_id][detail_name].append(row)
+
+        return [
+            (rule, details_by_rule_id[rule.id])
+            for rule in rules
+        ]
+
+    finally:
+        db.close()

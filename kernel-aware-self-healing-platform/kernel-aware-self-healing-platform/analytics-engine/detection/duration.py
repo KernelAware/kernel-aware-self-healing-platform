@@ -2,9 +2,12 @@ import time
 from load_data.redis_connection.redis_connection import redis_client
 
 
-def check_duration(system_id, pid, metric_name, duration_seconds):
+def check_duration(system_id, target=None, metric_name=None, duration_seconds=None, *, pid=None):
 
-    key = f"violation:{system_id}:{pid}:{metric_name}"
+    if target is None:
+        target = pid
+
+    key = f"violation:{system_id}:{target}:{metric_name}"
 
     stored_time = redis_client.get(key)
     if stored_time is None:

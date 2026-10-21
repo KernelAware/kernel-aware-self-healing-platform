@@ -7,7 +7,7 @@ from load_data.systems_details.system_repository import get_active_systems
 from analyzer.server_analyzer import analyze_server
 
 
-async def run_analysis():
+def run_analysis():
 
     db = SessionLocal()
 
@@ -16,7 +16,7 @@ async def run_analysis():
 
         for system in systems:
             try:
-                await analyze_server(
+                analyze_server(
                     system=system
                 )
 
@@ -34,7 +34,8 @@ async def run_analysis():
 
 async def analysis_loop():
     while True:
-        await run_analysis()
+        await asyncio.to_thread(run_analysis)
+
 
 
 @asynccontextmanager

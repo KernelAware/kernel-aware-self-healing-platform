@@ -5,6 +5,7 @@ import { cn } from "@/utils/cn"
 import { Checkbox, SelectBox } from "./wizardComponents"
 import { ACTION_TYPES } from "./wizardConstants"
 import Step7Process from "./process/step7Process.jsx";
+import Step7Cpu from "./cpu/Step7Cpu"
 
 export default function Step7({ form, setForm }) {
   const disk = form.monitorSource === "disk"
@@ -27,6 +28,7 @@ export default function Step7({ form, setForm }) {
     })
   }
   if (form.monitorSource === "process") return <Step7Process form={form} setForm={setForm} />
+  if (form.monitorSource === "cpu") return <Step7Cpu form={form} setForm={setForm} />
   return (
     <Panel className="p-6">
       <div className="mb-5"><p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">7. {disk ? "DISK " : ""}ACTIONS</p><p className="text-xs text-muted-foreground mt-0.5">Select the action to perform when the disk condition is triggered.</p></div>
