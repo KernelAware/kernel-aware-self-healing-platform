@@ -75,27 +75,6 @@ def create_action_plan(decision, incident, rules, policy):
 
 
 def create_alert(decision, incident, rules, policy):
-    print("incident")
-    print(incident)
-    print("")
-    print("")
-    print("decision")
-    print(decision)
-    print("")
-    print("")
-    print("rules")
-    print(rules)
-    print("")
-    print("")
-    print("incident")
-    print(incident)
-    print("")
-    print("")
-    print("policy")
-    print(policy)
-    print("")
-    print("")
-
     rule_id = incident.get("rule_id")
     incident_id = (
         f"INC-RULE-{rule_id}"

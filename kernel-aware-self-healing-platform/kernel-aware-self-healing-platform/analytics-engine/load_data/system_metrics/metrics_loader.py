@@ -66,16 +66,19 @@ def get_network_metrics():
     )
 
 
-def get_process_metric(system_id, process_name, metric):
+def get_process_metric(system_id, process_details, metric):
+    process_name = process_details.split("@service=")[0]
+    pid = process_details.split("@pid=")[1]
     prometheus_metric = METRIC_MAP[metric["metric"]]
 
     query = f'''
         {prometheus_metric}{{
             system_id="{system_id}",
-            name="{process_name}"
+            name="{process_name}",
+            pid="{pid}",
         }}
     '''
-
+    print(query)
     return query_prometheus(query)
 
 

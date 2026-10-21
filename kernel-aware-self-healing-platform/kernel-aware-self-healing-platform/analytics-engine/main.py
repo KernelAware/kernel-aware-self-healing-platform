@@ -35,7 +35,7 @@ def run_analysis():
 async def analysis_loop():
     while True:
         await asyncio.to_thread(run_analysis)
-        await asyncio.sleep(15)
+
 
 
 @asynccontextmanager
