@@ -1,3 +1,5 @@
+from time import sleep
+
 from detection.strategies.cpu_detector import CpuDetector
 from detection.strategies.memeory_detecter import MemoryDetector
 from detection.strategies.disk_detector import DiskDetector
@@ -17,6 +19,7 @@ strategies = {
 def detect(rule):
     monitor_type = rule["rule"]["monitor_type"]
     strategy = strategies.get(monitor_type)
+
 
     if strategy is None:
         raise ValueError(

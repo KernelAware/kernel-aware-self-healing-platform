@@ -41,7 +41,10 @@ export function SelectBox({ value, options, onChange, className }) {
     <div className={cn("relative", className)}>
       <select value={value} onChange={e => onChange && onChange(e.target.value)}
         className="w-full appearance-none rounded-md border border-border bg-card px-3 pr-8 py-2.5 font-mono text-xs text-foreground focus:border-ring focus:outline-none cursor-pointer">
-        {options.map(o => <option key={o} className="bg-card">{o}</option>)}
+        {options.map(option => {
+          const item = typeof option === "string" ? { label: option, value: option } : option
+          return <option key={item.value} value={item.value} className="bg-card">{item.label}</option>
+        })}
       </select>
       <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
     </div>

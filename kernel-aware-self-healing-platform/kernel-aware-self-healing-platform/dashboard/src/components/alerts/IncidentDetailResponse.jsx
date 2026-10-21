@@ -25,6 +25,9 @@ export default function IncidentDetailsResponse({ selectedIncident }) {
     )
   }
 
+  const isCpuIncident = selectedIncident.incident_type === 'cpu'
+    || selectedIncident.trigger?.metric?.startsWith('cpu_')
+
   return (
     <Panel>
 
@@ -61,18 +64,20 @@ export default function IncidentDetailsResponse({ selectedIncident }) {
 
             <span className="flex items-center gap-1">
               <Server className="size-3" />
-              {selectedIncident.system}
+              {isCpuIncident ? `System: ${selectedIncident.system}` : selectedIncident.system}
             </span>
 
             <span>
-              {selectedIncident.process}
+              {isCpuIncident ? 'Process: Host CPU' : selectedIncident.process}
             </span>
 
-            {selectedIncident.pid && (
+            {isCpuIncident ? (
+              <span>PID: Not applicable</span>
+            ) : selectedIncident.pid ? (
               <span>
                 PID {selectedIncident.pid}
               </span>
-            )}
+            ) : null}
 
             <span className="flex items-center gap-1">
               <Clock className="size-3" />
@@ -98,14 +103,14 @@ export default function IncidentDetailsResponse({ selectedIncident }) {
           </div>
 
 
-          <div className="grid grid-cols-2 gap-3 p-3 text-xs md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-3 p-3 text-xs md:grid-cols-4">
 
-            <div>
+            <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground">
                 Metric
               </p>
 
-              <p className="mt-1 text-foreground">
+              <p className="mt-1 break-words text-foreground">
                 {selectedIncident.trigger.metric}
               </p>
             </div>

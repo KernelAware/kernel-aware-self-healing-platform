@@ -18,14 +18,12 @@ def process_incident(incident: dict):
 
     rules = load_rules(incident)
     policy = check_policy(rules)
-    print(policy)
 
     decision = make_decision(
         incident,
         rules,
         policy
     )
-    print(decision)
     action = create_action_plan(decision , incident , rules , policy)
 
     return {
