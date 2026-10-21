@@ -2,12 +2,14 @@ import { Panel } from "@/components/kit"
 import { SelectBox } from "./wizardComponents"
 import { Info } from "lucide-react"
 import Step10Process from "./process/step10process.jsx"
+import Step10Cpu from "./cpu/Step10Cpu"
 
 export default function Step10({ form, setForm }) {
   const isNetwork = form.monitorSource === "network";
   const condUnit = isNetwork ? "errors/sec" : "%";
 
   if (form.monitorSource === "process") return <Step10Process form={form} setForm={setForm} />
+  if (form.monitorSource === "cpu") return <Step10Cpu form={form} setForm={setForm} />
   return (
     <Panel className="p-6">
       <div className="mb-6"><p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">10. Verification & Recovery</p><p className="text-xs text-muted-foreground mt-0.5">How recovery is detected for this rule.</p></div>

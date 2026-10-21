@@ -21,7 +21,7 @@ export default function Step3({ form, setForm }) {
               } else if (src.id === "hardware") {
                 return { ...base, metric: "hardware_cpu_package_temperature_celsius", targetType: "Host", aggregation: "Average (Avg)", condMetric: "hardware_cpu_package_temperature_celsius", condThreshold: "", recoveryThreshold: "", condInterval: "Every 30 seconds", actionType: "alert", hardwareCategory: "CPU Temperature", hardwareMetric: "hardware_cpu_package_temperature_celsius" };
               } else if (src.id === "cpu") {
-                return { ...base, metric: "CPU Usage", targetType: "Host", aggregation: "Average (Avg)", condMetric: "CPU Usage (%)", condThreshold: "", recoveryThreshold: "", condInterval: "Every 30 seconds", actionType: "create-incident" };
+                return { ...base, metric: "cpu_usage_percent", targetType: "host", condMetric: "cpu_usage_percent", condOperator: "Greater Than (>)", condThreshold: "", condDuration: "5", condDurationUnit: "Minutes", actionType: "create-incident" };
               }else if (src.id === "process"){
 
               }

@@ -8,20 +8,21 @@ async def alert_incidents(data: dict):
 
     incident_detail = data["incident_detail"]
     alert = data["alert"]
+    system_id = incident_detail.get("system_id", alert.get("system", 1))
 
     await give_message(
         {
             "type": "incident_detail",
             "data": incident_detail
         },
-        systemid=1
+        systemid=int(system_id)
     )
     await give_message(
         {
             "type": "alerts",
             "data": alert
         },
-        systemid=1
+        systemid=int(system_id)
     )
 
 
