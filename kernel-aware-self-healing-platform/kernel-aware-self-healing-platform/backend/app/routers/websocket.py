@@ -21,7 +21,6 @@ async def websocket_endpoint(websocket: WebSocket, systemid: int):
 
 
 async def give_message(message: dict, systemid: int):
-    print(message)
     websocket = connected_clients.get(systemid)
 
     if websocket:
