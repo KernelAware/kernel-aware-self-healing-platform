@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from database.connection import engine
+from models.incidents import Incident
 from routers.users import router as users_router
 from routers.health import router as health_router
 from routers.incidents import router as incidents_router
@@ -9,6 +11,13 @@ from routers.websocket import router as websocket_router
 from routers.alerts import router as alert_router
 
 app = FastAPI()
+
+
+@app.on_event("startup")
+def ensure_incidents_table():
+    # The backend has no migration runner. Create only the table described by
+    # this model; Base.metadata.create_all() would also create unrelated tables.
+    Incident.__table__.create(bind=engine, checkfirst=True)
 
 app.add_middleware(
     CORSMiddleware,
