@@ -20,7 +20,6 @@ class ProcessDetector(DetectionStrategy):
                     process_details=rule_target["target"],
                     metric=metric
                 )
-                print(results)
                 for result in results:
 
                     pid = result["metric"]["pid"]

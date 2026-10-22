@@ -13,7 +13,6 @@ def notify_backend(incident_detail, alert):
     )
 
     response.raise_for_status()
-    print(response.json())
 
     return response.json()
 

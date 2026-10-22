@@ -8,7 +8,6 @@ def analyze_server(system):
     rules = load_rules(
         system_id
     )
-
     if not rules:
         return
 
