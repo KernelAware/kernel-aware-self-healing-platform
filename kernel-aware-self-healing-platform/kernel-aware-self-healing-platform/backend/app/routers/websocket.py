@@ -7,7 +7,6 @@ connected_clients: dict[int, WebSocket] = {}
 
 @router.websocket("/ws/{systemid}")
 async def websocket_endpoint(websocket: WebSocket, systemid: int):
-    print(f"WebSocket connected to {systemid}")
     await websocket.accept()
 
     connected_clients[systemid] = websocket
@@ -22,7 +21,6 @@ async def websocket_endpoint(websocket: WebSocket, systemid: int):
 
 async def give_message(message: dict, systemid: int):
     websocket = connected_clients.get(systemid)
-
     if websocket:
         try:
             await websocket.send_json(message)

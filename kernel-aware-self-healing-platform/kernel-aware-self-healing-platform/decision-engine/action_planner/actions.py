@@ -77,7 +77,7 @@ def create_action_plan(decision, incident, rules, policy):
 def create_alert(decision, incident, rules, policy):
     rule_id = incident.get("rule_id")
     incident_id = (
-        f"INC-RULE-{rule_id}"
+        f"INC-RULE-{rule_id}-{uuid.uuid4().hex[:8].upper()}"
         if rule_id is not None
         else f"INC-{uuid.uuid4().hex[:8].upper()}"
     )
