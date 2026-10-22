@@ -5,9 +5,45 @@ import { Panel, PanelHeader, StatusBadge, Dot } from '@/components/kit'
 const SEVERITY_ORDER = ['warning', 'high', 'critical']
 
 const openedAt = incident => incident.opened_at || incident.created_at || incident.detected_at || incident.start
-const metricOf = incident => incident.metric || incident.trigger?.metric || incident.alert?.metric
+const metricOf = incident => incident.metric || incident.trigger?.metric || incident.violated_metric?.metric || incident.detail?.trigger?.metric || incident.detail?.violated_metric?.metric || incident.alert?.metric
 const targetOf = incident => incident.target || incident.process || incident.alert?.target
-const idOf = incident => incident.incident_id || incident.id
+
+function unitForMetric(metric) {
+  const name = String(metric || '').trim().toLowerCase()
+  if (/(?:_percent(?:age)?|\s*\(%\))$/.test(name)) return '%'
+  if (/_bytes?$/.test(name)) return 'bytes'
+  if (/_gb$/.test(name)) return 'GB'
+  if (/_speed_mb$|_mb_per_second$/.test(name)) return 'MB/s'
+  if (/_ms$/.test(name)) return 'ms'
+  if (/_celsius$/.test(name)) return '°C'
+  if (/_seconds?$/.test(name)) return 'seconds'
+  if (/_hours?$/.test(name)) return 'hours'
+  if (/_iops$/.test(name)) return 'IOPS'
+  if (/_rpm$/.test(name)) return 'RPM'
+  if (/_count$/.test(name)) return 'operations'
+  if (/_health$|_charging$/.test(name)) return '0/1'
+  return ''
+}
+
+function violatedMetricCondition(incident) {
+  const trigger = incident.trigger || incident.detail?.trigger || {}
+  const violatedMetric = incident.violated_metric || incident.detail?.violated_metric || {}
+  const metric = metricOf(incident)
+  const operator = trigger.operator || violatedMetric.operator || incident.operator || incident.alert?.operator
+  const threshold = trigger.threshold ?? violatedMetric.threshold ?? incident.threshold ?? incident.alert?.threshold
+  const unit = trigger.unit || violatedMetric.unit || incident.detail?.trigger?.unit || incident.detail?.violated_metric?.unit || incident.unit || incident.alert?.unit || unitForMetric(metric)
+  const symbol = String(operator || '').match(/(?:>=|<=|==|>|<|=)/)?.[0]
+  const numericThreshold = threshold === null || threshold === undefined || String(threshold).trim() === ''
+    ? null
+    : Number(threshold)
+
+  if (!metric || String(metric).toLowerCase() === 'unknown metric' || !symbol || !unit || !Number.isFinite(numericThreshold)) {
+    return 'Condition unavailable'
+  }
+
+  const formattedUnit = ['%', 'percent', 'percentage'].includes(String(unit).trim().toLowerCase()) ? '%' : ` ${unit}`
+  return `${metric} ${symbol} ${String(numericThreshold)}${formattedUnit}`
+}
 
 function collectSearchText(value, output) {
   if (value === null || value === undefined) return
@@ -20,16 +56,18 @@ function collectSearchText(value, output) {
     return
   }
   if (typeof value === 'object') {
-    Object.values(value).forEach(item => collectSearchText(item, output))
+    Object.entries(value).forEach(([key, item]) => {
+      if (['id', 'incident_id', 'metric'].includes(key)) return
+      collectSearchText(item, output)
+    })
   }
 }
 
 function searchableText(incident) {
   const values = []
   collectSearchText([
-    idOf(incident),
     incident.rule_id,
-    metricOf(incident),
+    violatedMetricCondition(incident),
     targetOf(incident),
     incident.severity,
     incident.status,
@@ -77,9 +115,8 @@ function compareDates(left, right) {
 
 function valueForSort(incident, key) {
   switch (key) {
-    case 'id': return idOf(incident)
     case 'title': return incident.title || incident.description
-    case 'metric': return metricOf(incident)
+    case 'condition': return violatedMetricCondition(incident)
     case 'target': return targetOf(incident)
     case 'severity': return incident.severity
     case 'priority': return incident.priority
@@ -124,11 +161,13 @@ export default function IncidentsTable({ incidents, loading = false }) {
 
   const sorted = useMemo(() => {
     const direction = sort.direction === 'asc' ? 1 : -1
-    return [...filtered].sort((left, right) => {
-      const primary = compareIncidents(left, right, sort.key) * direction
-      if (primary !== 0) return primary
-      return compareText(idOf(left), idOf(right))
-    })
+    return filtered
+      .map((incident, index) => ({ incident, index }))
+      .sort((left, right) => {
+        const primary = compareIncidents(left.incident, right.incident, sort.key) * direction
+        return primary || left.index - right.index
+      })
+      .map(({ incident }) => incident)
   }, [filtered, sort])
 
   const formatTime = value => {
@@ -214,12 +253,11 @@ export default function IncidentsTable({ incidents, loading = false }) {
         }
       />
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1180px] text-sm">
+        <table className="w-full min-w-[1080px] text-sm">
           <thead>
             <tr className="border-y border-border font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-              {sortableHeader('Incident ID', 'id')}
               {sortableHeader('Incident Title', 'title')}
-              {sortableHeader('Metric', 'metric')}
+              {sortableHeader('Violated Metric', 'condition')}
               {sortableHeader('Target', 'target')}
               {sortableHeader('Severity', 'severity')}
               {sortableHeader('Priority', 'priority')}
@@ -231,12 +269,11 @@ export default function IncidentsTable({ incidents, loading = false }) {
           </thead>
           <tbody className="text-xs">
             {sorted.map((incident, index) => {
-              const incidentId = idOf(incident)
+              const incidentKey = incident.incident_id || incident.id || `incident-${index}`
               return (
-                <tr key={incidentId || `incident-${index}`} className="border-b border-border/60 last:border-0 hover:bg-secondary/40">
-                  <td className="px-4 py-3 font-mono text-muted-foreground">{incidentId || '—'}</td>
+                <tr key={incidentKey} className="border-b border-border/60 last:border-0 hover:bg-secondary/40">
                   <td className="px-4 py-3 font-medium text-foreground">{incident.title || incident.description || '—'}</td>
-                  <td className="px-4 py-3 font-mono text-muted-foreground">{metricOf(incident) || '—'}</td>
+                  <td className="px-4 py-3 font-mono text-muted-foreground">{violatedMetricCondition(incident)}</td>
                   <td className="px-4 py-3 text-foreground/80">{targetOf(incident) || '—'}</td>
                   <td className="px-4 py-3">
                     <StatusBadge tone={String(incident.severity).toLowerCase() === 'critical' ? 'danger' : String(incident.severity).toLowerCase() === 'high' ? 'warning' : 'muted'}>
@@ -259,7 +296,7 @@ export default function IncidentsTable({ incidents, loading = false }) {
             })}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan="10" className="px-4 py-8 text-center font-mono text-xs text-muted-foreground">
+                <td colSpan="9" className="px-4 py-8 text-center font-mono text-xs text-muted-foreground">
                   {loading ? 'Loading incident history…' : rows.length === 0 ? 'No incident history is available.' : 'No incidents match your search. Try another term or clear the search.'}
                 </td>
               </tr>

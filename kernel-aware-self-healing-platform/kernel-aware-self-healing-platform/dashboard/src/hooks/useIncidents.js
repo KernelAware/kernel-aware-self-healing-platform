@@ -33,6 +33,7 @@ function normalizeIncident(value) {
       currentValue: trigger.currentValue ?? detail.current_value ?? detail.alert?.current_value,
       operator: trigger.operator || detail.operator || detail.alert?.operator || "",
       threshold: trigger.threshold ?? detail.threshold ?? detail.alert?.threshold,
+      unit: trigger.unit || detail.violated_metric?.unit || detail.unit || detail.alert?.unit,
       duration: trigger.duration || `${trigger.durationSeconds ?? detail.duration_seconds ?? 0} seconds`,
       durationSeconds: trigger.durationSeconds ?? detail.duration_seconds ?? 0,
     },
