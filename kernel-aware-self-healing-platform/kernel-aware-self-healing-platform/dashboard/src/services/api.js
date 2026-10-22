@@ -43,7 +43,7 @@ export async function queryPrometheus(query) {
 }
 
 export async function getProcess(system_id) {
-  const response = await fetch(`http://localhost:8000/process_inventory/${system_id}`, {
+  const response = await fetch(`http://localhost:8000/processes_inventory/${system_id}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -59,6 +59,25 @@ export async function getProcess(system_id) {
   return json;
 }
 
+export async function getService(system_id) {
+  const response = await fetch(
+    `http://localhost:8000/services_inventory/${system_id}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  const json = await response.json();
+
+  if (!response.ok) {
+    throw new Error(json.detail || "Failed to fetch service details");
+  }
+
+  return json;
+}
 
 export async function userRules(form) {
   const response = await fetch("http://localhost:8000/user_rules", {
