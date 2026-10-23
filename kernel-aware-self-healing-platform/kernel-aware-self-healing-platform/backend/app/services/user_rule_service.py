@@ -4,7 +4,7 @@ from models.user_rules.rule_metric import RuleMetric
 from models.user_rules.rule_action import RuleAction
 from models.user_rules.rule_notification import RuleNotification
 from models.user_rules.rule_recovery import RuleRecovery
-from repository.user_rules import save_rules, get_rule_by_system_id , get_rule_by_id , get_rule_details
+from repository.user_rules import save_rules, get_rules_with_details
 
 from schemas.user_rules import (
     RuleResponse,
@@ -35,11 +35,18 @@ def user_rules_service(userRules):
         monitor_type=userRules["monitorSource"]
     )
 
+    is_cpu_rule = userRules["monitorSource"].lower() == "cpu"
+
     for target in userRules["targets"]:
         rule_target = RuleTarget(
             rule_id=rule.id,
             target_type=target["type"],
-            target=target["name"]
+            target=(target["metrics"][0]["name"] if is_cpu_rule else target["name"]),
+            host=(
+                (target.get("host") or target["name"])
+                if is_cpu_rule
+                else target.get("host")
+            )
         )
         targets.append(rule_target)
 
@@ -196,22 +203,12 @@ def user_rules_service(userRules):
     return save_details
 
 def get_user_rules(system_id: int | None = None, rule_id: int | None = None):
-    rules = []
-
-    if rule_id is not None:
-        rule = get_rule_by_id(rule_id)
-
-        if rule is not None:
-            rules = [rule]
-
-    elif system_id is not None:
-        rules = get_rule_by_system_id(system_id)
-
     result = []
 
-    for rule in rules:
-
-        data = get_rule_details(rule.id)
+    for rule, data in get_rules_with_details(
+        system_id=system_id,
+        rule_id=rule_id,
+    ):
 
         result.append(
             RuleDetailsResponse(
@@ -234,7 +231,8 @@ def get_user_rules(system_id: int | None = None, rule_id: int | None = None):
                 targets=[
                     RuleTargetResponse(
                         target_type=x.target_type,
-                        target=x.target
+                        target=x.target,
+                        host=x.host
                     )
                     for x in data["targets"]
                 ],

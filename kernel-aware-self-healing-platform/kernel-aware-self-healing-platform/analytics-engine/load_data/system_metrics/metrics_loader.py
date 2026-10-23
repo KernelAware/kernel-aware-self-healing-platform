@@ -9,7 +9,21 @@ METRIC_MAP = {
     "Disk Write": "process_disk_write_bytes",
 }
 
-PROMETHEUS_URL = "http://localhost:9090"
+CPU_METRIC_MAP = {
+    "cpu_usage_percent": "cpu_usage_percent",
+    "cpu_load_1min": "cpu_load_1min",
+    "cpu_load_5min": "cpu_load_5min",
+    "cpu_load_15min": "cpu_load_15min",
+    "cpu_core_usage_percent": "cpu_core_usage_percent",
+    "cpu_freq_current_mhz": "cpu_freq_current_mhz",
+    "cpu_times_user": "cpu_times_user",
+    "cpu_times_system": "cpu_times_system",
+    "cpu_times_iowait": "cpu_times_iowait",
+    "cpu_times_steal": "cpu_times_steal",
+    "cpu_ctx_switches": "cpu_ctx_switches",
+}
+
+PROMETHEUS_URL = "http://localhost:7070"
 def query_prometheus(query: str):
     response = requests.get(
         f"{PROMETHEUS_URL}/api/v1/query",
@@ -34,9 +48,9 @@ def get_cpu_metrics():
     )
 
 
-def get_memory_metrics():
+def get_memory_metrics(system_id):
     return query_prometheus(
-        'process_memory_rss_bytes'
+        f'system_memory_usage_percent{{system_id="{system_id}"}}'
     )
 
 
@@ -52,20 +66,29 @@ def get_network_metrics():
     )
 
 
-def get_process_metric(system_id, process_name, metric):
+def get_process_metric(system_id, process_details, metric):
+    process_name = process_details.split("@service=")[0]
+    pid = process_details.split("@pid=")[1]
     prometheus_metric = METRIC_MAP[metric["metric"]]
 
     query = f'''
         {prometheus_metric}{{
             system_id="{system_id}",
-            name="{process_name}"
+            name="{process_name}",
+            pid="{pid}",
         }}
     '''
-
+    print(query)
     return query_prometheus(query)
 
 
+def get_cpu_metric(system_id, metric):
+    prometheus_metric = CPU_METRIC_MAP[metric["metric"]]
+    labels = [f'system_id="{system_id}"']
 
+    core = metric.get("core")
+    if prometheus_metric == "cpu_core_usage_percent" and core is not None:
+        labels.append(f'core="{core}"')
 
-
-
+    query = f"{prometheus_metric}{{{', '.join(labels)}}}"
+    return query_prometheus(query)
