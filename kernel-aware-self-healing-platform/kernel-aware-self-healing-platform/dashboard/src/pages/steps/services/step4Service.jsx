@@ -191,7 +191,6 @@ export default function Step4Service({ form, setForm }) {
           target.type === "service" &&
           (target.service_name || target.name) === service.name
       );
-
       if (exists) {
         return {
           ...currentForm,
@@ -211,7 +210,7 @@ export default function Step4Service({ form, setForm }) {
           ...targets,
           {
             type: "service",
-            name: service.name,
+            name: `${service.name.split(".")[0]}@pid=${service.main_pid}`,
             service_name: service.name,
             metrics: [],
           },

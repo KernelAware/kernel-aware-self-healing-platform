@@ -12,7 +12,7 @@ export default function Step10({ form, setForm }) {
 
   if (form.monitorSource === "process") return <Step10Process form={form} setForm={setForm} />
   if (form.monitorSource === "cpu") return <Step10Cpu form={form} setForm={setForm} />
-  if (form.monitorSource === "process") return <Step10Service form={form} setForm={setForm} />
+  if (form.monitorSource === "service") return <Step10Service form={form} setForm={setForm} />
 
 
   return (
