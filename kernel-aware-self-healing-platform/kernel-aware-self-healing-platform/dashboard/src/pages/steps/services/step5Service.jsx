@@ -4,8 +4,7 @@ import { SelectBox } from "../wizardComponents"
 const METRICS = [
   "CPU Usage (%)",
   "Memory Usage (%)",
-  "Disk Usage (%)",
-  "Network Usage (%)",
+  "Disk Usage (%)"
 ]
 
 const OPERATORS = [
@@ -22,7 +21,7 @@ const INTERVALS = [
 
 export default function Step5Cpu({ form, setForm }) {
   const conditions =
-    form.targets?.find(target => target.type === "process")?.metrics || []
+    form.targets?.find(target => target.type === "service")?.metrics || []
   const addMetric = (metric) => {
     if (!metric) return
 
@@ -31,7 +30,7 @@ export default function Step5Cpu({ form, setForm }) {
 
       targets: (f.targets || []).map(target => {
 
-        if (target.type !== "process") {
+        if (target.type !== "service") {
           return target
         }
 
@@ -76,7 +75,7 @@ export default function Step5Cpu({ form, setForm }) {
 
       targets: (f.targets || []).map(target => {
 
-        if (target.type !== "process") {
+        if (target.type !== "service") {
           return target
         }
 
@@ -109,7 +108,7 @@ export default function Step5Cpu({ form, setForm }) {
 
       targets: (f.targets || []).map(target => {
 
-        if (target.type !== "process") {
+        if (target.type !== "service") {
           return target
         }
 
@@ -496,20 +495,20 @@ export default function Step5Cpu({ form, setForm }) {
           >
 
             <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-primary mb-2">
-              About Process Policies and User Rules
+              About Service Policies and User Rules
             </p>
 
             <p className="font-mono text-[11px] text-muted-foreground leading-relaxed">
-              Analyze and detect abnormal behavior or rule
-              violations on selected processes to make a
-              decision based on configured policies, then
-              automatically execute appropriate recovery
-              actions and verify whether the system has
-              successfully returned to a healthy state.
+              Monitor and detect abnormal behavior or rule violations
+              in selected system services. Evaluate service metrics
+              against configured policies to determine when recovery
+              actions are needed, then execute the appropriate
+              remediation actions and verify whether the services
+              have returned to a healthy state.
             </p>
 
             <p className="mt-3 font-mono text-[10px] text-muted-foreground leading-relaxed">
-              How values are aggregated for evaluation.
+              How service metric values are aggregated for evaluation.
             </p>
 
           </div>
