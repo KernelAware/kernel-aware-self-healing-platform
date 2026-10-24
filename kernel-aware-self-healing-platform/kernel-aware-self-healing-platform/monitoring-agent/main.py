@@ -13,7 +13,9 @@ from sender.promethes_sender.exporter_memory import update_memory_metrics
 from sender.promethes_sender.exporter_health import update_health_metrics
 
 from collectors.process_details.process_collector import get_processes
-from sender.backend_sender.send_backend import send_process_inventory
+from sender.backend_sender.send_backend import send_inventory
+
+from collectors.service_details.service_collector import get_services
 
 import logging
 import threading
@@ -57,9 +59,10 @@ def collect_process_inventory():
         try:
             processes = get_processes()
 
-            send_process_inventory(
+            send_inventory(
                 system_id=1,
-                processes=processes
+                items=processes,
+                inventory_type="processes"
             )
 
         except Exception as e:
@@ -67,6 +70,21 @@ def collect_process_inventory():
 
         time.sleep(30)
 
+def collect_service_inventory():
+    while True:
+        try:
+            services = get_services()
+
+            send_inventory(
+                system_id=1,
+                items=services,
+                inventory_type="services"
+            )
+
+        except Exception as e:
+            logger.error(f"Service inventory error: {e}")
+
+        time.sleep(30)
 
 threading.Thread(
     target=collect_metrics,
@@ -75,6 +93,11 @@ threading.Thread(
 
 threading.Thread(
     target=collect_process_inventory,
+    daemon=True
+).start()
+
+threading.Thread(
+    target=collect_service_inventory,
     daemon=True
 ).start()
 

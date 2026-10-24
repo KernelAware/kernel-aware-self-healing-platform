@@ -1,12 +1,18 @@
 import requests
 from sqlalchemy.orm import query
 
-METRIC_MAP = {
+PROCESS_METRIC_MAP = {
     "CPU Usage (%)": "process_cpu_percent",
     "Memory Usage (%)": "process_memory_percent",
     "Disk Usage (%)": "disk_usage_percent",
     "Disk Read": "process_disk_read_bytes",
     "Disk Write": "process_disk_write_bytes",
+}
+
+SERVICE_METRIC_MAP = {
+    "CPU Usage (%)": "service_cpu_usage_percent",
+    "Memory Usage (%)": "service_memory_usage_percent",
+    "Disk Usage (%)": "service_disk_usage_bytes",
 }
 
 CPU_METRIC_MAP = {
@@ -69,7 +75,7 @@ def get_network_metrics():
 def get_process_metric(system_id, process_details, metric):
     process_name = process_details.split("@service=")[0]
     pid = process_details.split("@pid=")[1]
-    prometheus_metric = METRIC_MAP[metric["metric"]]
+    prometheus_metric = PROCESS_METRIC_MAP[metric["metric"]]
 
     query = f'''
         {prometheus_metric}{{
@@ -78,9 +84,21 @@ def get_process_metric(system_id, process_details, metric):
             pid="{pid}",
         }}
     '''
-    print(query)
+
     return query_prometheus(query)
 
+def get_service_metric(system_id, service_details, metric):
+
+    service_name = service_details.split("@pid=")[0]
+    prometheus_metric = SERVICE_METRIC_MAP[metric["metric"]]
+
+    query = f'''
+        {prometheus_metric}{{
+            system_id="{system_id}",
+            name="{service_name}"
+        }}
+    '''
+    return query_prometheus(query)
 
 def get_cpu_metric(system_id, metric):
     prometheus_metric = CPU_METRIC_MAP[metric["metric"]]

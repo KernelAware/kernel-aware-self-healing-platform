@@ -1,3 +1,6 @@
+from time import sleep
+
+from engine.decision_strategies.service_decisions import ServiceDecision
 from engine.decision_strategies.process_decisions import ProcessDecision
 from engine.decision_strategies.cpu_decisions import CpuDecision
 from engine.decision_strategies.helth_decisions import HealthDecision
@@ -8,7 +11,8 @@ STRATEGIES = {
     "process": ProcessDecision(),
     "cpu": CpuDecision(),
     "health": HealthDecision(),
-    "network": NetworkDecision()
+    "network": NetworkDecision(),
+    "service": ServiceDecision()
 }
 
 
