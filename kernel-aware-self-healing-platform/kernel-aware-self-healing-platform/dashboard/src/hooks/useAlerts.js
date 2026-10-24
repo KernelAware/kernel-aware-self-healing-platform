@@ -43,58 +43,26 @@ const INITIAL_ALERTS = [
     process: "system",
     pid: null
   },
+    {
+    id: "INC-1049",
+    level: "P1 - High",
+    tone: "warning",
+    age: "6m ago",
+    title: "Memory Usage High - python",
+    body: "Memory usage reached 87.2%, above the 80% threshold for 5 minutes.",
+    acked: false,
+    status: "HEALING",
+    system: "server-01",
+    process: "python-app",
+    pid: 9231
+  },
 ]
 
-const ALERTS_STORAGE_KEY = 'kernel-sentinel-active-alerts'
-
-function loadActiveAlerts() {
-  try {
-    const storedAlerts = window.localStorage.getItem(ALERTS_STORAGE_KEY)
-    if (storedAlerts === null) {
-      return INITIAL_ALERTS
-    }
-
-    const parsedAlerts = JSON.parse(storedAlerts)
-    if (!Array.isArray(parsedAlerts)) {
-      throw new TypeError('Saved alerts must be an array')
-    }
-
-    return parsedAlerts.map((alert) => alert.rule_id != null
-      ? { ...alert, id: `INC-RULE-${alert.rule_id}` }
-      : alert)
-  } catch (error) {
-    console.error('Unable to restore active alerts from browser storage:', error)
-    return INITIAL_ALERTS
-  }
-}
-
-function getAlertKey(alert) {
-  const ruleId = alert.rule_id ?? alert.ruleId
-  if (ruleId !== undefined && ruleId !== null) {
-    return `rule:${ruleId}`
-  }
-
-  return [
-    alert.title,
-    alert.system,
-    alert.process
-  ]
-    .map((value) => String(value ?? '').trim().toLowerCase())
-    .join('|')
-}
 
 export function useAlerts() {
-  const [alerts, setAlerts] = useState(loadActiveAlerts)
+  const [alerts, setAlerts] = useState(INITIAL_ALERTS)
 
   const socketAlert = useWebSocket('alerts')
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(ALERTS_STORAGE_KEY, JSON.stringify(alerts))
-    } catch (error) {
-      console.error('Unable to save active alerts to browser storage:', error)
-    }
-  }, [alerts])
 
   useEffect(() => {
 
@@ -102,28 +70,10 @@ export function useAlerts() {
       return
     }
 
-    setAlerts((previousAlerts) => {
-      const key = getAlertKey(socketAlert)
-      const existingAlert = previousAlerts.find(
-        (alert) => getAlertKey(alert) === key
-      )
-      const updatedAlert = {
-        ...socketAlert,
-        updatedAt: Date.now(),
-        acked: existingAlert ? existingAlert.acked : Boolean(socketAlert.acked),
-        id: socketAlert.rule_id != null
-          ? `INC-RULE-${socketAlert.rule_id}`
-          : existingAlert ? existingAlert.id : socketAlert.id
-      }
-
-      if (!existingAlert) {
-        return [updatedAlert, ...previousAlerts]
-      }
-
-      return previousAlerts.map((alert) =>
-        getAlertKey(alert) === key ? updatedAlert : alert
-      )
-    })
+    setAlerts((prev) => [
+      socketAlert,
+      ...prev
+    ])
 
   }, [socketAlert])
 

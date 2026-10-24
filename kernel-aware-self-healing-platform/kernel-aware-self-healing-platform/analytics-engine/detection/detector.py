@@ -5,7 +5,7 @@ from detection.strategies.memeory_detecter import MemoryDetector
 from detection.strategies.disk_detector import DiskDetector
 from detection.strategies.process_detector import ProcessDetector
 from detection.strategies.network_detector import NetworkDetector
-
+from detection.strategies.service_detector import ServiceDetector
 
 strategies = {
     "cpu": CpuDetector(),
@@ -13,6 +13,7 @@ strategies = {
     "disk": DiskDetector(),
     "process": ProcessDetector(),
     "network": NetworkDetector(),
+    "service": ServiceDetector(),
 }
 
 

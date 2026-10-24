@@ -3,12 +3,12 @@ import requests
 BACKEND_URL = "http://localhost:8000"
 
 
-def send_process_inventory(system_id, processes):
+def send_inventory(system_id, items, inventory_type:str):
     response = requests.post(
-        f"{BACKEND_URL}/process_inventory",
+        f"{BACKEND_URL}/{inventory_type}_inventory",
         json={
             "system_id": system_id,
-            "processes": processes
+            inventory_type: items
         },
         timeout=10
     )

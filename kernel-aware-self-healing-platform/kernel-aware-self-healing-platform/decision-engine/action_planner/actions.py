@@ -26,8 +26,7 @@ cpu_alert_names = {
 }
 
 def create_action_plan(decision, incident, rules, policy):
-    # Publish every threshold violation so the dashboard reflects the breach
-    # even when policy allows automatic healing to continue.
+
     incident_detail, alert = create_alert(decision, incident, rules, policy)
 
 
@@ -43,8 +42,6 @@ def create_action_plan(decision, incident, rules, policy):
 
     notify_backend(incident_detail, alert)
 
-    # Process decisions currently expose `all_actions`; support both that
-    # shape and the older `actions` shape used by other strategies.
     action_types = (
         decision.get("actions")
         or decision.get("all_actions")
@@ -77,7 +74,7 @@ def create_action_plan(decision, incident, rules, policy):
 def create_alert(decision, incident, rules, policy):
     rule_id = incident.get("rule_id")
     incident_id = (
-        f"INC-RULE-{rule_id}"
+        f"INC-RULE-{rule_id}-{uuid.uuid4().hex[:8].upper()}"
         if rule_id is not None
         else f"INC-{uuid.uuid4().hex[:8].upper()}"
     )
