@@ -50,7 +50,7 @@ class ServiceDetector(DetectionStrategy):
                         "incident_severity": rule["rule"]["severity"],
                         "incident_type": rule["rule"]["monitor_type"],
                         "incident_priority": rule["rule"]["priority"],
-                        "target": rule_target["target"].split("@service=")[0],
+                        "target": f"{rule_target['target'].split('@pid=')[0]}.service",
                         "service_name": service_name,
                         "violated_metric": metric,
                         "value": current_value,
