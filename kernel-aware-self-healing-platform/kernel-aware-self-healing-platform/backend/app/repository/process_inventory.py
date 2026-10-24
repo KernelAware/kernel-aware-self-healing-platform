@@ -17,3 +17,21 @@ def get_processes(system_id):
         return []
 
     return json.loads(data)
+
+def save_services(system_id, services):
+    redis_client.setex(
+        f"service_inventory:{system_id}",
+        60,
+        json.dumps(services)
+    )
+
+
+def get_services(system_id):
+    data = redis_client.get(
+        f"service_inventory:{system_id}"
+    )
+
+    if not data:
+        return []
+
+    return json.loads(data)
