@@ -11,7 +11,7 @@ PROCESS_METRIC_MAP = {
 
 SERVICE_METRIC_MAP = {
     "CPU Usage (%)": "service_cpu_usage_percent",
-    "Memory Usage (%)": "service_memory_rss_bytes",
+    "Memory Usage (%)": "service_memory_usage_percent",
     "Disk Usage (%)": "service_disk_usage_bytes",
 }
 
@@ -84,6 +84,7 @@ def get_process_metric(system_id, process_details, metric):
             pid="{pid}",
         }}
     '''
+
     return query_prometheus(query)
 
 def get_service_metric(system_id, service_details, metric):

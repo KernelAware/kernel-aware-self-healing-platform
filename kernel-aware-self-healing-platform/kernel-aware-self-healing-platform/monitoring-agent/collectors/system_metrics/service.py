@@ -78,6 +78,8 @@ def collect_services():
 
                     memory = process.memory_info().rss
 
+                    memory_percent = process.memory_percent()
+
                     uptime = time.time() - process.create_time()
 
 
@@ -90,6 +92,7 @@ def collect_services():
                         "user": username,
                         "cpu_percent": cpu,
                         "memory_rss_bytes": memory,
+                        "memory_percent": memory_percent,
                         "uptime_seconds": uptime,
                     }
                 )

@@ -33,6 +33,12 @@ service_memory_usage = Gauge(
     ["name", "pid"]
 )
 
+service_memory_usage_percent = Gauge(
+    "service_memory_usage_percent",
+    "Memory usage percentage of service",
+    ["name", "pid"]
+)
+
 service_uptime = Gauge(
     "service_uptime_seconds",
     "Service uptime in seconds",
@@ -205,6 +211,11 @@ def update_service_metrics():
             name=name,
             pid=pid,
         ).set(service["memory_rss_bytes"])
+
+        service_memory_usage_percent.labels(
+            name=name,
+            pid=pid
+        ).set(service["memory_percent"])
 
         service_uptime.labels(
             name=name,
