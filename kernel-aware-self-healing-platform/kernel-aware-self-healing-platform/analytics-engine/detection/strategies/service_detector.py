@@ -30,8 +30,6 @@ class ServiceDetector(DetectionStrategy):
                         threshold=metric["threshold"]
                     )
 
-
-
                     if not threshold_match:
                         continue
 
