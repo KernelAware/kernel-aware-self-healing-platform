@@ -36,6 +36,7 @@ def user_rules_service(userRules):
     )
 
     is_cpu_rule = userRules["monitorSource"].lower() == "cpu"
+    is_process_rule = userRules["monitorSource"].lower() == "process"
 
     for target in userRules["targets"]:
         rule_target = RuleTarget(
@@ -88,16 +89,23 @@ def user_rules_service(userRules):
     actions = userRules.get("actions", [])
 
     for action in actions:
+        if isinstance(action, dict):
+            action_type = action.get("type")
+            action_script = action.get("action_script")
+        else:
+            action_type = action
+            action_script = None
+
         rule_action = RuleAction(
-            action_type=action,
+            rule_id=rule.id,
+            action_type=action_type,
+            action_script=action_script,
             automatic_execution=safety.get("autoExec", False),
             approval_required=safety.get(
-                "approvalRequired",
-                "ALWAYS"
+                "approvalRequired", "ALWAYS"
             ).upper(),
             allowed_during=safety.get(
-                "allowedDuring",
-                "ALWAYS"
+                "allowedDuring", "ALWAYS"
             ),
             max_retry_attempts=int(
                 retry.get("maxAttempts", 0)
@@ -106,10 +114,10 @@ def user_rules_service(userRules):
                 retry.get("cooldownMinutes", 0)
             ) * 60,
             suppress_duplicates=retry.get(
-                "suppressDuplicates",
-                True
-            )
+                "suppressDuplicates", True
+            ),
         )
+
         rule_actions.append(rule_action)
 
     recovery = userRules.get("recovery", {})

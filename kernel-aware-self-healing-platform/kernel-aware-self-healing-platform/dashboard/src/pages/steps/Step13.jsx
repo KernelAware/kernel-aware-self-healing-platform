@@ -8,8 +8,9 @@ import {
 } from "lucide-react"
 import { Panel } from "@/components/kit"
 import {userRules} from "../../services/api.js";
+import { INITIAL_FORM } from "./wizardConstants.js"
 
-export default function Step13({ form, onCancel }) {
+export default function Step13({ form, onCancel ,setForm}) {
   const [created, setCreated] = useState(false)
 
   const targets = Array.isArray(form.targets) ? form.targets : []
@@ -190,6 +191,7 @@ export default function Step13({ form, onCancel }) {
             onClick={() => {
               setCreated(false)
               onCancel()
+              setForm(INITIAL_FORM)
             }}
             className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-5 font-mono text-xs font-bold text-primary-foreground hover:bg-primary/90 shadow-glow-primary transition-colors cursor-pointer"
           >
@@ -840,9 +842,12 @@ export default function Step13({ form, onCancel }) {
                   }
                 : form;
               const data = await userRules(payload);
+
               setCreated(true)
+
             } catch (error) {
               console.error(error);
+              alert(error)
             }
           }}
           className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-6 font-mono text-xs font-bold tracking-wide text-primary-foreground hover:bg-primary/90 shadow-glow-primary transition-colors cursor-pointer"

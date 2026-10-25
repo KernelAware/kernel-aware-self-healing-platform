@@ -62,7 +62,7 @@ export default function PolicyPage() {
       case 10: return <Step10 form={form} setForm={setForm} />
       case 11: return <Step11 form={form} setForm={setForm} />
       case 12: return <Step12 form={form} setForm={setForm} />
-      case 13: return <Step13 form={form} onCancel={exitWizard} />
+      case 13: return <Step13 form={form} onCancel={exitWizard} setForm={setForm}/>
       default: return null
     }
   }

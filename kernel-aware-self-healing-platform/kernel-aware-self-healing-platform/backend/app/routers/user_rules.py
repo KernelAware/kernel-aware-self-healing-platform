@@ -12,6 +12,7 @@ async def get_metrics():
 
 @router.post("/user_rules")
 def put_incidents(data: dict[str, Any]):
+    print(data)
     return user_rules_service(data)
 
 @router.get("/get_user_rules")
