@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { X, Plus, Mail, MessageSquare, Users, Settings, Link2 } from "lucide-react"
 import { Panel } from "@/components/kit"
 import { cn } from "@/utils/cn"
@@ -22,6 +23,7 @@ const CHANNELS = [
 ]
 
 export default function Step11({ form, setForm }) {
+  const [recipientDraft, setRecipientDraft] = useState("")
   const disk = form.monitorSource === "disk"
   const events = Array.isArray(form.notifications?.events)
     ? form.notifications.events
@@ -85,28 +87,33 @@ export default function Step11({ form, setForm }) {
     }))
   }
 
-  const addRecipient = input => {
-    const value = input.trim()
+  const addRecipients = input => {
+    const values = String(input || "")
+      .split(/[;,]/)
+      .map(item => item.trim())
+      .filter(Boolean)
 
-    if (!value) return
+    if (!values.length) return
 
     setForm(f => {
       const current = Array.isArray(f.notifications?.recipients)
         ? f.notifications.recipients
         : []
-
-      if (current.includes(value)) {
-        return f
-      }
+      const nextRecipients = [...new Set([...current, ...values])]
 
       return {
         ...f,
         notifications: {
           ...f.notifications,
-          recipients: [...current, value],
+          recipients: nextRecipients,
         },
       }
     })
+  }
+
+  const commitRecipientDraft = () => {
+    addRecipients(recipientDraft)
+    setRecipientDraft("")
   }
 
   return (
@@ -206,42 +213,22 @@ export default function Step11({ form, setForm }) {
             ))}
 
             <input
+              value={recipientDraft}
+              onChange={e => setRecipientDraft(e.target.value)}
+              onBlur={commitRecipientDraft}
               placeholder="Add email?"
               className="flex-1 min-w-[120px] bg-transparent font-mono text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
               onKeyDown={e => {
                 if (e.key === "Enter" || e.key === ",") {
                   e.preventDefault()
-
-                  const value = e.target.value
-
-                  if (e.key === ",") {
-                    const emails = value
-                      .split(",")
-                      .map(item => item.trim())
-                      .filter(Boolean)
-
-                    emails.forEach(addRecipient)
-                  } else {
-                    addRecipient(value)
-                  }
-
-                  e.target.value = ""
+                  commitRecipientDraft()
                 }
               }}
             />
 
             <button
               type="button"
-              onClick={e => {
-                const input = e.currentTarget
-                  .previousElementSibling
-
-                if (input) {
-                  addRecipient(input.value)
-                  input.value = ""
-                  input.focus()
-                }
-              }}
+              onClick={commitRecipientDraft}
               className="ml-auto flex items-center gap-1 rounded border border-primary/30 px-2 py-0.5 font-mono text-[11px] text-primary hover:bg-primary/10 cursor-pointer"
             >
               <Plus className="size-3" />

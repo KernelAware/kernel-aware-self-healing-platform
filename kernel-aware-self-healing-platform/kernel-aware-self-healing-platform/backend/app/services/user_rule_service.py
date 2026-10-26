@@ -146,9 +146,21 @@ def user_rules_service(userRules):
 
     notifications = userRules.get("notifications", {})
 
-    events = notifications.get("events", [])
-    channels = notifications.get("channels", [])
-    recipients = notifications.get("recipients", [])
+    events = notifications.get("events") or []
+    channels = notifications.get("channels") or []
+    recipients = [
+        address.strip()
+        for recipient in (notifications.get("recipients") or [])
+        if recipient is not None
+        for address in str(recipient).replace(";", ",").split(",")
+        if address.strip()
+    ]
+
+    # Recipient-only configuration is valid in the wizard. Persist it with
+    # the existing default event/channel instead of silently dropping it.
+    if recipients:
+        events = events or ["Incident detected"]
+        channels = channels or ["email"]
 
 
     for event in events:

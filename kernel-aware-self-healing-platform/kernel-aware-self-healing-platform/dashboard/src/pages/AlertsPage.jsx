@@ -10,7 +10,15 @@ import {useIncidentDetails} from "@/hooks/alertDetails.js";
 
 export default function AlertsPage() {
   const { incidents, loading, error } = useIncidents()
-  const { alerts, liveIncidents, updateLiveIncident, acknowledgeAlert, criticalCount } = useAlerts({ ruleAlertsOnly: true })
+  const {
+    alerts,
+    liveIncidents,
+    updateLiveIncident,
+    acknowledgeAlert,
+    criticalCount,
+    activeSnapshotLoading,
+    activeSnapshotError,
+  } = useAlerts({ ruleAlertsOnly: true })
   const { selectedIncident, selectedIncidentId, selectIncident, approveIncident, rejectIncident } = useIncidentDetails(liveIncidents, updateLiveIncident)
 
   return (
@@ -49,6 +57,8 @@ export default function AlertsPage() {
                 acknowledgeAlert={acknowledgeAlert}
                 selectIncident={selectIncident}
                 selectedIncidentId={selectedIncidentId}
+                activeSnapshotLoading={activeSnapshotLoading}
+                activeSnapshotError={activeSnapshotError}
               />
             </div>
 

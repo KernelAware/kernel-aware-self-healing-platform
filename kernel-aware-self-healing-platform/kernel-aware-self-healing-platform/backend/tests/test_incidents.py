@@ -4,8 +4,9 @@ from datetime import datetime, timezone
 from unittest.mock import patch
 
 from fastapi import HTTPException
-from sqlalchemy import create_engine, inspect
-from sqlalchemy.orm import Session
+from sqlalchemy import BigInteger, create_engine, inspect
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from models.incidents import Incident
@@ -13,6 +14,16 @@ from repository.incidents import incident_to_dict, list_incidents, persist_incid
 from routers.alerts import alert_incidents, publish_rule_alert
 from routers.incidents import get_incidents
 from routers.websocket import connected_clients, give_message
+from models.user_rules.rule_notification import RuleNotification
+from models.user_rules.rule import Rule
+from repository import user_rules as user_rule_repository
+from services.user_rule_service import user_rules_service
+
+
+@compiles(BigInteger, "sqlite")
+def _sqlite_bigint_as_integer(_type, _compiler, **_kwargs):
+    # SQLite autoincrements only a column declared exactly as INTEGER.
+    return "INTEGER"
 
 
 def test_engine():
@@ -148,6 +159,27 @@ class IncidentPersistenceTests(unittest.TestCase):
         self.assertEqual(len(list_incidents(self.db, system_id=2)), 0)
         self.assertFalse(inspect(self.engine).has_table("alert_incidents"))
 
+    def test_disk_active_snapshot_filter_keeps_history_separate(self):
+        persist_incident(self.db, "opened", sample_detail("INC-active"), sample_alert("INC-active"))
+        persist_incident(
+            self.db,
+            "resolved",
+            sample_detail("INC-resolved", status="RESOLVED"),
+            sample_alert("INC-resolved", status="RESOLVED"),
+        )
+        process_detail = sample_detail("INC-process")
+        process_detail["monitor_type"] = "process"
+        process_detail["category"] = "process"
+        process_alert = sample_alert("INC-process")
+        process_alert["category"] = "process"
+        persist_incident(self.db, "opened", process_detail, process_alert)
+
+        active_disk = list_incidents(self.db, system_id=1, monitor_type="disk", status="OPEN")
+        history = list_incidents(self.db, system_id=1)
+
+        self.assertEqual([record.id for record in active_disk], ["INC-active"])
+        self.assertEqual({record.id for record in history}, {"INC-active", "INC-resolved", "INC-process"})
+
 
 class IncidentApiTests(unittest.IsolatedAsyncioTestCase):
     async def test_rule_route_commits_before_broadcast_and_updates_same_row(self):
@@ -180,7 +212,42 @@ class IncidentApiTests(unittest.IsolatedAsyncioTestCase):
                 "incident_detail", "incident_update", "alerts",
                 "incident_detail", "incident_update",
             ])
+            self.assertEqual(sent[1]["event"], "opened")
+            self.assertEqual(sent[1]["data"]["monitor_type"], "disk")
+            self.assertEqual(sent[1]["data"]["incident_id"], "INC-route")
             self.assertFalse(inspect(engine).has_table("alert_incidents"))
+        finally:
+            db.close()
+            engine.dispose()
+
+    async def test_repeated_disk_resolution_updates_one_row_without_duplicate_events(self):
+        engine = test_engine()
+        db = Session(engine)
+        payload = {
+            "event": "opened",
+            "incident_detail": sample_detail(incident_id="INC-idempotent"),
+            "alert": sample_alert(incident_id="INC-idempotent"),
+        }
+        sent = []
+
+        async def capture(message, systemid):
+            sent.append((message, systemid))
+
+        try:
+            with patch("routers.alerts.give_message", side_effect=capture):
+                await publish_rule_alert(payload, db)
+                payload["event"] = "resolved"
+                payload["incident_detail"]["status"] = "RESOLVED"
+                payload["alert"]["status"] = "RESOLVED"
+                await publish_rule_alert(payload, db)
+                await publish_rule_alert(payload, db)
+
+            self.assertEqual(db.query(Incident).count(), 1)
+            self.assertEqual(db.get(Incident, "INC-idempotent").status, "RESOLVED")
+            self.assertEqual(
+                [item[0].get("type") for item in sent],
+                ["incident_detail", "incident_update", "alerts", "incident_detail", "incident_update"],
+            )
         finally:
             db.close()
             engine.dispose()
@@ -198,6 +265,32 @@ class IncidentApiTests(unittest.IsolatedAsyncioTestCase):
             history = get_incidents(system_id=1, db=db)
             self.assertEqual(history[0]["id"], "INC-history")
             self.assertEqual(history[0]["category"], "disk")
+        finally:
+            db.close()
+            engine.dispose()
+
+    async def test_active_disk_snapshot_route_is_separate_from_history(self):
+        engine = test_engine()
+        db = Session(engine)
+        try:
+            persist_incident(
+                db,
+                "opened",
+                sample_detail("INC-current"),
+                sample_alert("INC-current"),
+            )
+            persist_incident(
+                db,
+                "resolved",
+                sample_detail("INC-old", status="RESOLVED"),
+                sample_alert("INC-old", status="RESOLVED"),
+            )
+
+            active = get_incidents(system_id=1, monitor_type="disk", status="OPEN", db=db)
+            history = get_incidents(system_id=1, db=db)
+
+            self.assertEqual([item["id"] for item in active], ["INC-current"])
+            self.assertEqual({item["id"] for item in history}, {"INC-current", "INC-old"})
         finally:
             db.close()
             engine.dispose()
@@ -282,6 +375,68 @@ class WebSocketDeliveryTests(unittest.IsolatedAsyncioTestCase):
             websocket.messages[0]["data"]["updated_at"],
             "2026-10-21T01:02:03+00:00",
         )
+
+
+class RuleNotificationPersistenceTests(unittest.TestCase):
+    def test_two_recipients_are_persisted_with_default_email_event(self):
+        from database.connection import Base
+
+        engine = create_engine(
+            "sqlite://",
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+        Base.metadata.create_all(engine)
+        test_session_factory = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+        form = {
+            "ruleName": "Disk recipients",
+            "enabled": True,
+            "priority": "Medium",
+            "severity": "Warning",
+            "owner": "Admin",
+            "environment": "Production",
+            "region": "US-East-1",
+            "monitorSource": "disk",
+            "targets": [{
+                "type": "host",
+                "name": "Whole System",
+                "metrics": [{
+                    "conditions": [{
+                        "metric": "disk_read_bytes",
+                        "operator": "Greater Than (>)",
+                        "threshold": "1",
+                        "duration": "5",
+                        "durationUnit": "Minutes",
+                    }],
+                }],
+            }],
+            "notifications": {
+                "events": [],
+                "channels": [],
+                "recipients": ["first@example.com", "second@example.com"],
+            },
+        }
+
+        try:
+            with patch.object(user_rule_repository, "SessionLocal", test_session_factory):
+                result = user_rules_service(form)
+
+            with Session(engine) as db:
+                saved = db.query(RuleNotification).all()
+                self.assertEqual(result, {"success": True})
+                self.assertEqual(len(saved), 2)
+                self.assertEqual(
+                    {item.recipient for item in saved},
+                    {"first@example.com", "second@example.com"},
+                )
+                self.assertEqual(len({item.rule_id for item in saved}), 1)
+                rule_id = saved[0].rule_id
+                self.assertIsNotNone(db.get(Rule, rule_id))
+                self.assertEqual({item.rule_id for item in saved}, {rule_id})
+                self.assertEqual({item.channel for item in saved}, {"email"})
+                self.assertEqual({item.event_type for item in saved}, {"Incident detected"})
+        finally:
+            engine.dispose()
 
 
 if __name__ == "__main__":

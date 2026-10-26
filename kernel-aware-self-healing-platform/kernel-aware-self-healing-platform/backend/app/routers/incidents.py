@@ -12,9 +12,11 @@ router = APIRouter()
 def get_incidents(
     system_id: int | None = Query(default=None),
     exclude_monitor_type: str | None = None,
+    monitor_type: str | None = None,
+    status: str | None = None,
     db: Session = Depends(get_db),
 ):
     return [
         incident_to_dict(record)
-        for record in list_incidents(db, system_id, exclude_monitor_type)
+        for record in list_incidents(db, system_id, exclude_monitor_type, monitor_type, status)
     ]

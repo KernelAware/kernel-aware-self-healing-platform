@@ -17,7 +17,9 @@ export default function ActiveAlertsList({
   alerts,
   acknowledgeAlert,
   selectIncident,
-  selectedIncidentId
+  selectedIncidentId,
+  activeSnapshotLoading = false,
+  activeSnapshotError = "",
 }) {
 
   const activeCount = alerts.length
@@ -191,7 +193,19 @@ export default function ActiveAlertsList({
         })}
 
 
-        {alerts.length === 0 && (
+        {activeSnapshotLoading && alerts.length === 0 && (
+          <div role="status" className="py-6 text-center font-mono text-xs text-muted-foreground">
+            Loading current incidents…
+          </div>
+        )}
+
+        {activeSnapshotError && (
+          <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 p-3 font-mono text-[10px] text-destructive">
+            Current Disk incidents could not be restored: {activeSnapshotError}
+          </div>
+        )}
+
+        {alerts.length === 0 && !activeSnapshotLoading && !activeSnapshotError && (
 
           <div className="py-6 text-center font-mono text-xs text-muted-foreground">
             No active incidents detected.

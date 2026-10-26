@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database.connection import SessionLocal, engine, get_db
+from models.incidents import Incident
 from repository.incidents import incident_to_dict, persist_incident
 from routers.websocket import give_message
 
@@ -29,7 +30,7 @@ def _persist_incident_in_worker(event: str, incident_detail: dict, alert: dict):
         db.close()
 
 
-async def _persist_and_broadcast(data: dict, db: Session):
+async def _persist_and_broadcast(data: dict, db: Session, *, disk_lifecycle: bool = False):
     incident_detail = data.get("incident_detail") or {}
     alert = data.get("alert") or {}
     event = str(data.get("event") or incident_detail.get("event") or "opened").lower()
@@ -38,6 +39,15 @@ async def _persist_and_broadcast(data: dict, db: Session):
 
     if not incident_detail:
         raise HTTPException(status_code=422, detail="incident_detail is required")
+
+    repeated_resolution = False
+    if disk_lifecycle and event == "resolved":
+        incident_id = incident_detail.get("incident_id") or incident_detail.get("id")
+        if incident_id:
+            existing = db.get(Incident, str(incident_id))
+            repeated_resolution = bool(
+                existing and str(existing.status).upper() in {"RESOLVED", "CLOSED"}
+            )
 
     try:
         if db.get_bind() is engine:
@@ -76,6 +86,9 @@ async def _persist_and_broadcast(data: dict, db: Session):
         saved_incident["alert"] = saved_alert
     else:
         saved_alert = {}
+
+    if repeated_resolution:
+        return {"status": "success", "event": event, "incident": saved_incident}
 
     system_id = incident_detail.get("system_id") or alert.get("system_id")
     try:
@@ -125,4 +138,4 @@ async def publish_rule_alert(data: dict, db: Session = Depends(get_db)):
         int(incident_detail.get("system_id"))
     except (TypeError, ValueError) as error:
         raise HTTPException(status_code=422, detail="A numeric system_id is required") from error
-    return await _persist_and_broadcast(data, db)
+    return await _persist_and_broadcast(data, db, disk_lifecycle=True)

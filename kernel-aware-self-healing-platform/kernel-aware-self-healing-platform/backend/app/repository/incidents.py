@@ -249,12 +249,18 @@ def list_incidents(
     db: Session,
     system_id: int | None = None,
     exclude_monitor_type: str | None = None,
+    monitor_type: str | None = None,
+    status: str | None = None,
 ):
     query = db.query(Incident)
     if system_id is not None:
         query = query.filter(Incident.system_id == int(system_id))
     if exclude_monitor_type:
         query = query.filter(Incident.category != exclude_monitor_type.lower())
+    if monitor_type:
+        query = query.filter(Incident.category == monitor_type.lower())
+    if status:
+        query = query.filter(Incident.status == status.upper())
     return query.order_by(Incident.created_at.desc(), Incident.id.desc()).all()
 
 
