@@ -32,10 +32,17 @@ def run_analysis():
         db.close()
 
 
+# async def analysis_loop():
+#     while True:
+#         await asyncio.to_thread(run_analysis)
+
 async def analysis_loop():
     while True:
-        await asyncio.to_thread(run_analysis)
-
+        try:
+            await asyncio.to_thread(run_analysis)
+        except Exception as error:
+            print(f"Analysis loop error: {error}")
+        await asyncio.sleep(30)
 
 
 @asynccontextmanager

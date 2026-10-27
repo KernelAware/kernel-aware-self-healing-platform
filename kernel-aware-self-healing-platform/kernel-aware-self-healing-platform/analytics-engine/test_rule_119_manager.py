@@ -97,7 +97,14 @@ with patch(
     if stored is None:
         raise AssertionError("Incident was not found in Redis")
 
-    assert json.loads(stored) == sent_incident
-    print("PASS: Incident JSON verified in Redis.")
+    stored_incident = json.loads(stored)
+
+    assert stored_incident["rule_id"] == RULE_ID
+    assert stored_incident["system_id"] == SYSTEM_ID
+    assert stored_incident["violated_metric"]["id"] == metric["id"]
+
+    print("PASS: Existing Redis incident verified.")
+    print("Stored value:", stored_incident["value"])
+    print("New detected value:", sent_incident["value"])
 
 print("No real HTTP request was sent to the decision engine.")

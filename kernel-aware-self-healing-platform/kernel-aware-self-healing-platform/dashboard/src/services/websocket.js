@@ -15,7 +15,7 @@ class WebSocketService {
       return
     }
 
-    this.socket = new WebSocket('ws://localhost:8000/ws/1')
+    this.socket = new WebSocket('ws://localhost:8000/ws/3')
 
     this.socket.onopen = () => {
       console.log('WebSocket connected')

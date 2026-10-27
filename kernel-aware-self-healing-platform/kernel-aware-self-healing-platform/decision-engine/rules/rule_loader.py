@@ -7,7 +7,8 @@ def load_rules(incident: dict) -> dict:
 
     response = httpx.get(
         f"{BACKEND_URL}/get_user_rule",
-        params={"rule_id": rule_id}
+        params={"rule_id": rule_id},
+        timeout=15.0,
     )
 
     response.raise_for_status()

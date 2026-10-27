@@ -28,3 +28,7 @@ def check_duration(system_id, pid, metric_name, duration_seconds):
     print("Elapsed:", elapsed)
 
     return elapsed >= duration_seconds
+
+def reset_duration(system_id, pid, metric_name):
+    key = f"violation:{system_id}:{pid}:{metric_name}"
+    redis_client.delete(key)
