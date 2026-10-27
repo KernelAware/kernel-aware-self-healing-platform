@@ -1,7 +1,9 @@
 import json
 import unittest
 from datetime import datetime, timezone
-from unittest.mock import patch
+import time
+import uuid
+from unittest.mock import AsyncMock, patch
 
 from fastapi import HTTPException
 from sqlalchemy import BigInteger, create_engine, inspect
@@ -13,11 +15,15 @@ from models.incidents import Incident
 from repository.incidents import incident_to_dict, list_incidents, persist_incident
 from routers.alerts import alert_incidents, publish_rule_alert
 from routers.incidents import get_incidents
+from routers.monitoring import monitoring_readiness, update_monitoring_readiness
 from routers.websocket import connected_clients, give_message
 from models.user_rules.rule_notification import RuleNotification
 from models.user_rules.rule import Rule
 from repository import user_rules as user_rule_repository
 from services.user_rule_service import user_rules_service
+
+
+TEST_ANALYTICS_GENERATION = "api-test-run"
 
 
 @compiles(BigInteger, "sqlite")
@@ -41,6 +47,7 @@ def sample_detail(incident_id="INC-one", status="OPEN", value=92.4):
         "id": incident_id,
         "incident_id": incident_id,
         "fingerprint": "same-rule-target-metric",
+        "analytics_generation": TEST_ANALYTICS_GENERATION,
         "rule_id": 44,
         "monitor_type": "disk",
         "category": "disk",
@@ -182,6 +189,20 @@ class IncidentPersistenceTests(unittest.TestCase):
 
 
 class IncidentApiTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        global TEST_ANALYTICS_GENERATION
+        TEST_ANALYTICS_GENERATION = f"test-{uuid.uuid4().hex}"
+        await update_monitoring_readiness({
+            "system_id": 1,
+            "generation": TEST_ANALYTICS_GENERATION,
+            "stage": "started",
+        })
+        await update_monitoring_readiness({
+            "system_id": 1,
+            "generation": TEST_ANALYTICS_GENERATION,
+            "stage": "completed",
+        })
+
     async def test_rule_route_commits_before_broadcast_and_updates_same_row(self):
         engine = test_engine()
         db = Session(engine)
@@ -208,6 +229,9 @@ class IncidentApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(opened["incident"]["id"], "INC-route")
             self.assertEqual(updated["incident"]["id"], "INC-route")
             self.assertEqual(db.query(Incident).count(), 1)
+            active = monitoring_readiness(1)["active_alerts"]
+            self.assertEqual([item["id"] for item in active], ["INC-route"])
+            self.assertEqual(active[0]["trigger"]["currentValue"], 95.0)
             self.assertEqual([item["type"] for item in sent], [
                 "incident_detail", "incident_update", "alerts",
                 "incident_detail", "incident_update",
@@ -219,6 +243,7 @@ class IncidentApiTests(unittest.IsolatedAsyncioTestCase):
         finally:
             db.close()
             engine.dispose()
+
 
     async def test_repeated_disk_resolution_updates_one_row_without_duplicate_events(self):
         engine = test_engine()
@@ -244,6 +269,7 @@ class IncidentApiTests(unittest.IsolatedAsyncioTestCase):
 
             self.assertEqual(db.query(Incident).count(), 1)
             self.assertEqual(db.get(Incident, "INC-idempotent").status, "RESOLVED")
+            self.assertEqual(monitoring_readiness(1)["active_alerts"], [])
             self.assertEqual(
                 [item[0].get("type") for item in sent],
                 ["incident_detail", "incident_update", "alerts", "incident_detail", "incident_update"],
@@ -269,7 +295,7 @@ class IncidentApiTests(unittest.IsolatedAsyncioTestCase):
             db.close()
             engine.dispose()
 
-    async def test_active_disk_snapshot_route_is_separate_from_history(self):
+    async def test_active_disk_snapshot_uses_current_run_memory_not_history_rows(self):
         engine = test_engine()
         db = Session(engine)
         try:
@@ -286,11 +312,59 @@ class IncidentApiTests(unittest.IsolatedAsyncioTestCase):
                 sample_alert("INC-old", status="RESOLVED"),
             )
 
-            active = get_incidents(system_id=1, monitor_type="disk", status="OPEN", db=db)
+            active = monitoring_readiness(1)["active_alerts"]
             history = get_incidents(system_id=1, db=db)
 
-            self.assertEqual([item["id"] for item in active], ["INC-current"])
+            self.assertEqual(active, [])
             self.assertEqual({item["id"] for item in history}, {"INC-current", "INC-old"})
+        finally:
+            db.close()
+            engine.dispose()
+
+    async def test_new_run_clears_dashboard_snapshot_and_preserves_incident_history(self):
+        engine = test_engine()
+        db = Session(engine)
+        payload = {
+            "event": "opened",
+            "incident_detail": sample_detail("INC-before-restart"),
+            "alert": sample_alert("INC-before-restart"),
+        }
+        try:
+            with patch("routers.alerts.give_message", new_callable=AsyncMock):
+                await publish_rule_alert(payload, db)
+
+            self.assertEqual(
+                [item["id"] for item in monitoring_readiness(1)["active_alerts"]],
+                ["INC-before-restart"],
+            )
+            await update_monitoring_readiness({
+                "system_id": 1,
+                "generation": f"test-{uuid.uuid4().hex}",
+                "stage": "started",
+            })
+
+            self.assertEqual(monitoring_readiness(1)["active_alerts"], [])
+            self.assertEqual(
+                [item["id"] for item in get_incidents(system_id=1, db=db)],
+                ["INC-before-restart"],
+            )
+        finally:
+            db.close()
+            engine.dispose()
+
+    async def test_stale_disk_event_is_rejected_before_persistence_or_broadcast(self):
+        engine = test_engine()
+        db = Session(engine)
+        detail = sample_detail("INC-stale")
+        detail["analytics_generation"] = "old-analytics-run"
+        payload = {"event": "opened", "incident_detail": detail, "alert": sample_alert("INC-stale")}
+        try:
+            with patch("routers.alerts.give_message", new_callable=AsyncMock) as send:
+                with self.assertRaises(HTTPException) as raised:
+                    await publish_rule_alert(payload, db)
+            self.assertEqual(raised.exception.status_code, 409)
+            self.assertEqual(db.query(Incident).count(), 0)
+            send.assert_not_awaited()
         finally:
             db.close()
             engine.dispose()
@@ -338,6 +412,104 @@ class IncidentApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(raised.exception.status_code, 500)
         self.assertTrue(db.rolled_back)
         send.assert_not_awaited()
+
+
+class MonitoringLifecycleTests(unittest.IsolatedAsyncioTestCase):
+    async def test_readiness_is_scoped_to_current_analytics_generation(self):
+        system_id = 987654
+
+        with patch("routers.monitoring.give_message", new_callable=AsyncMock) as broadcast:
+            self.assertFalse(monitoring_readiness(system_id)["ready"])
+
+            started = await update_monitoring_readiness({
+                "system_id": system_id,
+                "generation": "analytics-one",
+                "stage": "started",
+            })
+            self.assertFalse(started["ready"])
+
+            completed = await update_monitoring_readiness({
+                "system_id": system_id,
+                "generation": "analytics-one",
+                "stage": "completed",
+            })
+            self.assertTrue(completed["ready"])
+            self.assertTrue(monitoring_readiness(system_id)["ready"])
+
+            restarted = await update_monitoring_readiness({
+                "system_id": system_id,
+                "generation": "analytics-two",
+                "stage": "started",
+            })
+            self.assertFalse(restarted["ready"])
+
+            stale_completion = await update_monitoring_readiness({
+                "system_id": system_id,
+                "generation": "analytics-one",
+                "stage": "completed",
+            })
+            self.assertEqual(stale_completion["generation"], "analytics-two")
+            self.assertFalse(stale_completion["ready"])
+            self.assertEqual(broadcast.await_count, 3)
+
+    async def test_new_run_clears_active_snapshot_but_keeps_history_and_rejects_old_events(self):
+        from services.monitoring_lifecycle import store_active_alert
+
+        system_id = 987655
+        first_generation = "analytics-one"
+        next_generation = "analytics-two"
+        first_alert = {"id": "INC-run-one", "incident_id": "INC-run-one"}
+        next_alert = {"id": "INC-run-two", "incident_id": "INC-run-two"}
+
+        await update_monitoring_readiness({
+            "system_id": system_id,
+            "generation": first_generation,
+            "stage": "started",
+        })
+        await update_monitoring_readiness({
+            "system_id": system_id,
+            "generation": first_generation,
+            "stage": "completed",
+        })
+        self.assertTrue(store_active_alert(system_id, first_generation, "opened", first_alert))
+        self.assertEqual(len(monitoring_readiness(system_id)["active_alerts"]), 1)
+
+        await update_monitoring_readiness({
+            "system_id": system_id,
+            "generation": next_generation,
+            "stage": "started",
+        })
+        self.assertEqual(monitoring_readiness(system_id)["active_alerts"], [])
+        self.assertFalse(store_active_alert(system_id, first_generation, "opened", first_alert))
+
+        await update_monitoring_readiness({
+            "system_id": system_id,
+            "generation": next_generation,
+            "stage": "completed",
+        })
+        self.assertTrue(store_active_alert(system_id, next_generation, "opened", next_alert))
+        self.assertEqual(
+            [item["incident_id"] for item in monitoring_readiness(system_id)["active_alerts"]],
+            ["INC-run-two"],
+        )
+
+    async def test_delayed_older_run_start_cannot_replace_newer_generation(self):
+        system_id = 987656
+        newer = f"{time.time_ns()}-new"
+        older = f"{int(newer.split('-', 1)[0]) - 1}-old"
+
+        await update_monitoring_readiness({
+            "system_id": system_id,
+            "generation": newer,
+            "stage": "started",
+        })
+        result = await update_monitoring_readiness({
+            "system_id": system_id,
+            "generation": older,
+            "stage": "started",
+        })
+        self.assertEqual(result["generation"], newer)
+        self.assertFalse(result["ready"])
 
 
 class WebSocketDeliveryTests(unittest.IsolatedAsyncioTestCase):

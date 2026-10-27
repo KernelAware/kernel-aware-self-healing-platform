@@ -195,13 +195,13 @@ export default function ActiveAlertsList({
 
         {activeSnapshotLoading && alerts.length === 0 && (
           <div role="status" className="py-6 text-center font-mono text-xs text-muted-foreground">
-            Loading current incidents…
+            Loading current-run alerts…
           </div>
         )}
 
         {activeSnapshotError && (
           <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 p-3 font-mono text-[10px] text-destructive">
-            Current Disk incidents could not be restored: {activeSnapshotError}
+            Current-run Disk alerts are unavailable: {activeSnapshotError}
           </div>
         )}
 

@@ -1,19 +1,24 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react"
-import { fetchIncidents } from "@/services/incidents"
+import { fetchMonitoringReadiness } from "@/services/incidents"
+import {
+  currentRunDiskIncidents,
+  isCurrentRunDiskIncident,
+  isStaleAnalyticsGeneration,
+} from "@/services/activeAlertLifecycle"
 import { wsBroker } from "@/services/websocket"
 
 const LIVE_INCIDENT_EVENTS = new Set(["opened", "updated", "resolved"])
 const USER_RULE_CATEGORIES = new Set(["cpu", "memory", "disk", "process"])
 
-// Live incidents remain in memory for this page session so route changes do
-// not discard WebSocket events. This store is never hydrated from history or
-// browser storage.
+// Live incidents stay in memory across page routes. Disk state is hydrated
+// only from the Backend's current-run in-memory snapshot, never from history.
 let liveIncidentState = []
 const liveIncidentListeners = new Set()
 const incidentEventsById = new Map()
 let incidentEventVersion = 0
-let activeSnapshotRequest = null
 let activeSnapshotState = { status: "idle", error: "" }
+let lifecycleVersion = 0
+let currentAnalyticsGeneration = null
 const SYSTEM_ID = import.meta.env.VITE_SYSTEM_ID || "1"
 
 function subscribeToLiveIncidents(listener) {
@@ -39,6 +44,15 @@ function publishActiveSnapshotState(nextState) {
   liveIncidentListeners.forEach(listener => listener())
 }
 
+function resetDiskIncidentsForNewLifecycle(generation) {
+  lifecycleVersion += 1
+  currentAnalyticsGeneration = generation
+  incidentEventVersion = 0
+  incidentEventsById.clear()
+  publishLiveIncidents(liveIncidentState.filter(incident => incidentType(incident) !== "disk"))
+  publishActiveSnapshotState({ status: "loading", error: "" })
+}
+
 function incidentType(incident) {
   return String(incident?.monitor_type || incident?.incident_type || incident?.category || "")
     .trim()
@@ -49,7 +63,7 @@ function incidentId(incident) {
   return incident?.incident_id || incident?.id
 }
 
-function reconcileDiskSnapshot(rows, requestVersion) {
+function reconcileDiskSnapshot(rows, requestVersion, generation) {
   const nextById = new Map()
   liveIncidentState
     .filter(incident => incidentType(incident) !== "disk")
@@ -57,8 +71,7 @@ function reconcileDiskSnapshot(rows, requestVersion) {
 
   ;(Array.isArray(rows) ? rows : []).forEach(snapshotIncident => {
     const id = incidentId(snapshotIncident)
-    if (!id || incidentType(snapshotIncident) !== "disk") return
-    if (["RESOLVED", "CLOSED"].includes(String(snapshotIncident.status).toUpperCase())) return
+    if (!id || !currentRunDiskIncidents([snapshotIncident], generation).length) return
     const lastEvent = incidentEventsById.get(id)
     if (lastEvent?.incident === null) return
     const current = lastEvent?.version > requestVersion ? lastEvent.incident : snapshotIncident
@@ -66,7 +79,7 @@ function reconcileDiskSnapshot(rows, requestVersion) {
   })
 
   incidentEventsById.forEach((lastEvent, id) => {
-    if (lastEvent.version <= requestVersion || incidentType(lastEvent.incident) !== "disk") return
+    if (lastEvent.version <= requestVersion || lastEvent.monitorType !== "disk") return
     if (lastEvent.incident === null) nextById.delete(id)
     else nextById.set(id, lastEvent.incident)
   })
@@ -74,32 +87,42 @@ function reconcileDiskSnapshot(rows, requestVersion) {
   publishLiveIncidents([...nextById.values()])
 }
 
-function loadActiveDiskIncidents() {
+function loadActiveDiskIncidents(readiness, requestContext = {}) {
+  if (!readiness?.ready || !readiness.generation) return
   if (activeSnapshotState.status === "loaded") return Promise.resolve()
-  if (activeSnapshotRequest) return activeSnapshotRequest
 
-  const requestVersion = incidentEventVersion
+  const requestVersion = requestContext.eventVersion ?? incidentEventVersion
+  const requestLifecycleVersion = requestContext.lifecycleVersion ?? lifecycleVersion
   publishActiveSnapshotState({ status: "loading", error: "" })
-  activeSnapshotRequest = fetchIncidents(SYSTEM_ID, { monitorType: "disk", status: "OPEN" })
-    .then(rows => {
-      reconcileDiskSnapshot(rows, requestVersion)
-      publishActiveSnapshotState({ status: "loaded", error: "" })
-    })
-    .catch(error => {
-      // Leave the current live list intact when the authoritative snapshot is unavailable.
-      publishActiveSnapshotState({ status: "error", error: error.message || "Unable to restore current incidents." })
-    })
-    .finally(() => {
-      activeSnapshotRequest = null
-    })
-  return activeSnapshotRequest
+  if (requestLifecycleVersion !== lifecycleVersion) return
+  if (readiness.generation !== currentAnalyticsGeneration) return
+  reconcileDiskSnapshot(readiness.active_alerts, requestVersion, readiness.generation)
+  publishActiveSnapshotState({ status: "loaded", error: "" })
 }
 
 function handleLiveIncidentMessage(message) {
+  if (message?.type === "monitoring_readiness") {
+    const generation = message.data?.generation || null
+    if (isStaleAnalyticsGeneration(generation, currentAnalyticsGeneration)) return
+    if (generation !== currentAnalyticsGeneration) {
+      resetDiskIncidentsForNewLifecycle(generation)
+    }
+    if (message.data?.ready === true) {
+      loadActiveDiskIncidents(message.data, {
+        lifecycleVersion,
+        // WebSocket readiness snapshots are sent before later events on that
+        // connection; any same-run event already observed takes precedence.
+        eventVersion: -1,
+      })
+    }
+    return
+  }
+
   if (message?.type !== "incident_update" || !LIVE_INCIDENT_EVENTS.has(message.event)) return
   const liveIncident = message.data
   if (!liveIncident) return
   const monitorType = incidentType(liveIncident)
+  if (monitorType === "disk" && !isCurrentRunDiskIncident(liveIncident, currentAnalyticsGeneration)) return
   const id = incidentId(liveIncident)
   if (!id) return
 
@@ -108,6 +131,8 @@ function handleLiveIncidentMessage(message) {
   if (monitorType === "disk") {
     incidentEventsById.set(id, {
       version,
+      monitorType,
+      generation: normalizedIncident.analytics_generation,
       incident: message.event === "resolved" ? null : normalizedIncident,
     })
   }
@@ -173,7 +198,58 @@ export function useAlerts({ ruleAlertsOnly = false } = {}) {
     : allLiveIncidents
 
   useEffect(() => {
-    if (ruleAlertsOnly) loadActiveDiskIncidents()
+    if (!ruleAlertsOnly) return undefined
+
+    let active = true
+    let timer = null
+    const checkReadiness = async () => {
+      const requestContext = {
+        generation: currentAnalyticsGeneration,
+        lifecycleVersion,
+        eventVersion: incidentEventVersion,
+      }
+      try {
+        const readiness = await fetchMonitoringReadiness(SYSTEM_ID)
+        if (!active) return
+        if (
+          requestContext.generation !== currentAnalyticsGeneration
+          || requestContext.lifecycleVersion !== lifecycleVersion
+        ) {
+          timer = window.setTimeout(checkReadiness, 1500)
+          return
+        }
+        const generation = readiness.generation || null
+        if (isStaleAnalyticsGeneration(generation, currentAnalyticsGeneration)) {
+          timer = window.setTimeout(checkReadiness, 1500)
+          return
+        }
+        if (generation !== currentAnalyticsGeneration) {
+          resetDiskIncidentsForNewLifecycle(generation)
+          requestContext.lifecycleVersion = lifecycleVersion
+          requestContext.eventVersion = -1
+        }
+        if (readiness.ready) {
+          loadActiveDiskIncidents(readiness, requestContext)
+          return
+        }
+        if (activeSnapshotState.status !== "loading") {
+          publishActiveSnapshotState({ status: "loading", error: "" })
+        }
+      } catch (error) {
+        if (!active) return
+        publishActiveSnapshotState({
+          status: "error",
+          error: error.message || "Unable to check Analytics Engine readiness.",
+        })
+      }
+      if (active) timer = window.setTimeout(checkReadiness, 1500)
+    }
+
+    checkReadiness()
+    return () => {
+      active = false
+      if (timer != null) window.clearTimeout(timer)
+    }
   }, [ruleAlertsOnly])
 
   const alerts = useMemo(() => liveIncidents

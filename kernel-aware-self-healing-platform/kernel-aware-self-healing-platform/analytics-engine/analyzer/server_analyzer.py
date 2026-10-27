@@ -143,7 +143,7 @@ def _canonical_disk_rule(rule):
     }
 
 
-def _dispatch_rules(system_id, rules, *, disk_only=False):
+def _dispatch_rules(system_id, rules, *, disk_only=False, disk_alerts_enabled=True):
     for rule in rules:
         rule_id = None
         if isinstance(rule, dict) and isinstance(rule.get("rule"), dict):
@@ -151,10 +151,21 @@ def _dispatch_rules(system_id, rules, *, disk_only=False):
         try:
             if disk_only:
                 with _suppress_disk_detail_logs():
-                    result = detect(rule)
+                    result = (
+                        detect(rule)
+                        if disk_alerts_enabled
+                        else detect(rule, allow_incident_creation=False)
+                    )
                 logger.warning("%s", _disk_terminal_result(rule_id, result))
             else:
-                detect(rule)
+                rule_info = rule.get("rule") if isinstance(rule, dict) else None
+                is_disk = isinstance(rule_info, dict) and str(
+                    rule_info.get("monitor_type") or ""
+                ).strip().lower() == "disk"
+                if is_disk and not disk_alerts_enabled:
+                    detect(rule, allow_incident_creation=False)
+                else:
+                    detect(rule)
         except Exception:
             # A malformed or unavailable rule must not block later rules.
             if disk_only:
@@ -167,7 +178,7 @@ def _dispatch_rules(system_id, rules, *, disk_only=False):
                 )
 
 
-def analyze_server(system):
+def analyze_server(system, *, disk_alerts_enabled=True):
     """Dispatch loaded rules, filtering only Disk rules against this system."""
     rules = load_rules(system)
     if not rules:
@@ -181,10 +192,10 @@ def analyze_server(system):
             selected.append(_canonical_disk_rule(rule))
         else:
             selected.append(rule)
-    _dispatch_rules(system, selected)
+    _dispatch_rules(system, selected, disk_alerts_enabled=disk_alerts_enabled)
 
 
-def analyze_disk_server(system):
+def analyze_disk_server(system, *, disk_alerts_enabled=True):
     """Run the Disk alert workflow without passing unrelated rules to dispatch."""
     with _suppress_disk_detail_logs():
         rules = load_rules(system)
@@ -203,4 +214,9 @@ def analyze_disk_server(system):
             selected.append(_canonical_disk_rule(rule))
         else:
             continue
-    _dispatch_rules(system, selected, disk_only=True)
+    _dispatch_rules(
+        system,
+        selected,
+        disk_only=True,
+        disk_alerts_enabled=disk_alerts_enabled,
+    )

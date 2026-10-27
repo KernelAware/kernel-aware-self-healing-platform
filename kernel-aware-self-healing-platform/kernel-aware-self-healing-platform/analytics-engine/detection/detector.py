@@ -14,7 +14,7 @@ strategies = {
 }
 
 
-def detect(rule):
+def detect(rule, *, allow_incident_creation=True):
     if not isinstance(rule, dict) or not isinstance(rule.get("rule"), dict):
         return None
 
@@ -29,6 +29,7 @@ def detect(rule):
             f"Unsupported monitor type: {monitor_type}"
         )
 
-    return strategy.detect(
-        rule
-    )
+    if monitor_type == "disk":
+        return strategy.detect(rule, allow_incident_creation=allow_incident_creation)
+
+    return strategy.detect(rule)

@@ -9,10 +9,12 @@ import requests
 
 from incident_management.alert_service import publish_incident
 from load_data.redis_connection.redis_connection import redis_client
+from lifecycle import ANALYTICS_GENERATION
 
 
 logger = logging.getLogger(__name__)
 DECISION_ENGINE_URL = os.environ.get("DECISION_ENGINE_URL", "http://localhost:8002").rstrip("/")
+DECISION_ENGINE_TIMEOUT_SECONDS = 5
 
 REMEDIATION_ACTIONS = {
     "restart-service", "start-service", "stop-service", "kill-process",
@@ -38,6 +40,10 @@ def incident_fingerprint(incident: dict) -> str:
     }
     if _is_disk_incident(incident) and incident.get("disk_condition_key"):
         identity["disk_condition_key"] = incident["disk_condition_key"]
+    if _is_disk_incident(incident):
+        # Keep the identity stable during this run while isolating old Redis
+        # incidents and their decision submission markers.
+        identity["analytics_generation"] = ANALYTICS_GENERATION
     encoded = json.dumps(identity, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
@@ -62,7 +68,10 @@ def _event(incident: dict, status: str, label: str, tone: str) -> dict:
 
 def _publishable_incident(incident: dict) -> dict:
     """Keep retry bookkeeping in Redis without exposing it in API payloads."""
-    return {key: value for key, value in incident.items() if key != "_backend_pending_event"}
+    return {
+        key: value for key, value in incident.items()
+        if key != "_backend_pending_event" and not key.startswith("_decision_")
+    }
 
 
 def _retry_pending_event(key: str, incident: dict) -> bool:
@@ -117,6 +126,69 @@ def _send_process_to_decision_engine(incident: dict) -> None:
         logger.exception("Decision Engine request failed for Process incident %s", incident.get("incident_id"))
 
 
+def _send_disk_to_decision_engine(key: str, incident: dict) -> None:
+    """Submit one persisted Disk incident at most once for a decision only."""
+    if incident.get("_decision_submission_status"):
+        return
+
+    # Persist the at-most-once marker before the request. If the request times
+    # out after the remote service processed it, this incident will not be
+    # submitted repeatedly during later evaluation rounds.
+    decision_state = {**incident, "_decision_submission_status": "submitting"}
+    try:
+        redis_client.set(key, json.dumps(decision_state))
+    except Exception:
+        logger.exception(
+            "Unable to reserve Decision Engine submission for Disk incident %s",
+            incident.get("incident_id"),
+        )
+        return
+
+    try:
+        response = requests.post(
+            f"{DECISION_ENGINE_URL}/decisions",
+            json=_publishable_incident(decision_state),
+            timeout=DECISION_ENGINE_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        decision_response = response.json()
+        if not isinstance(decision_response, dict):
+            raise ValueError("Decision Engine returned an invalid response")
+    except Exception:
+        decision_state["_decision_submission_status"] = "failed"
+        try:
+            redis_client.set(key, json.dumps(decision_state))
+        except Exception:
+            logger.exception(
+                "Unable to retain failed Decision Engine state for Disk incident %s",
+                incident.get("incident_id"),
+            )
+        logger.exception(
+            "Decision Engine request failed for Disk incident %s",
+            incident.get("incident_id"),
+        )
+        return
+
+    decision_state["_decision_submission_status"] = "submitted"
+    decision_state["_decision_response"] = decision_response
+    try:
+        redis_client.set(key, json.dumps(decision_state))
+    except Exception:
+        # The pre-request marker remains in Redis, so a later evaluation will
+        # still not duplicate a decision request.
+        logger.exception(
+            "Decision Engine evaluated Disk incident %s, but its result could not be retained",
+            incident.get("incident_id"),
+        )
+    decision = decision_response.get("decision")
+    decision_name = decision.get("decision", "unknown") if isinstance(decision, dict) else "unknown"
+    logger.info(
+        "Decision Engine evaluated Disk incident %s: %s",
+        incident.get("incident_id"),
+        decision_name,
+    )
+
+
 def manage_incidents(incident: dict, condition_violated: bool = True):
     """Create, update, or resolve one incident for a rule/target/metric identity."""
     fingerprint = incident_fingerprint(incident)
@@ -130,6 +202,8 @@ def manage_incidents(incident: dict, condition_violated: bool = True):
     if condition_violated:
         now = _now()
         is_disk = _is_disk_incident(incident)
+        if is_disk:
+            incident = {**incident, "analytics_generation": ANALYTICS_GENERATION}
         is_new = stored is None
         if stored:
             try:
@@ -170,6 +244,8 @@ def manage_incidents(incident: dict, condition_violated: bool = True):
                     return current
                 pending_event = None
             if not pending_event:
+                if is_disk and not current.get("_decision_submission_status"):
+                    _send_disk_to_decision_engine(key, current)
                 logger.debug(
                     "Disk incident remains active; skipping unchanged update: system_id=%s rule_id=%s incident_id=%s",
                     current.get("system_id"),
@@ -222,6 +298,9 @@ def manage_incidents(incident: dict, condition_violated: bool = True):
                     publish_event,
                     incident["incident_id"],
                 )
+
+            if is_disk and publish_event == "opened":
+                _send_disk_to_decision_engine(key, incident)
 
         if (
             is_new

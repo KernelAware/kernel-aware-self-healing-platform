@@ -21,3 +21,9 @@ export async function fetchIncidents(systemId, options = {}) {
   return Array.isArray(data) ? data : data.incidents || []
 }
 
+export async function fetchMonitoringReadiness(systemId) {
+  const params = new URLSearchParams({ system_id: String(systemId) })
+  const response = await fetch(`${BACKEND_URL}/monitoring/readiness?${params}`)
+  return parseResponse(response)
+}
+

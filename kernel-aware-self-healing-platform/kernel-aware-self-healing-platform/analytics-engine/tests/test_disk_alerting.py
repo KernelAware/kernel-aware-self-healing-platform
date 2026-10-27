@@ -1,3 +1,4 @@
+import asyncio
 import importlib.util
 import json
 import sys
@@ -120,12 +121,21 @@ class DiskDetectorTests(unittest.TestCase):
         self.duration_redis_patch.start()
         self.manager_redis_patch = patch.object(manager, "redis_client", self.redis)
         self.manager_redis_patch.start()
+        self.decision_response = MagicMock()
+        self.decision_response.json.return_value = {"decision": {"decision": "NO_ACTION"}}
+        self.decision_request_patch = patch.object(
+            manager.requests,
+            "post",
+            return_value=self.decision_response,
+        )
+        self.decision_request = self.decision_request_patch.start()
         self.events = []
         self.publish_patch = patch.object(manager, "publish_incident", side_effect=self._persist)
         self.publish_patch.start()
 
     def tearDown(self):
         self.publish_patch.stop()
+        self.decision_request_patch.stop()
         self.manager_redis_patch.stop()
         self.duration_redis_patch.stop()
 
@@ -133,13 +143,16 @@ class DiskDetectorTests(unittest.TestCase):
         self.events.append((incident["incident_id"], event, dict(incident)))
         return {"incident": {"id": incident["incident_id"], "status": incident.get("status")}}
 
-    def evaluate(self, rule, value, now, rows=None):
+    def evaluate(self, rule, value, now, rows=None, *, allow_incident_creation=True):
         from detection.strategies import disk_detector
 
         rows = rows if rows is not None else [sample_result(value)]
         with patch.object(disk_detector, "get_disk_metric", return_value=rows), \
              patch.object(disk_detector.time, "time", return_value=now):
-            return DiskDetector().detect(rule)
+            return DiskDetector().detect(
+                rule,
+                allow_incident_creation=allow_incident_creation,
+            )
 
     def test_metric_scope_uses_exporter_label_layout(self):
         from detection.strategies.disk_detector import PARTITION_SCOPE
@@ -173,6 +186,49 @@ class DiskDetectorTests(unittest.TestCase):
         self.assertEqual(active_state["started_at"], 100)
         self.assertEqual(active_state["status"], "active")
         self.assertTrue(active_state["incident_id"].startswith("INC-"))
+
+    def test_violation_timer_from_previous_run_does_not_satisfy_new_run_duration(self):
+        from detection import disk_duration
+
+        identity = {"system_id": 1, "rule_id": 12, "metric": "disk_usage_percent"}
+        with patch.object(disk_duration, "ANALYTICS_GENERATION", "old-run"):
+            elapsed, old_state = disk_duration.observe_disk_violation(identity, 20, now=100)
+            old_key = disk_duration._state_key(identity)
+        self.assertFalse(elapsed)
+        self.assertEqual(old_state["started_at"], 100)
+
+        with patch.object(disk_duration, "ANALYTICS_GENERATION", "new-run"):
+            elapsed, new_state = disk_duration.observe_disk_violation(identity, 20, now=105)
+            new_key = disk_duration._state_key(identity)
+
+        self.assertFalse(elapsed)
+        self.assertEqual(new_state["started_at"], 105)
+        self.assertNotEqual(old_key, new_key)
+        self.assertIn(old_key, self.redis.values)
+
+    def test_first_round_tracks_violation_but_defers_incident_until_next_round(self):
+        rule = sample_rule(duration=0)
+        warmup = self.evaluate(
+            rule,
+            90,
+            now=100,
+            allow_incident_creation=False,
+        )
+
+        self.assertEqual(warmup["outcome"], "duration_not_confirmed")
+        self.assertEqual(self.events, [])
+        self.decision_request.assert_not_called()
+        state_key = next(key for key in self.redis.values if key.startswith("kaisp:disk:violation:"))
+        state = json.loads(self.redis.get(state_key))
+        self.assertEqual(state["started_at"], 100)
+        self.assertEqual(state["status"], "pending")
+
+        triggered = self.evaluate(rule, 91, now=100)
+        repeated = self.evaluate(rule, 92, now=101)
+        self.assertEqual(triggered["outcome"], "violation_confirmed")
+        self.assertEqual(repeated["outcome"], "violation_confirmed")
+        self.assertEqual([event for _, event, _ in self.events], ["opened"])
+        self.assertEqual(self.events[0][0], self.events[-1][0])
 
     def test_continued_violation_reuses_id_and_does_not_republish(self):
         rule = sample_rule(duration=5)
@@ -705,8 +761,17 @@ class IncidentManagerTests(unittest.TestCase):
         self.publish = self.publish_patch.start()
         self.de_patch = patch.object(manager, "_send_process_to_decision_engine")
         self.send_decision = self.de_patch.start()
+        self.decision_response = MagicMock()
+        self.decision_response.json.return_value = {"decision": {"decision": "NO_ACTION"}}
+        self.decision_request_patch = patch.object(
+            manager.requests,
+            "post",
+            return_value=self.decision_response,
+        )
+        self.decision_request = self.decision_request_patch.start()
 
     def tearDown(self):
+        self.decision_request_patch.stop()
         self.de_patch.stop()
         self.publish_patch.stop()
         self.redis_patch.stop()
@@ -806,6 +871,104 @@ class IncidentManagerTests(unittest.TestCase):
         second = manager.manage_incidents(self.incident("/dev/sda2"), True)
         self.assertNotEqual(first["incident_id"], second["incident_id"])
         self.assertNotEqual(first["fingerprint"], second["fingerprint"])
+
+    def test_disk_decision_request_uses_stable_incident_and_rule_context_once(self):
+        first = manager.manage_incidents(self.incident(), True)
+        repeated = manager.manage_incidents(self.incident(), True)
+
+        self.assertEqual(first["incident_id"], repeated["incident_id"])
+        self.assertEqual(self.publish.call_count, 1)
+        self.assertEqual(self.decision_request.call_count, 1)
+        url, = self.decision_request.call_args.args
+        request = self.decision_request.call_args.kwargs["json"]
+        self.assertTrue(url.endswith("/decisions"))
+        self.assertEqual(request["incident_id"], first["incident_id"])
+        self.assertEqual(request["fingerprint"], first["fingerprint"])
+        self.assertEqual(request["rule_id"], 12)
+        self.assertEqual(request["violated_metric"]["threshold"], 80)
+        self.assertNotIn("_backend_pending_event", request)
+        self.assertNotIn("_decision_submission_status", request)
+
+    def test_previous_run_incident_and_decision_marker_do_not_suppress_new_run(self):
+        incident = self.incident()
+        with patch.object(manager, "ANALYTICS_GENERATION", "old-run"):
+            old_fingerprint = manager.incident_fingerprint(incident)
+        old_key = manager._active_key(old_fingerprint)
+        old_record = {
+            **incident,
+            "fingerprint": old_fingerprint,
+            "incident_id": "INC-previous-run",
+            "status": "OPEN",
+            "_decision_submission_status": "submitted",
+        }
+        self.redis.set(old_key, json.dumps(old_record))
+
+        with patch.object(manager, "ANALYTICS_GENERATION", "new-run"):
+            current = manager.manage_incidents(incident, True)
+            repeated = manager.manage_incidents(incident, True)
+
+        self.assertNotEqual(current["incident_id"], "INC-previous-run")
+        self.assertEqual(current["incident_id"], repeated["incident_id"])
+        self.assertNotEqual(current["fingerprint"], old_fingerprint)
+        self.assertEqual(self.decision_request.call_count, 1)
+        self.assertEqual(json.loads(self.redis.get(old_key))["_decision_submission_status"], "submitted")
+
+    def test_decision_failure_does_not_block_backend_persistence_or_retry_forever(self):
+        self.decision_request.side_effect = TimeoutError("Decision Engine unavailable")
+        with patch.object(manager.logger, "exception"):
+            first = manager.manage_incidents(self.incident(), True)
+            repeated = manager.manage_incidents(self.incident(), True)
+
+        self.assertEqual(first["incident_id"], repeated["incident_id"])
+        self.assertEqual(self.publish.call_count, 1)
+        self.assertEqual(self.decision_request.call_count, 1)
+        stored = json.loads(self.redis.get(manager._active_key(first["fingerprint"])))
+        self.assertEqual(stored["_decision_submission_status"], "failed")
+
+
+class AnalyticsLifecycleTests(unittest.IsolatedAsyncioTestCase):
+    async def test_normal_disk_alert_cycle_starts_immediately_after_first_round(self):
+        import main as analytics_main
+
+        class StopAfterFirstAlertCycle(Exception):
+            pass
+
+        events = []
+
+        def report_lifecycle(system, generation, stage):
+            events.append(("lifecycle", stage, system))
+            return True
+
+        def run(systems, *, disk_alerts_enabled):
+            events.append(("evaluation", disk_alerts_enabled, tuple(systems)))
+            if disk_alerts_enabled:
+                raise StopAfterFirstAlertCycle
+            return True
+
+        def report_ready(systems, generation):
+            events.append(("ready", tuple(systems)))
+            return True
+
+        async def inline_to_thread(function, *args, **kwargs):
+            return function(*args, **kwargs)
+
+        with patch.object(analytics_main, "_load_active_systems", return_value=[1]), \
+             patch.object(analytics_main, "_report_monitoring_lifecycle", side_effect=report_lifecycle), \
+             patch.object(analytics_main, "_report_monitoring_ready", side_effect=report_ready), \
+             patch.object(analytics_main, "run_analysis", side_effect=run), \
+             patch.object(analytics_main.asyncio, "to_thread", new=inline_to_thread):
+            with self.assertRaises(StopAfterFirstAlertCycle):
+                await analytics_main.analysis_loop()
+
+        self.assertEqual(
+            events,
+            [
+                ("lifecycle", "started", 1),
+                ("evaluation", False, (1,)),
+                ("ready", (1,)),
+                ("evaluation", True, (1,)),
+            ],
+        )
 
 if __name__ == "__main__":
     unittest.main()

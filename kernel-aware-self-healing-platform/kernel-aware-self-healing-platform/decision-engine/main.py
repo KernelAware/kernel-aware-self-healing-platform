@@ -33,3 +33,17 @@ def process_incident(incident: dict):
         "decision": decision,
         "action": action
     }
+
+
+@app.post("/decisions")
+def evaluate_incident(incident: dict):
+    """Evaluate an incident and return a decision without planning actions."""
+    rules = load_rules(incident)
+    policy = check_policy(rules)
+    decision = make_decision(incident, rules, policy)
+
+    return {
+        "incident": incident,
+        "decision": decision,
+        "policy": policy,
+    }

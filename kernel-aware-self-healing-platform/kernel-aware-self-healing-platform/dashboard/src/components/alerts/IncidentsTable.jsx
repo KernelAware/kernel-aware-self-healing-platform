@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { ArrowDown, ArrowUp, ArrowUpDown, ListFilter, Search, X } from 'lucide-react'
-import { Panel, PanelHeader, StatusBadge, Dot } from '@/components/kit'
+import { Panel, PanelHeader, StatusBadge } from '@/components/kit'
 
 const SEVERITY_ORDER = ['warning', 'high', 'critical']
 
@@ -120,14 +120,7 @@ function valueForSort(incident, key) {
     case 'target': return targetOf(incident)
     case 'severity': return incident.severity
     case 'priority': return incident.priority
-    case 'status': return incident.status
     case 'opened_at': return openedAt(incident)
-    case 'resolution': {
-      const start = openedAt(incident)
-      if (!start || !incident.resolved_at) return null
-      const seconds = (Date.parse(incident.resolved_at) - Date.parse(start)) / 1000
-      return Number.isFinite(seconds) ? seconds : null
-    }
     default: return ''
   }
 }
@@ -136,14 +129,6 @@ function compareIncidents(left, right, key) {
   if (key === 'severity') return compareSeverity(valueForSort(left, key), valueForSort(right, key))
   if (key === 'opened_at') {
     return compareDates(valueForSort(left, key), valueForSort(right, key))
-  }
-  if (key === 'resolution') {
-    const leftDuration = valueForSort(left, key)
-    const rightDuration = valueForSort(right, key)
-    if (leftDuration === null && rightDuration === null) return 0
-    if (leftDuration === null) return 1
-    if (rightDuration === null) return -1
-    return leftDuration - rightDuration
   }
   return compareText(valueForSort(left, key), valueForSort(right, key))
 }
@@ -174,14 +159,6 @@ export default function IncidentsTable({ incidents, loading = false }) {
     if (!value) return '—'
     const date = new Date(value)
     return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString()
-  }
-
-  const resolutionTime = incident => {
-    const start = openedAt(incident)
-    if (!start || !incident.resolved_at) return '—'
-    const seconds = Math.max(0, Math.round((Date.parse(incident.resolved_at) - Date.parse(start)) / 1000))
-    if (!Number.isFinite(seconds)) return '—'
-    return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`
   }
 
   const sortableHeader = (label, key, alignment = 'left') => {
@@ -253,7 +230,7 @@ export default function IncidentsTable({ incidents, loading = false }) {
         }
       />
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1080px] text-sm">
+        <table className="w-full min-w-[900px] text-sm">
           <thead>
             <tr className="border-y border-border font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
               {sortableHeader('Incident Title', 'title')}
@@ -261,9 +238,7 @@ export default function IncidentsTable({ incidents, loading = false }) {
               {sortableHeader('Target', 'target')}
               {sortableHeader('Severity', 'severity')}
               {sortableHeader('Priority', 'priority')}
-              {sortableHeader('Status', 'status')}
               {sortableHeader('Opened', 'opened_at')}
-              {sortableHeader('Res. Time', 'resolution')}
               <th className="px-4 py-2.5 text-right font-medium" scope="col">Action</th>
             </tr>
           </thead>
@@ -281,13 +256,7 @@ export default function IncidentsTable({ incidents, loading = false }) {
                     </StatusBadge>
                   </td>
                   <td className="px-4 py-3 font-mono text-muted-foreground">{incident.priority || '—'}</td>
-                  <td className="px-4 py-3">
-                    <span className="flex items-center gap-1.5 font-mono text-foreground/80">
-                      <Dot tone={['RESOLVED', 'CLOSED'].includes(String(incident.status).toUpperCase()) ? 'success' : 'muted'} />{incident.status || '—'}
-                    </span>
-                  </td>
                   <td className="px-4 py-3 font-mono text-muted-foreground">{formatTime(openedAt(incident))}</td>
-                  <td className="px-4 py-3 font-mono text-foreground/80">{resolutionTime(incident)}</td>
                   <td className="px-4 py-3 text-right text-accent hover:underline">
                     <button type="button" className="cursor-pointer">View Log</button>
                   </td>
@@ -296,7 +265,7 @@ export default function IncidentsTable({ incidents, loading = false }) {
             })}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan="9" className="px-4 py-8 text-center font-mono text-xs text-muted-foreground">
+                <td colSpan="7" className="px-4 py-8 text-center font-mono text-xs text-muted-foreground">
                   {loading ? 'Loading incident history…' : rows.length === 0 ? 'No incident history is available.' : 'No incidents match your search. Try another term or clear the search.'}
                 </td>
               </tr>

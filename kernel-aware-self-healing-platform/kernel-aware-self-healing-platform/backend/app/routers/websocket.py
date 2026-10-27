@@ -3,6 +3,8 @@ import logging
 from fastapi.encoders import jsonable_encoder
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from services.monitoring_lifecycle import get_monitoring_lifecycle
+
 
 router = APIRouter()
 connected_clients: dict[int, list[WebSocket]] = {}
@@ -12,6 +14,12 @@ logger = logging.getLogger(__name__)
 @router.websocket("/ws/{systemid}")
 async def websocket_endpoint(websocket: WebSocket, systemid: int):
     await websocket.accept()
+    await websocket.send_json(
+        jsonable_encoder({
+            "type": "monitoring_readiness",
+            "data": get_monitoring_lifecycle(systemid),
+        })
+    )
     clients = connected_clients.setdefault(systemid, [])
     clients.append(websocket)
     try:

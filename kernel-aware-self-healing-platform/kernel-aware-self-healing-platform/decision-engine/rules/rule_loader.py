@@ -1,6 +1,8 @@
+import os
+
 import httpx
 
-BACKEND_URL = "http://localhost:8000"
+BACKEND_URL = os.environ.get("KAISP_BACKEND_URL", "http://localhost:8000").rstrip("/")
 
 def load_rules(incident: dict) -> dict:
     rule_id = incident["rule_id"]

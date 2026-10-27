@@ -343,7 +343,7 @@ def _log_metric_final(system_id, rule_id, metric_name, target_type, target_name,
 
 
 class DiskDetector(DetectionStrategy):
-    def detect(self, rule):
+    def detect(self, rule, *, allow_incident_creation=True):
         if not isinstance(rule, dict) or not isinstance(rule.get("rule"), dict):
             return _rule_result(None, None, "skipped", "malformed rule payload")
         rule_info = rule["rule"]
@@ -575,6 +575,12 @@ class DiskDetector(DetectionStrategy):
                                 summary["duration_pending"] += 1
                                 metric_outcomes.append("DURATION_PENDING")
                                 metric_reason = "violation duration has not elapsed"
+                                continue
+
+                            if not allow_incident_creation:
+                                summary["duration_pending"] += 1
+                                metric_outcomes.append("DURATION_PENDING")
+                                metric_reason = "waiting for the first evaluation round to complete"
                                 continue
 
                             managed = manage_disk_incident(active, True, fallback_state=state)

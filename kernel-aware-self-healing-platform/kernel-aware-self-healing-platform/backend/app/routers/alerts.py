@@ -8,6 +8,7 @@ from database.connection import SessionLocal, engine, get_db
 from models.incidents import Incident
 from repository.incidents import incident_to_dict, persist_incident
 from routers.websocket import give_message
+from services.monitoring_lifecycle import is_current_generation, store_active_alert
 
 
 router = APIRouter()
@@ -39,6 +40,17 @@ async def _persist_and_broadcast(data: dict, db: Session, *, disk_lifecycle: boo
 
     if not incident_detail:
         raise HTTPException(status_code=422, detail="incident_detail is required")
+
+    generation = incident_detail.get("analytics_generation") or data.get("analytics_generation")
+    if disk_lifecycle:
+        try:
+            system_id = int(incident_detail.get("system_id") or alert.get("system_id"))
+        except (TypeError, ValueError) as error:
+            raise HTTPException(status_code=422, detail="A numeric system_id is required") from error
+        if not generation or not is_current_generation(system_id, generation):
+            raise HTTPException(status_code=409, detail="Disk alert belongs to a stale Analytics run")
+        incident_detail = {**incident_detail, "analytics_generation": generation}
+        alert = {**alert, "analytics_generation": generation}
 
     repeated_resolution = False
     if disk_lifecycle and event == "resolved":
@@ -86,6 +98,11 @@ async def _persist_and_broadcast(data: dict, db: Session, *, disk_lifecycle: boo
         saved_incident["alert"] = saved_alert
     else:
         saved_alert = {}
+
+    if disk_lifecycle and not store_active_alert(system_id, generation, event, saved_incident):
+        # The Analytics Engine may have restarted while persistence was running.
+        # Keep the database row for history, but never publish it as current.
+        return {"status": "ignored", "event": event, "reason": "stale Analytics run"}
 
     if repeated_resolution:
         return {"status": "success", "event": event, "incident": saved_incident}

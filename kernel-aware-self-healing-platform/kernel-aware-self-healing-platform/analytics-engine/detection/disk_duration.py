@@ -6,6 +6,7 @@ import logging
 import time
 
 from load_data.redis_connection.redis_connection import redis_client
+from lifecycle import ANALYTICS_GENERATION
 
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,7 @@ def disk_condition_key(identity: dict) -> str:
 
 
 def _state_key(identity: dict) -> str:
-    return f"{STATE_PREFIX}{disk_condition_key(identity)}"
+    return f"{STATE_PREFIX}{ANALYTICS_GENERATION}:{disk_condition_key(identity)}"
 
 
 def _read_state(key: str) -> dict | None:
