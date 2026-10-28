@@ -2,7 +2,7 @@ from engine.action_executor import execute_action
 from clients.backend_client import notify_backend
 
 async def heal(action_plan: dict):
-    print(action_plan)
+
     result = await execute_action(action_plan)
 
     response = {

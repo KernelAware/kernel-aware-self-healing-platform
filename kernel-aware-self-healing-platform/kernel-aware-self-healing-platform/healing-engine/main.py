@@ -7,5 +7,6 @@ app = FastAPI(title="Healing Engine", version="1.0.0")
 async def heal_action(action_plan: dict):
 
     result = await heal(action_plan)
+
     return result
 
