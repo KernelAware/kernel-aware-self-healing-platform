@@ -1,16 +1,14 @@
+import json
 import subprocess
 
 
 def run_playbook(playbook: str, extra_vars: dict):
     command = [
         "ansible-playbook",
-        "-i",
-        "inventory.ini",
+        "-i", "inventory.ini",
         playbook,
+        "-e", json.dumps(extra_vars),
     ]
-
-    for key, value in extra_vars.items():
-        command.extend(["-e", f"{key}={value}"])
 
     try:
         completed = subprocess.run(
@@ -28,6 +26,7 @@ def run_playbook(playbook: str, extra_vars: dict):
             "stdout": completed.stdout,
             "stderr": completed.stderr,
         }
+
     except subprocess.TimeoutExpired:
         return {
             "success": False,

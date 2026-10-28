@@ -38,8 +38,12 @@ export default function PolicyPage() {
   const [form, setForm] = useState(INITIAL_FORM)
 
   const handleNext = () => setStep(s => {
-    console.log(form);
-    return Math.min(13, s + 1);
+    if (form.monitorSource === "disk") {
+      const targetField = form.targetType === "Disk / Device" ? form.device : form.targetType === "Filesystem / Mount Point" || form.targetType === "Partition (Mount Point)" ? form.mountPoint : true
+      const required = { 4: [form.metric, form.targetType, form.host, targetField], 5: [form.condOperator, form.condThreshold, form.condDuration], 6: [form.severity], 7: [form.actionTypes?.length], 10: [form.recoveryMetric || form.metric, form.recoveryThreshold, form.recoveryDuration] }
+      if (required[s]?.some(value => !value)) return s
+    }
+    return Math.min(13, s + 1)
   })
   const handleBack = () => { if (step === 1) setActiveTab("all-user_rules"); else setStep(s => Math.max(1, s - 1)) }
   const exitWizard = () => setActiveTab("all-user_rules")
@@ -58,7 +62,7 @@ export default function PolicyPage() {
       case 10: return <Step10 form={form} setForm={setForm} />
       case 11: return <Step11 form={form} setForm={setForm} />
       case 12: return <Step12 form={form} setForm={setForm} />
-      case 13: return <Step13 form={form} onCancel={exitWizard} />
+      case 13: return <Step13 form={form} onCancel={exitWizard} setForm={setForm}/>
       default: return null
     }
   }

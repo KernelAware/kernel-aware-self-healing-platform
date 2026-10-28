@@ -72,6 +72,7 @@ export default function OperatorActionRequired({
       selectedIncident.id,
       selectedAction
     )
+
   }
 
 
@@ -93,7 +94,6 @@ export default function OperatorActionRequired({
 
       <div className="p-4 pt-0">
 
-        {/* MESSAGE */}
         <div
           className={`
             mb-4

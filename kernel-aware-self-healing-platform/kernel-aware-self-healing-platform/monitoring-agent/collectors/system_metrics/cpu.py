@@ -21,7 +21,7 @@ def get_cpu_usage():
     Returns: float (e.g. 45.2)
     """
     try:
-        usage = psutil.cpu_percent(interval=1)
+        usage = psutil.cpu_percent(interval=None)
         logger.info(f"CPU Usage collected: {usage}%")
         return usage
     except Exception as e:
@@ -46,7 +46,7 @@ def get_cpu_cores():
             "physical_cores": psutil.cpu_count(logical=False),
             "logical_cores":  psutil.cpu_count(logical=True),
             "per_core_usage": psutil.cpu_percent(
-                interval=1,
+                interval=None,
                 percpu=True
             )
         }
@@ -119,7 +119,7 @@ def get_cpu_frequency():
 
 def get_cpu_times():
     try:
-        times = psutil.cpu_times_percent(interval=1)
+        times = psutil.cpu_times_percent(interval=None)
         data = {
             "user":   times.user,
             "system": times.system,
@@ -160,7 +160,7 @@ def get_top_cpu_processes(limit=5):
             'pid', 'name', 'memory_percent', 'status'
         ]):
             try:
-                cpu = proc.cpu_percent(interval=0.1)
+                cpu = proc.cpu_percent(interval=None)
                 if cpu > 0:
                     processes.append({
                         'pid':            proc.pid,
