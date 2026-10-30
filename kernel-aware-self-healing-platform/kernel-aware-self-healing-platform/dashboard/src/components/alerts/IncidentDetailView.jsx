@@ -10,7 +10,8 @@ export default function IncidentDetailView({
     selectIncident,
     selectedIncident,
     approveIncident,
-    rejectIncident
+    rejectIncident,
+    processingAction
 }) {
 
   return (
@@ -28,6 +29,7 @@ export default function IncidentDetailView({
             selectedIncident={selectedIncident}
             approveIncident={approveIncident}
             rejectIncident={rejectIncident}
+            processingAction={processingAction}
       />
     </div>
   )

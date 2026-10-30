@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from database.connection import Base, engine
 from routers.users import router as users_router
 from routers.incidents import router as incidents_router
 from routers.user_rules import router as metrics_router
@@ -9,6 +10,11 @@ from routers.alerts import router as alert_router
 from routers.process_inventory import router as process_inventory
 
 app = FastAPI()
+
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception:
+    pass
 
 app.add_middleware(
     CORSMiddleware,

@@ -47,11 +47,34 @@ export default function ActiveAlertsList({
 
   const activeCount = alerts.length
   const [now, setNow] = useState(Date.now())
+  const [pendingAction, setPendingAction] = useState({ id: null, type: null })
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 15000)
     return () => clearInterval(interval)
   }, [])
+
+  const handleAcknowledge = async (id) => {
+    if (pendingAction.id) return
+    setPendingAction({ id, type: 'acknowledge' })
+
+    try {
+      await acknowledgeAlert(id)
+    } finally {
+      setPendingAction({ id: null, type: null })
+    }
+  }
+
+  const handleResolve = async (id) => {
+    if (pendingAction.id) return
+    setPendingAction({ id, type: 'resolve' })
+
+    try {
+      await resolveAlert(id)
+    } finally {
+      setPendingAction({ id: null, type: null })
+    }
+  }
 
   return (
     <Panel>
@@ -70,6 +93,7 @@ export default function ActiveAlertsList({
       <div className="flex flex-col gap-5 p-3 pt-0">
 
         {alerts.map((a) => {
+
           const isSelected = a.id === selectedIncidentId
           const isCritical = a.id === selectedIncidentId
           const isWarning = a.tone === 'warning'
@@ -188,9 +212,13 @@ export default function ActiveAlertsList({
                 <div className="mt-3 flex gap-2">
 
                   <button
-                    onClick={() => acknowledgeAlert(a.id)}
+                    onClick={() => handleAcknowledge(a.id)}
+                    disabled={pendingAction.id === a.id}
                     className="
-                      flex-1
+                      flex flex-1
+                      items-center
+                      justify-center
+                      gap-1.5
                       rounded-md
                       border
                       border-border
@@ -201,17 +229,31 @@ export default function ActiveAlertsList({
                       uppercase
                       tracking-wider
                       text-foreground
+                      transition
                       hover:bg-secondary
+                      disabled:cursor-not-allowed
+                      disabled:opacity-50
                     "
                   >
-                    Acknowledge
+                    {pendingAction.id === a.id && pendingAction.type === 'acknowledge' ? (
+                      <>
+                        <span className="inline-block size-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        <span>Working...</span>
+                      </>
+                    ) : (
+                      'Acknowledge'
+                    )}
                   </button>
 
 
                   <button
-                    onClick={() => resolveAlert(a.id)}
+                    onClick={() => handleResolve(a.id)}
+                    disabled={pendingAction.id === a.id}
                     className="
-                      flex-1
+                      flex flex-1
+                      items-center
+                      justify-center
+                      gap-1.5
                       rounded-md
                       border
                       border-border
@@ -221,10 +263,20 @@ export default function ActiveAlertsList({
                       uppercase
                       tracking-wider
                       text-muted-foreground
+                      transition
                       hover:bg-secondary
+                      disabled:cursor-not-allowed
+                      disabled:opacity-50
                     "
                   >
-                    Resolve
+                    {pendingAction.id === a.id && pendingAction.type === 'resolve' ? (
+                      <>
+                        <span className="inline-block size-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        <span>Resolving...</span>
+                      </>
+                    ) : (
+                      'Resolve'
+                    )}
                   </button>
 
                 </div>
