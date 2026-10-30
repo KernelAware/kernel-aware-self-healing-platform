@@ -2,9 +2,12 @@ class WebSocketService {
   constructor() {
     this.socket = null
     this.listeners = new Set()
+    this.systemId = 2
   }
 
-  connect() {
+  connect(systemId = 2) {
+    this.systemId = systemId
+
     if (
       this.socket &&
       (
@@ -15,16 +18,16 @@ class WebSocketService {
       return
     }
 
-    this.socket = new WebSocket('ws://localhost:8000/ws/2')
+    const url = `ws://localhost:8000/ws/${systemId}`
+    this.socket = new WebSocket(url)
 
     this.socket.onopen = () => {
-      console.log('WebSocket connected')
+      console.log(`WebSocket connected to system ${systemId}`)
     }
 
     this.socket.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data)
-
         this.listeners.forEach((listener) => {
           listener(message)
         })
@@ -38,7 +41,7 @@ class WebSocketService {
     }
 
     this.socket.onclose = () => {
-      console.log('WebSocket disconnected')
+      console.log(`WebSocket disconnected from system ${systemId}`)
       this.socket = null
     }
   }
@@ -70,4 +73,4 @@ class WebSocketService {
 
 export const wsBroker = new WebSocketService()
 
-wsBroker.connect(1)
+wsBroker.connect(2)
