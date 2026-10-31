@@ -9,6 +9,6 @@ async def execute_process_action(action_plan: dict):
         "ansible_playbooks/playbooks/kill_process.yml",
         {
             "target_host": f"system_{action_plan['system_id']}",
-            "process_pid": int(pid),
+            "process_pid": int(action_plan['pid']),
         },
     )

@@ -1,0 +1,11 @@
+---
+- name: Kill specific process
+  hosts: "{{ target_host }}"
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Kill requested process by PID
+      ansible.builtin.command:
+        cmd: "kill -TERM {{ process_pid }}"
+      register: kill_result

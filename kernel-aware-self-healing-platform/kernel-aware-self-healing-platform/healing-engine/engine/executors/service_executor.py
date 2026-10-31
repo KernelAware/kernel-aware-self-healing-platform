@@ -1,14 +1,14 @@
 from ansible_runner import run_playbook
 
 PLAYBOOKS = {
-    "restart_service": "ansible_playbooks/playbooks/restart_service.yml",
-    "start_service": "ansible_playbooks/playbooks/start_service.yml",
-    "stop_service": "ansible_playbooks/playbooks/stop_service.yml",
+    "restart-service": "ansible_playbooks/playbooks/restart_service.yml",
+    "start-service": "ansible_playbooks/playbooks/start_service.yml",
+    "stop-service": "ansible_playbooks/playbooks/stop_service.yml",
 }
 
 async def execute_service_action(action_plan: dict):
     action = action_plan["action"]
-    service = action_plan.get("target")
+    service = action_plan["target"].split(".")[0]
 
     if not service:
         return {"success": False, "status": "FAILED", "reason": "Service is required"}

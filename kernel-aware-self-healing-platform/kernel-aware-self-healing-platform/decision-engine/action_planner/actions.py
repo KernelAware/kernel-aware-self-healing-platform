@@ -72,6 +72,7 @@ def create_action_plan(decision, incident, rules, policy):
 
 
 def create_alert(decision, incident, rules, policy):
+
     rule_id = incident.get("rule_id")
     incident_id = (
         f"INC-RULE-{rule_id}-{uuid.uuid4().hex[:8].upper()}"
@@ -166,7 +167,7 @@ def create_alert(decision, incident, rules, policy):
         "rule_id": rule_id,
 
         "title": title,
-
+        "monitor-type" : incident_type,
         "priority": priority,
         "severity": severity,
 

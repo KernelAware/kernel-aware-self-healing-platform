@@ -14,6 +14,53 @@ from services.incident_service import (
 router = APIRouter()
 
 
+def build_healing_action_payload(incident_id: str, payload: dict, incident: dict | None = None) -> dict:
+    incident = incident or {}
+    action = (
+        payload.get("action")
+        or payload.get("recommendedAction")
+        or payload.get("recommended_action")
+        or "restart_service"
+    )
+    target = payload.get("target") or incident.get("target") or "nginx"
+    system_id = payload.get("system_id")
+    if system_id is None:
+        system_id = incident.get("system_id")
+    if system_id is None:
+        system_id = 1
+    try:
+        system_id = int(system_id)
+    except (TypeError, ValueError):
+        system_id = 1
+
+    category = payload.get("category")
+    if category is None:
+        category = incident.get("category")
+    if category is None:
+        category = (incident.get("detail") or {}).get("monitor-type")
+    category = str(category or "system").strip().lower()
+
+    pid = payload.get("pid")
+    if pid is None and incident:
+        pid = incident.get("pid")
+    if pid is None and incident:
+        pid = (incident.get("detail") or {}).get("pid")
+    if category != "process":
+        pid = None
+    try:
+        pid = int(pid) if pid is not None else None
+    except (TypeError, ValueError):
+        pid = None
+
+    return {
+        "action": action,
+        "target": target,
+        "system_id": system_id,
+        "category": category,
+        "pid": pid,
+    }
+
+
 @router.get("/incidents", response_model=list[IncidentResponse])
 def get_incidents(
     system_id: int | None = Query(default=None, alias="system_id"),
@@ -57,11 +104,8 @@ def approve_execute_incident(
     payload: dict = Body(...),
     db: Session = Depends(get_db),
 ):
-    action_payload = {
-        "action": payload.get("action") or "restart_service",
-        "target": payload.get("target") or "nginx",
-        "system_id": int(payload.get("system_id") or 1),
-    }
+    incident = get_incident(incident_id)
+    action_payload = build_healing_action_payload(incident_id, payload, incident)
 
     try:
         response = requests.post(
