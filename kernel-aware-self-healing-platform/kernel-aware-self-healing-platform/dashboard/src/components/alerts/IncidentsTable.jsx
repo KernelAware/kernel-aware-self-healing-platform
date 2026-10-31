@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react'
 import { ArrowDown, ArrowUp, ArrowUpDown, ListFilter, Search, X } from 'lucide-react'
-import { Panel, PanelHeader, StatusBadge } from '@/components/kit'
+import { ActionButton, Panel, PanelHeader, StatusBadge } from '@/components/kit'
 
 const SEVERITY_ORDER = ['warning', 'high', 'critical']
+const INITIAL_VISIBLE_COUNT = 15
 
 const openedAt = incident => incident.opened_at || incident.created_at || incident.detected_at || incident.start
 const metricOf = incident => incident.metric || incident.trigger?.metric || incident.violated_metric?.metric || incident.detail?.trigger?.metric || incident.detail?.violated_metric?.metric || incident.alert?.metric
@@ -136,6 +137,7 @@ function compareIncidents(left, right, key) {
 export default function IncidentsTable({ incidents, loading = false }) {
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState({ key: 'opened_at', direction: 'desc' })
+  const [showAll, setShowAll] = useState(false)
   const rows = Array.isArray(incidents) ? incidents : []
   const query = search.trim().toLowerCase()
 
@@ -154,6 +156,7 @@ export default function IncidentsTable({ incidents, loading = false }) {
       })
       .map(({ incident }) => incident)
   }, [filtered, sort])
+  const visibleIncidents = showAll ? sorted : sorted.slice(0, INITIAL_VISIBLE_COUNT)
 
   const formatTime = value => {
     if (!value) return '—'
@@ -243,7 +246,7 @@ export default function IncidentsTable({ incidents, loading = false }) {
             </tr>
           </thead>
           <tbody className="text-xs">
-            {sorted.map((incident, index) => {
+            {visibleIncidents.map((incident, index) => {
               const incidentKey = incident.incident_id || incident.id || `incident-${index}`
               return (
                 <tr key={incidentKey} className="border-b border-border/60 last:border-0 hover:bg-secondary/40">
@@ -273,6 +276,13 @@ export default function IncidentsTable({ incidents, loading = false }) {
           </tbody>
         </table>
       </div>
+      {!showAll && sorted.length > INITIAL_VISIBLE_COUNT && (
+        <div className="flex justify-center border-t border-border/60 p-3">
+          <ActionButton type="button" onClick={() => setShowAll(true)}>
+            See More
+          </ActionButton>
+        </div>
+      )}
     </Panel>
   )
 }
