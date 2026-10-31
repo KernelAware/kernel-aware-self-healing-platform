@@ -52,13 +52,21 @@ def build_healing_action_payload(incident_id: str, payload: dict, incident: dict
     except (TypeError, ValueError):
         pid = None
 
-    return {
+    action_payload = {
         "action": action,
         "target": target,
         "system_id": system_id,
         "category": category,
         "pid": pid,
     }
+
+    normalized_action = str(action).strip().lower().replace("_", "-")
+
+    if normalized_action == "run-command":
+        script_value = payload.get("script") or payload.get("script_content") or payload.get("command") or ""
+        action_payload["script"] = script_value
+
+    return action_payload
 
 
 @router.get("/incidents", response_model=list[IncidentResponse])

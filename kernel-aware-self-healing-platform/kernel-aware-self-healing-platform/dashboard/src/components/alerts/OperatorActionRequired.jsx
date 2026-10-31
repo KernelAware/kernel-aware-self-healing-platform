@@ -15,16 +15,25 @@ export default function OperatorActionRequired({
   processingAction
 }) {
   const [selectedAction, setSelectedAction] = useState('')
+  const [customActionInputs, setCustomActionInputs] = useState({})
   const [actionLoading, setActionLoading] = useState(null)
+
+  const normalizeAction = (value = '') => String(value).trim().toLowerCase().replace(/_/g, '-')
+  const getActionInputValue = (actionName = '') => customActionInputs[normalizeAction(actionName)] || ''
+  const setActionInputValue = (actionName = '', value = '') => {
+    const key = normalizeAction(actionName)
+    setCustomActionInputs((prev) => ({ ...prev, [key]: value }))
+  }
 
   useEffect(() => {
     if (selectedIncident) {
-      setSelectedAction(
+      const nextAction =
         selectedIncident.operatorAction?.selectedAction ||
         selectedIncident.operatorAction?.recommendedAction ||
         selectedIncident.decision?.recommendedAction ||
         ''
-      )
+
+      setSelectedAction(nextAction)
     }
   }, [selectedIncident])
 
@@ -54,6 +63,9 @@ export default function OperatorActionRequired({
   const allowedActions = selectedIncident.operatorAction?.allowedActions || []
   const recommendedAction = selectedIncident.decision?.recommendedAction || selectedIncident.operatorAction?.recommendedAction || ''
   const reason = selectedIncident.decision?.reason || selectedIncident.operatorAction?.reason || ''
+  const normalizedSelectedAction = normalizeAction(selectedAction)
+  const requiresCustomCommandInput = normalizedSelectedAction === 'run-command'
+  const customActionInput = getActionInputValue(selectedAction)
 
   const isProcessing = processingAction?.id === selectedIncident?.id || actionLoading !== null
   const canInteract = !autoExecuting && !isProcessing
@@ -63,7 +75,7 @@ export default function OperatorActionRequired({
     setActionLoading('approve')
 
     try {
-      await approveIncident?.(selectedIncident.id, selectedAction, selectedIncident)
+      await approveIncident?.(selectedIncident.id, selectedAction, selectedIncident, customActionInput)
     } finally {
       setActionLoading(null)
     }
@@ -124,11 +136,26 @@ export default function OperatorActionRequired({
           </div>
         </div>
 
+        {requiresCustomCommandInput && (
+          <div className="mt-4">
+            <label className="mb-2 block text-xs font-medium text-foreground">
+              Command to run
+            </label>
+            <textarea
+              value={customActionInput}
+              onChange={(event) => setActionInputValue(selectedAction, event.target.value)}
+              rows={5}
+              placeholder='Example: systemctl restart nginx || echo "service restarted"'
+              className="w-full rounded-md border border-border bg-secondary/30 px-3 py-2 text-xs text-foreground outline-none transition focus:border-accent"
+            />
+          </div>
+        )}
+
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <ActionButton
             type="button"
             variant="primary"
-            disabled={!canInteract}
+            disabled={!canInteract || (requiresCustomCommandInput && !customActionInput.trim())}
             onClick={handleApprove}
             className="w-full justify-center disabled:cursor-not-allowed disabled:opacity-40"
           >

@@ -184,14 +184,22 @@ export default function AlertsPage() {
     }
   }
 
-  const approveIncident = async (id, action = 'restart_service') => {
+  const approveIncident = async (id, action = 'restart_service', incident = null, customActionInput = '') => {
     if (!id || processingAction.id) return
 
-    const selected = incidents.find((incident) => incident.id === id)
+    const selected = incident || incidents.find((incident) => incident.id === id)
+    const normalizedAction = String(action || 'restart_service').trim() || 'restart_service'
+    const normalizedActionKey = normalizedAction.toLowerCase().replace(/_/g, '-')
     const payload = {
-      action: String(action || 'restart_service').trim() || 'restart_service',
+      action: normalizedAction,
       target: selected?.process || selected?.system || 'nginx',
-      system_id: Number(selected?.system_id ?? SYSTEM_ID ?? 1)
+      system_id: Number(selected?.system_id ?? SYSTEM_ID ?? 1),
+      category: selected?.category || 'system',
+      pid: selected?.pid ?? null,
+    }
+
+    if (normalizedActionKey === 'run-command') {
+      payload.script = String(customActionInput || '').trim()
     }
 
     setProcessingAction({ id, type: 'approve' })

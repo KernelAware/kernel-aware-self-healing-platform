@@ -99,10 +99,17 @@ export async function resolveIncident(incidentId) {
 }
 
 export async function triggerHealingAction(incidentId, payload = {}) {
+  const actionName = String(payload.action || '').trim()
+  const normalizedActionKey = actionName.toLowerCase().replace(/_/g, '-')
   const actionPayload = {
-    action: payload.action || 'restart_service',
+    action: actionName || 'restart_service',
     target: payload.target || 'nginx',
-    system_id: Number(payload.system_id ?? 1)
+    system_id: Number(payload.system_id ?? 1),
+    category: payload.category || 'system',
+    pid: payload.pid ?? null,
+    ...(normalizedActionKey === 'run-command' && payload.script !== undefined && payload.script !== null
+      ? { script: String(payload.script) }
+      : {})
   }
 
   const response = await fetch(`${API_BASE_URL}/incidents/${incidentId}/approve-execute`, {
