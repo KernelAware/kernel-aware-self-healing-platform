@@ -17,8 +17,18 @@ export default function OperatorActionRequired({
   const [selectedAction, setSelectedAction] = useState('')
   const [customActionInputs, setCustomActionInputs] = useState({})
   const [actionLoading, setActionLoading] = useState(null)
+  const [showActionScript, setShowActionScript] = useState(false)
 
-  const normalizeAction = (value = '') => String(value).trim().toLowerCase().replace(/_/g, '-')
+  const normalizeAction = (value = '') => String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, '-')
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+
+  const getActionType = (action = {}) => action.action_type || action.actionType || action.type || action.action_name || action.actionName || action.name || ''
+  const getActionScript = (action = {}) => action?.action_script ?? '';
   const getActionInputValue = (actionName = '') => customActionInputs[normalizeAction(actionName)] || ''
   const setActionInputValue = (actionName = '', value = '') => {
     const key = normalizeAction(actionName)
@@ -34,8 +44,13 @@ export default function OperatorActionRequired({
         ''
 
       setSelectedAction(nextAction)
+      setShowActionScript(false)
     }
   }, [selectedIncident])
+
+  useEffect(() => {
+    setShowActionScript(false)
+  }, [selectedAction])
 
   if (!selectedIncident) {
     return (
@@ -64,6 +79,20 @@ export default function OperatorActionRequired({
   const recommendedAction = selectedIncident.decision?.recommendedAction || selectedIncident.operatorAction?.recommendedAction || ''
   const reason = selectedIncident.decision?.reason || selectedIncident.operatorAction?.reason || ''
   const normalizedSelectedAction = normalizeAction(selectedAction)
+  const selectedAllowedAction = allowedActions.find((action) => {
+    const actionType = getActionType(action)
+    return Boolean(actionType) && normalizeAction(actionType) === normalizedSelectedAction
+  }) || null
+
+  let selectedActionScript = '';
+
+  allowedActions.map((selectedAllowedAction)=>{
+    selectedActionScript = selectedAllowedAction.action_script
+  })
+
+  const hasSelectedActionScript = typeof selectedActionScript === 'string'
+    ? selectedActionScript.trim().length > 0
+    : Boolean(selectedActionScript)
   const requiresCustomCommandInput = normalizedSelectedAction === 'run-command'
   const customActionInput = getActionInputValue(selectedAction)
 
@@ -114,17 +143,53 @@ export default function OperatorActionRequired({
               onChange={(e) => setSelectedAction(e.target.value)}
               className="w-full rounded-md border border-border bg-secondary/40 px-3 py-2 text-xs text-foreground outline-none transition focus:border-accent disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {allowedActions.map((action) => (
-                <option key={action} value={action}>
-                  {action}
-                  {action === recommendedAction ? ' (Recommended)' : ''}
-                </option>
-              ))}
+              {allowedActions.map((action) => {
+                const actionType = getActionType(action)
+
+                return (
+                  <option
+                    key={actionType || Math.random().toString(36).slice(2)}
+                    value={actionType}
+                  >
+                    {actionType}
+                    {actionType === recommendedAction ? ' (Recommended)' : ''}
+                  </option>
+                )
+              })}
             </select>
 
-            <p className="mt-2 text-[11px] text-muted-foreground">
-              {autoExecuting ? 'Action selection is disabled because automatic execution is enabled.' : 'Only actions allowed by this rule are shown.'}
-            </p>
+            <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+              <p className="flex-1">
+                {autoExecuting ? 'Action selection is disabled because automatic execution is enabled.' : 'Only actions allowed by this rule are shown.'}
+              </p>
+              {(selectedActionScript && (
+                <button
+                  type="button"
+                  className="shrink-0 text-primary underline-offset-2 hover:text-primary/80 underline"
+                  onClick={() => setShowActionScript(selectedActionScript)}
+                >
+                  {showActionScript ? 'Hide script' : 'View script'}
+                </button>
+              ))}
+            </div>
+
+            {showActionScript && hasSelectedActionScript && (
+              <div className="mt-2 rounded-md border border-border bg-secondary/20 p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Action script</span>
+                  <button
+                    type="button"
+                    className="text-[10px] text-primary underline-offset-2 hover:text-primary/80 underline"
+                    onClick={() => setShowActionScript(false)}
+                  >
+                    Close
+                  </button>
+                </div>
+                <pre className="max-h-56 overflow-auto whitespace-pre-wrap break-words font-mono text-[10px] leading-relaxed text-foreground">
+                  {selectedActionScript}
+                </pre>
+              </div>
+            )}
           </div>
 
           <div className="rounded-md border border-border bg-secondary/30 p-3">

@@ -5,6 +5,7 @@ from engine.executors.notification_executor import execute_notification_action
 from engine.executors.script_executor import execute_script_action
 
 async def execute_action(action_plan: dict):
+
     action = action_plan["action"].lower()
     incident_type = action_plan["category"]
 

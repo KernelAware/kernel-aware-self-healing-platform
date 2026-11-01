@@ -72,7 +72,6 @@ def create_action_plan(decision, incident, rules, policy):
 
 
 def create_alert(decision, incident, rules, policy):
-
     rule_id = incident.get("rule_id")
     incident_id = (
         f"INC-RULE-{rule_id}-{uuid.uuid4().hex[:8].upper()}"
@@ -155,10 +154,7 @@ def create_alert(decision, incident, rules, policy):
     allowed_actions = []
 
     for action in rules.get("actions", []):
-        action_type = action.get("action_type")
-
-        if action_type:
-            allowed_actions.append(action_type)
+        allowed_actions.append(action)
 
     incident_detail = {
 

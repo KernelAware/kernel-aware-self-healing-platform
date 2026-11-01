@@ -33,7 +33,7 @@ def build_healing_action_payload(incident_id: str, payload: dict, incident: dict
     except (TypeError, ValueError):
         system_id = 1
 
-    category = payload.get("category")
+    category = incident.get("category")
     if category is None:
         category = incident.get("category")
     if category is None:

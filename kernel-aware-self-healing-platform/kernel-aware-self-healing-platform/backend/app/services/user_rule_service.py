@@ -217,7 +217,6 @@ def get_user_rules(system_id: int | None = None, rule_id: int | None = None):
         system_id=system_id,
         rule_id=rule_id,
     ):
-
         result.append(
             RuleDetailsResponse(
                 rule=RuleResponse(
@@ -259,6 +258,7 @@ def get_user_rules(system_id: int | None = None, rule_id: int | None = None):
                 actions=[
                     RuleActionResponse(
                         action_type=x.action_type,
+                        action_script=x.action_script,
                         automatic_execution=x.automatic_execution,
                         approval_required=x.approval_required,
                         allowed_during=x.allowed_during,
