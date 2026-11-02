@@ -12,6 +12,7 @@ from detection.disk_duration import (
     mark_disk_resolution_pending,
     observe_disk_violation,
 )
+from detection.duration import verify_prometheus_duration
 from detection.strategies.base_detector import DetectionStrategy
 from detection.threshold import check_threshold, is_supported_operator
 from incident_management.manager import manage_disk_incident
@@ -532,31 +533,6 @@ class DiskDetector(DetectionStrategy):
                                 summary["duration_pending"] += 1
                                 continue
 
-                            if state and state.get("status") == "resolution_pending":
-                                managed = manage_disk_incident(active, True, fallback_state=state)
-                                if managed.get("outcome") != "recovered":
-                                    pending_incident = managed.get("incident")
-                                    if pending_incident and pending_incident.get("incident_id"):
-                                        try:
-                                            mark_disk_resolution_pending(
-                                                identity,
-                                                mark_disk_incident_active(identity, state, pending_incident),
-                                            )
-                                        except DiskDurationStateError:
-                                            logger.exception("Unable to retain pending Disk incident resolution state")
-                                    summary["recoveries_pending"] += 1
-                                    metric_outcomes.append("RECOVERY_UNVERIFIED")
-                                    metric_reason = managed.get("reason") or "incident resolution is pending"
-                                    continue
-                                if not clear_disk_violation(identity, state):
-                                    reason = "Redis could not clear the recovered Disk condition state"
-                                    skipped_reasons.append(reason)
-                                    metric_outcomes.append("DURATION_UNVERIFIED")
-                                    metric_reason = reason
-                                    summary["duration_pending"] += 1
-                                    continue
-                                state = None
-
                             try:
                                 sustained, state = observe_disk_violation(
                                     identity,
@@ -577,12 +553,37 @@ class DiskDetector(DetectionStrategy):
                                 metric_reason = "violation duration has not elapsed"
                                 continue
 
+                            if not state or state.get("status") != "active":
+                                try:
+                                    duration_verified, verification_reason = verify_prometheus_duration(
+                                        metric_name,
+                                        labels,
+                                        metric.get("operator"),
+                                        threshold,
+                                        duration_seconds,
+                                        now=observation_time,
+                                    )
+                                except Exception:
+                                    logger.exception("Unable to verify Disk metric history for rule %s", rule_id)
+                                    duration_verified, verification_reason = False, "Prometheus history query failed"
+                                if not duration_verified:
+                                    summary["duration_pending"] += 1
+                                    metric_outcomes.append("DURATION_UNVERIFIED")
+                                    metric_reason = verification_reason or "Prometheus history did not sustain the violation"
+                                    continue
+
                             if not allow_incident_creation:
                                 summary["duration_pending"] += 1
                                 metric_outcomes.append("DURATION_PENDING")
                                 metric_reason = "waiting for the first evaluation round to complete"
                                 continue
 
+                            if not state or state.get("status") != "active":
+                                logger.info(
+                                    "DISK_INCIDENT_QUALIFIED system_id=%s rule_id=%s metric=%s monitor_type=disk duration_seconds=%s target_type=%s target=%s duration_result=qualified",
+                                    system_id, rule_id, metric_name, duration_seconds,
+                                    scoped_target[0], scoped_target[1],
+                                )
                             managed = manage_disk_incident(active, True, fallback_state=state)
                             if managed.get("outcome") == "active":
                                 incident_state = managed.get("incident") or active
@@ -599,49 +600,6 @@ class DiskDetector(DetectionStrategy):
                                 metric_outcomes.append("VIOLATED")
                                 continue
 
-                            if managed.get("outcome") == "recovered":
-                                try:
-                                    if not clear_disk_violation(identity, state):
-                                        raise DiskDurationStateError("Redis could not clear the recovered condition")
-                                    sustained, state = observe_disk_violation(
-                                        identity, duration_seconds, now=observation_time
-                                    )
-                                except DiskDurationStateError as error:
-                                    reason = f"Redis violation state unavailable after recovery: {error}"
-                                    skipped_reasons.append(reason)
-                                    metric_outcomes.append("DURATION_UNVERIFIED")
-                                    metric_reason = reason
-                                    summary["duration_pending"] += 1
-                                    continue
-                                if not sustained:
-                                    summary["duration_pending"] += 1
-                                    metric_outcomes.append("DURATION_PENDING")
-                                    metric_reason = "new violation timer started after recovery"
-                                    continue
-                                managed = manage_disk_incident(active, True)
-                                if managed.get("outcome") == "active":
-                                    incident_state = managed.get("incident") or active
-                                    try:
-                                        mark_disk_incident_active(identity, state, incident_state)
-                                    except DiskDurationStateError:
-                                        logger.exception(
-                                            "Disk incident is active but its duration state could not be updated: incident_id=%s",
-                                            incident_state.get("incident_id"),
-                                        )
-                                    summary["violations_confirmed"] += 1
-                                    metric_outcomes.append("VIOLATED")
-                                    continue
-
-                            if managed.get("phase") == "resolution":
-                                try:
-                                    pending_state = mark_disk_incident_active(
-                                        identity,
-                                        state,
-                                        managed.get("incident") or active,
-                                    )
-                                    mark_disk_resolution_pending(identity, pending_state)
-                                except DiskDurationStateError:
-                                    logger.exception("Unable to retain pending Disk incident resolution state")
                             reason = managed.get("reason") or "incident handoff is pending"
                             skipped_reasons.append(reason)
                             metric_outcomes.append("EVALUATION_UNVERIFIED")

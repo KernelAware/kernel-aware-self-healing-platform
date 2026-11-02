@@ -1,7 +1,7 @@
 import logging
 import math
 
-from detection.duration import check_duration, clear_duration
+from detection.duration import check_duration, clear_duration, verify_prometheus_duration
 from detection.strategies.base_detector import DetectionStrategy
 from detection.threshold import check_threshold
 from incident_management.manager import manage_incidents
@@ -9,6 +9,7 @@ from load_data.system_metrics.metrics_loader import get_process_metric
 
 
 logger = logging.getLogger(__name__)
+_unsupported_metrics_logged = set()
 
 
 class ProcessDetector(DetectionStrategy):
@@ -36,7 +37,22 @@ class ProcessDetector(DetectionStrategy):
                     "metric": metric_name,
                 }
                 try:
-                    results = get_process_metric(system_id, target_name, metric)
+                    results = get_process_metric(system_id, target_name, metric, require_freshness=True)
+                except ValueError as error:
+                    if str(error).startswith("Unsupported Process metric:"):
+                        key = (str(rule_info.get("id")), metric_name)
+                        if key not in _unsupported_metrics_logged:
+                            logger.warning(
+                                "Skipping unsupported Process metric: rule_id=%s metric=%s",
+                                rule_info.get("id"), metric_name,
+                            )
+                            _unsupported_metrics_logged.add(key)
+                        continue
+                    logger.exception(
+                        "Prometheus query failed for Process rule %s metric %s",
+                        rule_info.get("id"), metric_name,
+                    )
+                    continue
                 except Exception:
                     logger.exception(
                         "Prometheus query failed for Process rule %s metric %s",
@@ -55,12 +71,34 @@ class ProcessDetector(DetectionStrategy):
                     if not math.isfinite(current_value) or not math.isfinite(threshold):
                         continue
 
-                    scoped_identity = {**identity, "pid": pid}
+                    duration_seconds = float(metric.get("duration_seconds") or 0)
+                    operator = metric.get("operator")
+                    scoped_identity = {
+                        **identity,
+                        "pid": pid,
+                        "series": {key: str(value) for key, value in sorted(labels.items()) if key != "__name__"},
+                        "operator": operator,
+                        "threshold": threshold,
+                        "duration_seconds": duration_seconds,
+                    }
                     if check_threshold(current_value, metric.get("operator"), threshold):
                         if not check_duration(
                             scoped_identity,
-                            metric.get("duration_seconds") or 0,
+                            duration_seconds,
                         ):
+                            continue
+                        try:
+                            duration_verified, _reason = verify_prometheus_duration(
+                                metric_name,
+                                labels,
+                                operator,
+                                threshold,
+                                duration_seconds,
+                            )
+                        except Exception:
+                            logger.exception("Unable to verify Process metric history for rule %s", rule_info.get("id"))
+                            continue
+                        if not duration_verified:
                             continue
                         incident = {
                             "rule_id": rule_info.get("id"),
@@ -84,7 +122,8 @@ class ProcessDetector(DetectionStrategy):
                         }
                         manage_incidents(incident, condition_violated=True)
                     else:
-                        clear_duration(scoped_identity, phase="trigger")
+                        if not clear_duration(scoped_identity, phase="trigger"):
+                            continue
                         manage_incidents(
                             {
                                 "rule_id": rule_info.get("id"),

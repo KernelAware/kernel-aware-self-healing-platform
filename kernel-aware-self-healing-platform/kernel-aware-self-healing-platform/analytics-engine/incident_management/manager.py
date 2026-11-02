@@ -2,6 +2,7 @@ import hashlib
 import json
 import logging
 import os
+import threading
 import uuid
 from datetime import datetime, timezone
 
@@ -15,13 +16,12 @@ from lifecycle import ANALYTICS_GENERATION
 logger = logging.getLogger(__name__)
 DECISION_ENGINE_URL = os.environ.get("DECISION_ENGINE_URL", "http://localhost:8002").rstrip("/")
 DECISION_ENGINE_TIMEOUT_SECONDS = 5
-
-REMEDIATION_ACTIONS = {
-    "restart-service", "start-service", "stop-service", "kill-process",
-    "clear-cache", "free-disk", "scale-resources", "isolate-node",
-    "run-automation", "run-command", "trigger-webhook",
-}
-
+DECISION_RETRY_BASE_SECONDS = 15
+DECISION_RETRY_MAX_SECONDS = 300
+BACKEND_RETRY_BASE_SECONDS = 15
+BACKEND_RETRY_MAX_SECONDS = 300
+INCIDENT_RETRY_SCAN_COUNT = 100
+_incident_state_lock = threading.RLock()
 
 def _now():
     return datetime.now(timezone.utc).isoformat()
@@ -40,10 +40,6 @@ def incident_fingerprint(incident: dict) -> str:
     }
     if _is_disk_incident(incident) and incident.get("disk_condition_key"):
         identity["disk_condition_key"] = incident["disk_condition_key"]
-    if _is_disk_incident(incident):
-        # Keep the identity stable during this run while isolating old Redis
-        # incidents and their decision submission markers.
-        identity["analytics_generation"] = ANALYTICS_GENERATION
     encoded = json.dumps(identity, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
@@ -54,6 +50,16 @@ def _active_key(fingerprint: str) -> str:
 
 def _is_disk_incident(incident: dict) -> bool:
     return str(incident.get("monitor_type") or incident.get("incident_type") or "").strip().lower() == "disk"
+
+
+def _is_retryable_disk_open(incident: dict) -> bool:
+    """Limit the independent worker to pending Disk alert publication."""
+    return (
+        _is_disk_incident(incident)
+        and incident.get("_backend_pending_event") == "opened"
+        and str(incident.get("status") or "").upper() == "OPEN"
+        and incident.get("_decision_status") not in {"invalid_rule", "rejected"}
+    )
 
 
 def _event(incident: dict, status: str, label: str, tone: str) -> dict:
@@ -70,7 +76,7 @@ def _publishable_incident(incident: dict) -> dict:
     """Keep retry bookkeeping in Redis without exposing it in API payloads."""
     return {
         key: value for key, value in incident.items()
-        if key != "_backend_pending_event" and not key.startswith("_decision_")
+        if not key.startswith("_")
     }
 
 
@@ -78,11 +84,27 @@ def _retry_pending_event(key: str, incident: dict) -> bool:
     event = incident.get("_backend_pending_event")
     if not event:
         return True
+    now = datetime.now(timezone.utc).timestamp()
+    if now < float(incident.get("_backend_retry_at") or 0):
+        return False
+    if event != "resolved" and str(incident.get("status", "")).upper() != "OPEN":
+        logger.warning("Skipping stale %s retry for non-open incident %s", event, incident.get("incident_id"))
+        return False
+    if event != "resolved" and not _evaluate_for_publication(key, incident):
+        return False
+    attempt = int(incident.get("_backend_attempts") or 0) + 1
+    incident["_backend_attempts"] = attempt
     try:
-        publish_incident(_publishable_incident(incident), event)
+        response = publish_incident(_publishable_incident(incident), event)
+        persisted = (response or {}).get("incident") or {}
+        persisted_id = persisted.get("incident_id") or persisted.get("id")
+        if persisted_id:
+            incident["incident_id"] = persisted_id
         if not _is_disk_incident(incident):
             # Preserve the established retry behavior for the other monitor types.
             incident.pop("_backend_pending_event", None)
+            incident.pop("_backend_retry_at", None)
+            incident.pop("_backend_attempts", None)
             if event == "resolved":
                 redis_client.delete(key)
             else:
@@ -93,103 +115,174 @@ def _retry_pending_event(key: str, incident: dict) -> bool:
             else:
                 retry_cleared = dict(incident)
                 retry_cleared.pop("_backend_pending_event", None)
+                retry_cleared.pop("_backend_retry_at", None)
+                retry_cleared.pop("_backend_attempts", None)
                 redis_client.set(key, json.dumps(retry_cleared))
             incident.pop("_backend_pending_event", None)
+            incident.pop("_backend_retry_at", None)
+            incident.pop("_backend_attempts", None)
     except Exception:
         logger.exception(
             "Unable to complete pending %s event for incident %s",
             event,
             incident.get("incident_id"),
         )
+        incident["_backend_retry_at"] = now + min(
+            BACKEND_RETRY_BASE_SECONDS * (2 ** min(max(0, attempt - 1), 8)),
+            BACKEND_RETRY_MAX_SECONDS,
+        )
+        try:
+            redis_client.set(key, json.dumps(incident))
+        except Exception:
+            logger.exception("Unable to retain pending backend retry state for incident %s", incident.get("incident_id"))
         return False
     return True
 
 
-def _has_remediation(rule: dict | None) -> bool:
-    for action in (rule or {}).get("actions") or []:
-        action_type = action.get("action_type") if isinstance(action, dict) else action
-        if str(action_type).lower() in REMEDIATION_ACTIONS:
-            return True
-    return False
+def _decision_retry_delay(attempt: int) -> int:
+    exponent = min(max(0, attempt - 1), 8)
+    return min(DECISION_RETRY_BASE_SECONDS * (2 ** exponent), DECISION_RETRY_MAX_SECONDS)
 
 
-def _send_process_to_decision_engine(incident: dict) -> None:
+def _response_body(response, limit: int = 1200) -> str:
     try:
-        response = requests.post(
-            f"{DECISION_ENGINE_URL}/incidents",
-            json=incident,
-            timeout=10,
-        )
-        response.raise_for_status()
+        body = response.text or "<empty response body>"
     except Exception:
-        # Alert persistence is independent of optional Process remediation.
-        logger.exception("Decision Engine request failed for Process incident %s", incident.get("incident_id"))
+        body = "<response body unavailable>"
+    if not isinstance(body, str):
+        return "<response body unavailable>"
+    return body[:limit] + ("…" if len(body) > limit else "")
 
 
-def _send_disk_to_decision_engine(key: str, incident: dict) -> None:
-    """Submit one persisted Disk incident at most once for a decision only."""
-    if incident.get("_decision_submission_status"):
-        return
-
-    # Persist the at-most-once marker before the request. If the request times
-    # out after the remote service processed it, this incident will not be
-    # submitted repeatedly during later evaluation rounds.
-    decision_state = {**incident, "_decision_submission_status": "submitting"}
+def _decision_error_outcome(response) -> str | None:
+    body = _response_body(response)
+    if not body.startswith("{"):
+        return None
     try:
-        redis_client.set(key, json.dumps(decision_state))
-    except Exception:
-        logger.exception(
-            "Unable to reserve Decision Engine submission for Disk incident %s",
-            incident.get("incident_id"),
-        )
-        return
+        payload = json.loads(body)
+        detail = payload.get("detail") if isinstance(payload, dict) else None
+        return detail.get("outcome") if isinstance(detail, dict) else None
+    except (TypeError, json.JSONDecodeError):
+        return None
 
+
+def _evaluate_for_publication(key: str, incident: dict) -> bool:
+    """Persist and retry Decision Engine evaluation before any opened event."""
+    if incident.get("_decision_outcome") == "PERMITTED":
+        return True
+    if incident.get("_decision_status") in {"invalid_rule", "rejected"}:
+        return False
+    now = datetime.now(timezone.utc).timestamp()
+    if now < float(incident.get("_decision_retry_at") or 0):
+        return False
+    attempt = int(incident.get("_decision_attempts") or 0) + 1
+    incident.update({"_decision_attempts": attempt, "_decision_status": "pending"})
     try:
+        redis_client.set(key, json.dumps(incident))
+        if _is_disk_incident(incident):
+            logger.info(
+                "DISK_DECISION_REQUEST_SENT endpoint=/decisions system_id=%s rule_id=%s incident_id=%s fingerprint=%s monitor_type=disk pending_event=%s attempt=%s",
+                incident.get("system_id"), incident.get("rule_id"),
+                incident.get("incident_id"), incident.get("fingerprint"),
+                incident.get("_backend_pending_event"), attempt,
+            )
         response = requests.post(
             f"{DECISION_ENGINE_URL}/decisions",
-            json=_publishable_incident(decision_state),
+            json=_publishable_incident(incident),
             timeout=DECISION_ENGINE_TIMEOUT_SECONDS,
         )
-        response.raise_for_status()
-        decision_response = response.json()
-        if not isinstance(decision_response, dict):
-            raise ValueError("Decision Engine returned an invalid response")
-    except Exception:
-        decision_state["_decision_submission_status"] = "failed"
-        try:
-            redis_client.set(key, json.dumps(decision_state))
-        except Exception:
-            logger.exception(
-                "Unable to retain failed Decision Engine state for Disk incident %s",
-                incident.get("incident_id"),
+        if _is_disk_incident(incident):
+            logger.info(
+                "DISK_DECISION_RESPONSE_RECEIVED endpoint=/decisions system_id=%s rule_id=%s incident_id=%s fingerprint=%s monitor_type=disk pending_event=%s status=%s body=%s",
+                incident.get("system_id"), incident.get("rule_id"),
+                incident.get("incident_id"), incident.get("fingerprint"),
+                incident.get("_backend_pending_event"),
+                response.status_code, _response_body(response),
             )
-        logger.exception(
-            "Decision Engine request failed for Disk incident %s",
-            incident.get("incident_id"),
+        response.raise_for_status()
+        result = response.json()
+        if not isinstance(result, dict):
+            raise ValueError("Decision Engine response must be a JSON object")
+        if result.get("incident_id") != incident.get("incident_id") or result.get("fingerprint") != incident.get("fingerprint"):
+            raise ValueError("Decision Engine response identity does not match incident")
+        if not isinstance(result.get("decision"), dict) or not isinstance(result.get("policy"), dict):
+            raise ValueError("Decision Engine response is missing decision or policy data")
+        outcome = result.get("outcome")
+        if outcome not in {"PERMITTED", "DENIED", "APPROVAL_REQUIRED"}:
+            raise ValueError("Decision Engine returned an unknown outcome")
+        if outcome == "PERMITTED" and result["policy"].get("allowed") is not True:
+            raise ValueError("Decision Engine permitted an incident without an allowed policy")
+        incident["_decision_outcome"] = outcome
+        incident["_decision_result"] = result
+        incident["_decision_status"] = "evaluated"
+        incident.pop("_decision_last_error", None)
+        incident.pop("_decision_http_status", None)
+        if outcome == "PERMITTED":
+            incident["decision_outcome"] = outcome
+            incident["policy_outcome"] = result.get("policy", {}).get("reason") or "ALLOWED"
+            incident["decision"] = result.get("decision")
+            incident["policy"] = result.get("policy")
+            incident.pop("_decision_retry_at", None)
+            redis_client.set(key, json.dumps(incident))
+            if _is_disk_incident(incident):
+                logger.info(
+                    "DISK_DECISION_PERMITTED system_id=%s rule_id=%s incident_id=%s fingerprint=%s outcome=%s allowed=%s",
+                    incident.get("system_id"), incident.get("rule_id"),
+                    incident.get("incident_id"), incident.get("fingerprint"),
+                    outcome, result["policy"].get("allowed"),
+                )
+            return True
+        if _is_disk_incident(incident):
+            logger.warning(
+                "DISK_DECISION_REJECTED system_id=%s rule_id=%s incident_id=%s fingerprint=%s outcome=%s allowed=%s",
+                incident.get("system_id"), incident.get("rule_id"),
+                incident.get("incident_id"), incident.get("fingerprint"),
+                outcome, result["policy"].get("allowed"),
+            )
+        incident["_decision_retry_at"] = now + _decision_retry_delay(attempt)
+        redis_client.set(key, json.dumps(incident))
+        return False
+    except Exception as error:
+        response = getattr(error, "response", None)
+        status_code = getattr(response, "status_code", None) if response is not None else None
+        if response is not None:
+            incident["_decision_http_status"] = status_code
+        error_outcome = _decision_error_outcome(response) if response is not None else None
+        permanent_client_error = (
+            isinstance(status_code, int)
+            and 400 <= status_code < 500
+            and status_code != 429
         )
-        return
-
-    decision_state["_decision_submission_status"] = "submitted"
-    decision_state["_decision_response"] = decision_response
-    try:
-        redis_client.set(key, json.dumps(decision_state))
-    except Exception:
-        # The pre-request marker remains in Redis, so a later evaluation will
-        # still not duplicate a decision request.
-        logger.exception(
-            "Decision Engine evaluated Disk incident %s, but its result could not be retained",
-            incident.get("incident_id"),
+        incident["_decision_status"] = (
+            "invalid_rule" if error_outcome == "INVALID_RULE"
+            else "rejected" if permanent_client_error
+            else "pending"
         )
-    decision = decision_response.get("decision")
-    decision_name = decision.get("decision", "unknown") if isinstance(decision, dict) else "unknown"
-    logger.info(
-        "Decision Engine evaluated Disk incident %s: %s",
-        incident.get("incident_id"),
-        decision_name,
-    )
+        incident["_decision_last_error"] = error_outcome or type(error).__name__
+        if permanent_client_error:
+            incident.pop("_decision_retry_at", None)
+        else:
+            incident["_decision_retry_at"] = now + _decision_retry_delay(attempt)
+        try:
+            redis_client.set(key, json.dumps(incident))
+        except Exception:
+            logger.exception("Unable to retain pending decision state for incident %s", incident.get("incident_id"))
+        if _is_disk_incident(incident):
+            logger.error(
+                "DISK_DECISION_REJECTED endpoint=/decisions system_id=%s rule_id=%s incident_id=%s fingerprint=%s monitor_type=disk pending_event=%s status=%s response_body=%s error=%s",
+                incident.get("system_id"), incident.get("rule_id"),
+                incident.get("incident_id"), incident.get("fingerprint"),
+                incident.get("_backend_pending_event"),
+                incident.get("_decision_http_status"),
+                _response_body(response) if response is not None else "<no HTTP response>",
+                type(error).__name__,
+            )
+        else:
+            logger.exception("Decision Engine evaluation failed for incident %s", incident.get("incident_id"))
+        return False
 
 
-def manage_incidents(incident: dict, condition_violated: bool = True):
+def _manage_incidents(incident: dict, condition_violated: bool = True):
     """Create, update, or resolve one incident for a rule/target/metric identity."""
     fingerprint = incident_fingerprint(incident)
     key = _active_key(fingerprint)
@@ -205,6 +298,7 @@ def manage_incidents(incident: dict, condition_violated: bool = True):
         if is_disk:
             incident = {**incident, "analytics_generation": ANALYTICS_GENERATION}
         is_new = stored is None
+        reopened = False
         if stored:
             try:
                 current = json.loads(stored)
@@ -214,7 +308,36 @@ def manage_incidents(incident: dict, condition_violated: bool = True):
             if is_disk and not isinstance(current, dict):
                 current = {}
                 is_new = True
-            if current.get("_backend_pending_event") == "resolved":
+            if is_disk and current.get("incident_id") and (
+                current.get("_backend_pending_event") == "resolved"
+                or str(current.get("status", "")).upper() in {"RESOLVED", "CLOSED"}
+            ):
+                # A newly qualified violation supersedes a stale pending
+                # resolution for the same fingerprint. Reopen the same row and
+                # identity; never make resolution delivery a prerequisite.
+                current["status"] = "OPEN"
+                current["resolved_at"] = None
+                current["_backend_pending_event"] = "opened"
+                current.pop("_backend_retry_at", None)
+                current.pop("_backend_attempts", None)
+                current.pop("_recovery_pending", None)
+                for field in (
+                    "_decision_outcome", "_decision_result", "_decision_status",
+                    "_decision_retry_at", "_decision_attempts", "_decision_last_error",
+                    "_decision_http_status", "decision_outcome", "policy_outcome",
+                    "decision", "policy",
+                ):
+                    current.pop(field, None)
+                timeline = list(current.get("timeline") or [])
+                timeline.append(_event({**current, **incident}, "OPEN", "Violation detected again", "warning"))
+                current["timeline"] = timeline
+                reopened = True
+                try:
+                    redis_client.set(key, json.dumps(current))
+                except Exception:
+                    logger.exception("Unable to retain re-opened Disk incident state")
+                    return current
+            elif current.get("_backend_pending_event") == "resolved":
                 if not _retry_pending_event(key, current):
                     return current
                 current = {}
@@ -230,6 +353,28 @@ def manage_incidents(incident: dict, condition_violated: bool = True):
 
         if is_disk and not is_new and current.get("incident_id"):
             pending_event = current.get("_backend_pending_event")
+            if current.get("analytics_generation") != incident.get("analytics_generation"):
+                # Preserve the active incident identity over Analytics restart,
+                # while re-registering it in the new current-run snapshot.
+                current["analytics_generation"] = incident.get("analytics_generation")
+                current["_backend_pending_event"] = "opened"
+                if is_disk:
+                    # A permit from the previous Analytics generation may
+                    # contain a stale Decision Engine strategy result. Re-run
+                    # the mandatory gate before publishing in this generation.
+                    for field in (
+                        "_decision_outcome", "_decision_result", "_decision_status",
+                        "_decision_retry_at", "_decision_attempts", "_decision_last_error",
+                        "_decision_http_status", "decision_outcome", "policy_outcome",
+                        "decision", "policy",
+                    ):
+                        current.pop(field, None)
+                pending_event = "opened"
+                try:
+                    redis_client.set(key, json.dumps(current))
+                except Exception:
+                    logger.exception("Unable to retain Disk incident across Analytics generation")
+                    return current
             if pending_event == "updated":
                 # Older versions queued an update each cycle; it is not a
                 # lifecycle transition and does not need to be retried.
@@ -244,17 +389,17 @@ def manage_incidents(incident: dict, condition_violated: bool = True):
                     return current
                 pending_event = None
             if not pending_event:
-                if is_disk and not current.get("_decision_submission_status"):
-                    _send_disk_to_decision_engine(key, current)
-                logger.debug(
-                    "Disk incident remains active; skipping unchanged update: system_id=%s rule_id=%s incident_id=%s",
-                    current.get("system_id"),
-                    current.get("rule_id"),
-                    current["incident_id"],
-                )
-                return current
+                if current.get("_decision_outcome") != "PERMITTED":
+                    if not _evaluate_for_publication(key, current):
+                        return current
+                    stored = json.dumps(current)
+                    redis_client.set(key, stored)
+                else:
+                    return current
 
         publish_event = current.get("_backend_pending_event") or ("opened" if is_new else "updated")
+        if reopened:
+            publish_event = "opened"
 
         incident = {
             **current,
@@ -268,28 +413,69 @@ def manage_incidents(incident: dict, condition_violated: bool = True):
             "timeline": list(current.get("timeline") or []),
             "_backend_pending_event": publish_event,
         }
+        incident.pop("_backend_retry_at", None)
+        incident.pop("_backend_attempts", None)
         if is_new:
             incident["timeline"].append(_event(incident, "OPEN", "Incident opened", "warning"))
         try:
+            if is_disk:
+                logger.info(
+                    "DISK_INCIDENT_STATE_CREATED system_id=%s rule_id=%s incident_id=%s fingerprint=%s monitor_type=disk event=%s reopened=%s",
+                    incident.get("system_id"), incident.get("rule_id"),
+                    incident.get("incident_id"), fingerprint, publish_event, reopened,
+                )
             redis_client.set(key, json.dumps(incident))
         except Exception:
             logger.exception("Unable to persist active incident state in Redis")
             return None
 
+        if not _evaluate_for_publication(key, incident):
+            return incident
+
         try:
+            if is_disk:
+                logger.info(
+                    "DISK_BACKEND_PUBLICATION_STARTED system_id=%s rule_id=%s incident_id=%s fingerprint=%s monitor_type=disk event=%s",
+                    incident.get("system_id"), incident.get("rule_id"),
+                    incident.get("incident_id"), fingerprint, publish_event,
+                )
             response = publish_incident(_publishable_incident(incident), publish_event)
         except Exception:
-            logger.exception(
-                "Unable to publish %s event for incident %s to the backend; will retry that event",
-                publish_event,
-                incident["incident_id"],
+            if is_disk:
+                logger.exception(
+                    "DISK_BACKEND_PUBLICATION_FAILED system_id=%s rule_id=%s incident_id=%s fingerprint=%s monitor_type=disk event=%s; retaining retry state",
+                    incident.get("system_id"), incident.get("rule_id"),
+                    incident.get("incident_id"), fingerprint, publish_event,
+                )
+            else:
+                logger.exception(
+                    "Unable to publish %s event for incident %s to the backend; will retry that event",
+                    publish_event, incident["incident_id"],
+                )
+            incident["_backend_attempts"] = int(incident.get("_backend_attempts") or 0) + 1
+            incident["_backend_retry_at"] = datetime.now(timezone.utc).timestamp() + min(
+                BACKEND_RETRY_BASE_SECONDS * (2 ** min(incident["_backend_attempts"] - 1, 8)),
+                BACKEND_RETRY_MAX_SECONDS,
             )
+            try:
+                redis_client.set(key, json.dumps(incident))
+            except Exception:
+                logger.exception("Unable to retain backend retry deadline for incident %s", incident["incident_id"])
         else:
             persisted = (response or {}).get("incident") or {}
             persisted_id = persisted.get("incident_id") or persisted.get("id")
             if persisted_id and persisted_id != incident["incident_id"]:
                 incident["incident_id"] = persisted_id
             incident.pop("_backend_pending_event", None)
+            incident.pop("_backend_retry_at", None)
+            incident.pop("_backend_attempts", None)
+            if is_disk:
+                logger.info(
+                    "DISK_BACKEND_PUBLICATION_SUCCEEDED system_id=%s rule_id=%s incident_id=%s fingerprint=%s monitor_type=disk event=%s backend_incident_id=%s",
+                    incident.get("system_id"), incident.get("rule_id"),
+                    incident.get("incident_id"), fingerprint, publish_event,
+                    persisted_id or incident.get("incident_id"),
+                )
             try:
                 redis_client.set(key, json.dumps(incident))
             except Exception:
@@ -299,15 +485,6 @@ def manage_incidents(incident: dict, condition_violated: bool = True):
                     incident["incident_id"],
                 )
 
-            if is_disk and publish_event == "opened":
-                _send_disk_to_decision_engine(key, incident)
-
-        if (
-            is_new
-            and str(incident.get("monitor_type") or "").lower() == "process"
-            and _has_remediation({"actions": incident.get("actions")})
-        ):
-            _send_process_to_decision_engine(incident)
         return incident
 
     if stored is None:
@@ -328,6 +505,14 @@ def manage_incidents(incident: dict, condition_violated: bool = True):
         return current
 
     if current.get("_backend_pending_event") and not _retry_pending_event(key, current):
+        current["_recovery_pending"] = {
+            key: value for key, value in incident.items()
+            if not key.startswith("_")
+        }
+        try:
+            redis_client.set(key, json.dumps(current))
+        except Exception:
+            logger.exception("Unable to retain recovery intent for incident %s", current.get("incident_id"))
         return current
 
     resolved = {
@@ -341,6 +526,8 @@ def manage_incidents(incident: dict, condition_violated: bool = True):
         _event(resolved, "RESOLVED", "Condition recovered", "success")
     ]
     resolved["_backend_pending_event"] = "resolved"
+    resolved.pop("_backend_retry_at", None)
+    resolved.pop("_backend_attempts", None)
     try:
         redis_client.set(key, json.dumps(resolved))
     except Exception:
@@ -350,6 +537,12 @@ def manage_incidents(incident: dict, condition_violated: bool = True):
         publish_incident(_publishable_incident(resolved), "resolved")
     except Exception:
         logger.exception("Unable to publish resolution for incident %s", current["incident_id"])
+        resolved["_backend_attempts"] = 1
+        resolved["_backend_retry_at"] = datetime.now(timezone.utc).timestamp() + BACKEND_RETRY_BASE_SECONDS
+        try:
+            redis_client.set(key, json.dumps(resolved))
+        except Exception:
+            logger.exception("Unable to retain resolution retry deadline for incident %s", current["incident_id"])
         return resolved
 
     try:
@@ -360,6 +553,61 @@ def manage_incidents(incident: dict, condition_violated: bool = True):
     if _is_disk_incident(incident):
         resolved.pop("_backend_pending_event", None)
     return resolved
+
+
+def manage_incidents(incident: dict, condition_violated: bool = True):
+    """Serialize detector mutations against the background retry worker."""
+    with _incident_state_lock:
+        return _manage_incidents(incident, condition_violated)
+
+
+def retry_pending_incidents() -> dict:
+    """Retry due incident work from Redis without requiring detector calls."""
+    result = {"scanned": 0, "retried": 0, "failed": 0}
+    with _incident_state_lock:
+        try:
+            keys = redis_client.scan_iter(match="incident:active:*", count=INCIDENT_RETRY_SCAN_COUNT)
+            for key in keys:
+                result["scanned"] += 1
+                try:
+                    stored = redis_client.get(key)
+                    if stored is None:
+                        continue
+                    incident = json.loads(stored)
+                    if not isinstance(incident, dict):
+                        logger.error("Ignoring malformed pending incident state at %s", key)
+                        continue
+                    if not _is_retryable_disk_open(incident):
+                        continue
+                    retry_at = float(incident.get("_backend_retry_at") or 0)
+                    if (
+                        incident.get("_backend_pending_event") != "resolved"
+                        and incident.get("_decision_outcome") != "PERMITTED"
+                    ):
+                        retry_at = max(retry_at, float(incident.get("_decision_retry_at") or 0))
+                    if datetime.now(timezone.utc).timestamp() < retry_at:
+                        continue
+                    # Selected open records still pass the Decision Engine
+                    # gate in the shared publication helper.
+                    before = incident.get("_backend_pending_event")
+                    if _retry_pending_event(key, incident):
+                        result["retried"] += 1
+                    else:
+                        result["failed"] += 1
+                    logger.info(
+                        "Pending incident retry processed: incident_id=%s event=%s result=%s",
+                        incident.get("incident_id"), before,
+                        "complete" if not incident.get("_backend_pending_event") else "pending",
+                    )
+                except (TypeError, ValueError, json.JSONDecodeError):
+                    logger.exception("Ignoring malformed incident retry state at %s", key)
+                except Exception:
+                    result["failed"] += 1
+                    logger.exception("Pending incident retry failed for Redis key %s", key)
+        except Exception:
+            result["failed"] += 1
+            logger.exception("Unable to scan pending incidents in Redis")
+    return result
 
 
 def _disk_active_record(incident: dict):
@@ -426,50 +674,6 @@ def manage_disk_incident(
         return {"outcome": "retry", "phase": "redis", "reason": "Disk incident state is unavailable"}
 
     if condition_violated:
-        if fallback_state and fallback_state.get("status") == "resolution_pending" and current:
-            resolved = manage_incidents(incident, condition_violated=False)
-            if (
-                resolved
-                and resolved.get("status") == "RESOLVED"
-                and not resolved.get("_backend_pending_event")
-            ):
-                return {"outcome": "recovered", "incident": resolved}
-            return {
-                "outcome": "retry",
-                "phase": "resolution",
-                "reason": "previous Disk resolution is pending",
-                "incident": resolved or current,
-            }
-        if current is None and fallback_state and (
-            fallback_state.get("incident_id")
-            or (fallback_state.get("incident") or {}).get("incident_id")
-        ):
-            recovered = _direct_disk_resolution(incident, fallback_state)
-            if recovered.get("outcome") == "resolved":
-                recovered["outcome"] = "recovered"
-            return recovered
-        if current and current.get("_backend_pending_event") == "resolved":
-            resolved = manage_incidents(incident, condition_violated=False)
-            if (
-                resolved
-                and resolved.get("status") == "RESOLVED"
-                and not resolved.get("_backend_pending_event")
-            ):
-                return {"outcome": "recovered", "incident": resolved}
-            return {
-                "outcome": "retry",
-                "phase": "resolution",
-                "reason": "previous Disk resolution is pending",
-                "incident": resolved or current,
-            }
-        if current and str(current.get("status", "")).upper() in {"RESOLVED", "CLOSED"}:
-            try:
-                redis_client.delete(key)
-            except Exception:
-                logger.exception("Unable to clear resolved Disk state before recurrence")
-                return {"outcome": "retry", "phase": "resolution", "incident": current}
-            return {"outcome": "recovered", "incident": current}
-
         active = manage_incidents(incident, condition_violated=True)
         if active and active.get("incident_id"):
             return {"outcome": "active", "incident": active}

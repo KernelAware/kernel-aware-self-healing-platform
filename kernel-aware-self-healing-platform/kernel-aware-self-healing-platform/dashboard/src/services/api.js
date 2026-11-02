@@ -62,12 +62,16 @@ export async function queryPrometheusMetricNames() {
 }
 
 export async function userRules(form) {
+  const payload = {
+    ...form,
+    system_id: form.system_id ?? import.meta.env.VITE_SYSTEM_ID ?? "1",
+  }
   const response = await fetch(`${BACKEND_URL}/user_rules`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(form),
+    body: JSON.stringify(payload),
   });
 
   const json = await response.json();

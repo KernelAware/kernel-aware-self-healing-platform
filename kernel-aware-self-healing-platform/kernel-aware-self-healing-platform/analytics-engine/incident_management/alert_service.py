@@ -1,10 +1,22 @@
 import os
+import logging
 from datetime import datetime, timezone
 
 import requests
 
 
 BACKEND_URL = os.environ.get("KAISP_BACKEND_URL", "http://localhost:8000").rstrip("/")
+logger = logging.getLogger(__name__)
+
+
+def _response_body(response, limit: int = 1200) -> str:
+    try:
+        body = response.text or "<empty response body>"
+    except Exception:
+        body = "<response body unavailable>"
+    if not isinstance(body, str):
+        return "<response body unavailable>"
+    return body[:limit] + ("…" if len(body) > limit else "")
 
 
 def _timestamp(value=None):
@@ -76,12 +88,14 @@ def build_payload(incident: dict, event: str) -> dict:
             "duration": duration_label,
         },
         "decision": {
-            "recommendedAction": "Alert only" if category == "disk" else "Decision pending",
-            "decision": "ALERT_ONLY" if category == "disk" else "PROCESS_POLICY",
-            "reason": "Disk rules publish alerts and do not invoke remediation." if category == "disk" else "Process action handling remains governed by its rule and Decision Engine.",
+            "recommendedAction": "Alert only" if category == "disk" else (incident.get("decision") or {}).get("Selected_action"),
+            "decision": incident.get("decision_outcome"),
+            "reason": (incident.get("decision") or {}).get("reason") or "Decision Engine permitted alert publication.",
         },
         "policy": {
             "ruleEnabled": True,
+            "outcome": incident.get("policy_outcome"),
+            "allowed": True,
             "automaticExecution": False if category == "disk" else None,
             "approvalRequired": False if category == "disk" else None,
             "cooldownPassed": None,
@@ -102,6 +116,8 @@ def build_payload(incident: dict, event: str) -> dict:
             "reason": "No healing or remediation is configured for Disk alerts." if category == "disk" else None,
         },
         "status": status,
+        "decision_outcome": incident.get("decision_outcome"),
+        "policy_outcome": incident.get("policy_outcome"),
         "event": event,
     }
 
@@ -134,6 +150,8 @@ def build_payload(incident: dict, event: str) -> dict:
         "title": title,
         "body": body,
         "status": status,
+        "decision_outcome": incident.get("decision_outcome"),
+        "policy_outcome": incident.get("policy_outcome"),
         "acked": False,
         "analytics_generation": incident.get("analytics_generation"),
         "system": system_label,
@@ -147,18 +165,48 @@ def build_payload(incident: dict, event: str) -> dict:
 
 def _post_alert_event(endpoint: str, incident: dict, event: str, persistence_required: bool) -> dict:
     payload = build_payload(incident, event)
-    response = requests.post(
-        f"{BACKEND_URL}/{endpoint}",
-        json={"event": event, "incident": incident, **payload},
-        timeout=10,
-    )
-    response.raise_for_status()
-    result = response.json()
-    if not isinstance(result, dict) or result.get("status") != "success":
-        raise RuntimeError("Backend did not confirm alert event delivery")
-    if persistence_required and not result.get("incident"):
-        raise RuntimeError("Backend did not confirm incident persistence")
-    return result
+    is_disk = str(incident.get("monitor_type") or incident.get("incident_type") or "").lower() == "disk"
+    identity = {
+        "system_id": incident.get("system_id"),
+        "rule_id": incident.get("rule_id"),
+        "incident_id": incident.get("incident_id"),
+        "fingerprint": incident.get("fingerprint"),
+        "monitor_type": "disk" if is_disk else incident.get("monitor_type"),
+        "event": event,
+    }
+    try:
+        if is_disk:
+            logger.info("DISK_BACKEND_PUBLICATION_STARTED %s endpoint=/%s", identity, endpoint)
+        response = requests.post(
+            f"{BACKEND_URL}/{endpoint}",
+            json={"event": event, "incident": incident, **payload},
+            timeout=10,
+        )
+        response.raise_for_status()
+        result = response.json()
+        if not isinstance(result, dict) or result.get("status") != "success":
+            raise RuntimeError("Backend did not confirm alert event delivery")
+        if persistence_required and not result.get("incident"):
+            raise RuntimeError("Backend did not confirm incident persistence")
+        if is_disk:
+            logger.info(
+                "DISK_BACKEND_PUBLICATION_SUCCEEDED %s backend_incident_id=%s",
+                identity,
+                (result.get("incident") or {}).get("incident_id") or (result.get("incident") or {}).get("id"),
+            )
+        return result
+    except Exception as error:
+        if is_disk:
+            failed_response = getattr(locals().get("response"), "response", None) or locals().get("response")
+            status_code = getattr(failed_response, "status_code", None)
+            logger.error(
+                "DISK_BACKEND_PUBLICATION_FAILED %s status=%s response_body=%s error=%s",
+                identity,
+                status_code,
+                _response_body(failed_response) if failed_response is not None else "<no HTTP response>",
+                type(error).__name__,
+            )
+        raise
 
 
 def publish_rule_alert(incident: dict, event: str) -> dict:

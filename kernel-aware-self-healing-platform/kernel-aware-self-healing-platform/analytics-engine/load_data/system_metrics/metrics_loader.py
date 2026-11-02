@@ -136,7 +136,7 @@ def get_network_metrics():
     return query_prometheus("network_byte_sent_total")
 
 
-def get_process_metric(system_id, process_name, metric):
+def get_process_metric(system_id, process_name, metric, require_freshness=False):
     metric_name = metric.get("metric") if isinstance(metric, dict) else str(metric)
     prometheus_metric = METRIC_MAP.get(metric_name, metric_name)
     if not prometheus_metric.startswith("process_"):
@@ -147,7 +147,11 @@ def get_process_metric(system_id, process_name, metric):
         "name": str(process_name),
     }
     label_selector = ",".join(f"{key}={json.dumps(value)}" for key, value in labels.items())
-    return query_prometheus(f"{prometheus_metric}{{{label_selector}}}")
+    selector = f"{prometheus_metric}{{{label_selector}}}"
+    if require_freshness:
+        freshness = PROMETHEUS_SCRAPE_INTERVAL_SECONDS * 1.25
+        selector = f"({selector}) and ((time() - timestamp({selector})) <= {freshness:g})"
+    return query_prometheus(selector)
 
 
 def build_metric_selector(metric_name: str, labels=None) -> str:

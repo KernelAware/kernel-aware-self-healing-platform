@@ -26,9 +26,17 @@ def user_rules_service(userRules):
     recovery_actions = []
     notifications_actions = []
 
+    requested_system_id = userRules.get("system_id", 1)
+    try:
+        requested_system_id = int(requested_system_id)
+        if requested_system_id <= 0:
+            raise ValueError
+    except (TypeError, ValueError) as error:
+        raise ValueError("system_id must be a positive integer") from error
+
     rule = Rule(
         name=userRules["ruleName"],
-        system_id=1,
+        system_id=requested_system_id,
         status="ENABLED" if userRules["enabled"] else "DISABLED",
         priority=userRules["priority"],
         severity=userRules["severity"],
@@ -47,37 +55,32 @@ def user_rules_service(userRules):
         )
         targets.append(rule_target)
 
-    for metric in userRules["targets"][0]["metrics"]:
+    # The current relational schema associates metrics with a rule, not a
+    # target. Preserve every configured metric/condition without a schema
+    # migration; detectors will still apply this flattened set to targets.
+    for target in userRules.get("targets", []):
+        for metric in target.get("metrics", []):
+            conditions = metric.get("conditions") or [metric]
+            for condition in conditions:
+                duration = int(condition.get("duration", 0) or 0)
+                unit = str(condition.get("durationUnit", "seconds")).lower()
+                if unit == "minutes":
+                    duration_seconds = duration * 60
+                elif unit == "hours":
+                    duration_seconds = duration * 3600
+                else:
+                    duration_seconds = duration
 
-        condition = metric["conditions"][0]
-        duration = int(condition["duration"])
-
-        if condition["durationUnit"].lower() == "minutes":
-            duration_seconds = duration * 60
-
-        elif condition["durationUnit"].lower() == "hours":
-            duration_seconds = duration * 60 * 60
-
-        elif condition["durationUnit"].lower() == "seconds":
-            duration_seconds = duration
-
-        else:
-            duration_seconds = duration
-
-
-        rule_metric = RuleMetric(
-            rule_id=rule.id,
-            metric=condition["metric"],
-            operator=condition["operator"],
-            threshold=(
-                float(condition["threshold"])
-                if condition.get("threshold")
-                else None
-            ),
-            duration_seconds=duration_seconds
-        )
-
-        metrics.append(rule_metric)
+                metric_name = condition.get("metric") or metric.get("metric")
+                if not metric_name:
+                    continue
+                metrics.append(RuleMetric(
+                    rule_id=rule.id,
+                    metric=metric_name,
+                    operator=condition.get("operator"),
+                    threshold=float(condition["threshold"]) if condition.get("threshold") not in (None, "") else None,
+                    duration_seconds=duration_seconds,
+                ))
 
     safety = userRules.get("safety", {})
     retry = userRules.get("retry", {})

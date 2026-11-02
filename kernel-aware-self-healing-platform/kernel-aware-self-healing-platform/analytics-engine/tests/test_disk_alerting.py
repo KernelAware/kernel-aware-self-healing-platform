@@ -1,7 +1,9 @@
 import asyncio
+import fnmatch
 import importlib.util
 import json
 import sys
+import threading
 import types
 import unittest
 from unittest.mock import MagicMock, patch
@@ -28,6 +30,7 @@ if importlib.util.find_spec("redis") is None:
     sys.modules["redis"] = redis_stub
 
 from detection.duration import verify_prometheus_duration
+from detection.strategies.process_detector import ProcessDetector
 from detection.strategies.disk_detector import (
     DISK_EXPORTER_METRIC_LABELS,
     DiskDetector,
@@ -113,6 +116,11 @@ class MemoryRedis:
             raise RuntimeError("Redis delete failed")
         self.values.pop(key, None)
 
+    def scan_iter(self, match=None, count=None):
+        if getattr(self, "fail_scan", False):
+            raise RuntimeError("Redis scan failed")
+        return iter(key for key in list(self.values) if match is None or fnmatch.fnmatch(key, match))
+
 
 class DiskDetectorTests(unittest.TestCase):
     def setUp(self):
@@ -122,13 +130,19 @@ class DiskDetectorTests(unittest.TestCase):
         self.manager_redis_patch = patch.object(manager, "redis_client", self.redis)
         self.manager_redis_patch.start()
         self.decision_response = MagicMock()
-        self.decision_response.json.return_value = {"decision": {"decision": "NO_ACTION"}}
         self.decision_request_patch = patch.object(
             manager.requests,
             "post",
             return_value=self.decision_response,
         )
         self.decision_request = self.decision_request_patch.start()
+        self.decision_response.json.side_effect = lambda: {
+            "incident_id": self.decision_request.call_args.kwargs["json"]["incident_id"],
+            "fingerprint": self.decision_request.call_args.kwargs["json"]["fingerprint"],
+            "outcome": "PERMITTED",
+            "decision": {"decision": "NO_ACTION"},
+            "policy": {"allowed": True},
+        }
         self.events = []
         self.publish_patch = patch.object(manager, "publish_incident", side_effect=self._persist)
         self.publish_patch.start()
@@ -148,7 +162,8 @@ class DiskDetectorTests(unittest.TestCase):
 
         rows = rows if rows is not None else [sample_result(value)]
         with patch.object(disk_detector, "get_disk_metric", return_value=rows), \
-             patch.object(disk_detector.time, "time", return_value=now):
+             patch.object(disk_detector.time, "time", return_value=now), \
+             patch.object(disk_detector, "verify_prometheus_duration", return_value=(True, None)):
             return DiskDetector().detect(
                 rule,
                 allow_incident_creation=allow_incident_creation,
@@ -205,6 +220,24 @@ class DiskDetectorTests(unittest.TestCase):
         self.assertEqual(new_state["started_at"], 105)
         self.assertNotEqual(old_key, new_key)
         self.assertIn(old_key, self.redis.values)
+
+    def test_resolution_pending_timer_restarts_trigger_window_without_recovery_gate(self):
+        from detection.disk_duration import mark_disk_resolution_pending, observe_disk_violation
+
+        identity = {"system_id": 1, "rule_id": 12, "metric": "disk_read_count"}
+        _, initial = observe_disk_violation(identity, 10, now=100)
+        active = {**initial, "status": "active", "incident_id": "INC-old"}
+        mark_disk_resolution_pending(identity, active)
+
+        elapsed, restarted = observe_disk_violation(identity, 10, now=105)
+        self.assertFalse(elapsed)
+        self.assertEqual(restarted["status"], "pending")
+        self.assertEqual(restarted["started_at"], 105)
+        self.assertEqual(restarted["previous_resolution_incident_id"], "INC-old")
+
+        elapsed, continued = observe_disk_violation(identity, 10, now=115)
+        self.assertTrue(elapsed)
+        self.assertEqual(continued["status"], "pending")
 
     def test_first_round_tracks_violation_but_defers_incident_until_next_round(self):
         rule = sample_rule(duration=0)
@@ -319,7 +352,8 @@ class DiskDetectorTests(unittest.TestCase):
         rule["metrics"][0]["metric"] = "disk_usage_percent"
         result = partition_sample_result(95, device="/dev/sda1")
         with patch.object(disk_detector, "get_disk_metric", return_value=[result]) as query, \
-             patch.object(disk_detector.time, "time", return_value=100):
+             patch.object(disk_detector.time, "time", return_value=100), \
+             patch.object(disk_detector, "verify_prometheus_duration", return_value=(True, None)):
             DiskDetector().detect(rule)
         query.assert_called_once_with(
             1, "disk_usage_percent", {"device": "/dev/sda1"}, require_freshness=True
@@ -335,7 +369,8 @@ class DiskDetectorTests(unittest.TestCase):
         info = partition_sample_result(1, device="/dev/nvme0n1p6")
         disk = per_disk_sample_result(100, disk="nvme0n1")
         with patch.object(disk_detector, "get_disk_metric", side_effect=[[info], [disk]]) as query, \
-             patch.object(disk_detector.time, "time", return_value=100):
+             patch.object(disk_detector.time, "time", return_value=100), \
+             patch.object(disk_detector, "verify_prometheus_duration", return_value=(True, None)):
             DiskDetector().detect(rule)
         self.assertEqual(query.call_args_list[0].args, (1, "disk_partition_info", {"device": "/dev/nvme0n1p6"}))
         self.assertEqual(query.call_args_list[1].args, (1, "disk_per_read_bytes", {"disk": "nvme0n1"}))
@@ -394,9 +429,45 @@ class DiskDetectorTests(unittest.TestCase):
         self.assertEqual(pending["outcome"], "recovery_not_confirmed")
         state_key = next(key for key in self.redis.values if key.startswith("kaisp:disk:violation:"))
         self.assertEqual(json.loads(self.redis.get(state_key))["status"], "resolution_pending")
+        manager_key = next(
+            key for key, value in self.redis.values.items()
+            if key.startswith("incident:active:") and '"_backend_pending_event": "resolved"' in value
+        )
+        manager_state = json.loads(self.redis.get(manager_key))
+        manager_state["_backend_retry_at"] = 0
+        self.redis.set(manager_key, json.dumps(manager_state))
         self.evaluate(rule, 70, now=102)
         self.assertEqual([event for _, event, _ in self.events], ["opened", "resolved"])
         self.assertEqual(self.events[-1][0], first_id)
+
+    def test_resolution_pending_state_does_not_block_new_qualified_violation(self):
+        from detection.disk_duration import mark_disk_resolution_pending
+
+        rule = sample_rule(duration=0)
+        self.evaluate(rule, 90, now=100)
+        first_id = self.events[0][0]
+        timer_key = next(key for key in self.redis.values if key.startswith("kaisp:disk:violation:"))
+        timer_state = json.loads(self.redis.get(timer_key))
+        identity = timer_state["identity"]
+        mark_disk_resolution_pending(identity, timer_state)
+
+        manager_key = next(key for key in self.redis.values if key.startswith("incident:active:"))
+        manager_state = json.loads(self.redis.get(manager_key))
+        manager_state.update({"status": "RESOLVED", "_backend_pending_event": "resolved"})
+        manager_state["_backend_retry_at"] = 9999999999
+        self.redis.set(manager_key, json.dumps(manager_state))
+
+        result = self.evaluate(rule, 91, now=101)
+
+        self.assertEqual(result["outcome"], "violation_confirmed")
+        self.assertEqual([event for _, event, _ in self.events], ["opened", "opened"])
+        self.assertEqual([incident_id for incident_id, _, _ in self.events], [first_id, first_id])
+        active = json.loads(self.redis.get(manager_key))
+        self.assertEqual(active["status"], "OPEN")
+        self.assertEqual(active["incident_id"], first_id)
+        timer = json.loads(self.redis.get(timer_key))
+        self.assertEqual(timer["status"], "active")
+        self.assertEqual(timer["previous_resolution_incident_id"], first_id)
 
 
 class DiskMetricLoaderTests(unittest.TestCase):
@@ -404,6 +475,64 @@ class DiskMetricLoaderTests(unittest.TestCase):
         with patch("load_data.system_metrics.metrics_loader.query_prometheus") as query:
             get_disk_metric(1, "disk_usage_percent", {"device": "/dev/sda1"})
         query.assert_called_once_with('disk_usage_percent{device="/dev/sda1",system_id="1"}')
+
+    def test_process_metric_can_filter_stale_samples(self):
+        from load_data.system_metrics.metrics_loader import get_process_metric
+
+        with patch("load_data.system_metrics.metrics_loader.query_prometheus") as query:
+            get_process_metric(1, "worker", {"metric": "process_cpu_percent"}, require_freshness=True)
+        expression = query.call_args.args[0]
+        self.assertIn('process_cpu_percent{system_id="1",name="worker"}', expression)
+        self.assertIn("timestamp(process_cpu_percent", expression)
+        self.assertIn("6.25", expression)
+
+
+class ProcessDetectorTests(unittest.TestCase):
+    rule = {
+        "rule": {"id": 4, "system_id": 1, "monitor_type": "process", "status": "ENABLED"},
+        "targets": [{"target": "worker"}],
+        "metrics": [{
+            "metric": "process_cpu_percent", "operator": "Greater Than (>)",
+            "threshold": 80, "duration_seconds": 10,
+        }],
+    }
+    sample = {"metric": {"system_id": "1", "name": "worker", "pid": "42"}, "value": ["100", "90"]}
+
+    def test_qualified_violation_waits_for_timer_and_prometheus_continuity(self):
+        with patch("detection.strategies.process_detector.get_process_metric", return_value=[self.sample]) as query, \
+             patch("detection.strategies.process_detector.check_duration", return_value=True) as timer, \
+             patch("detection.strategies.process_detector.verify_prometheus_duration", return_value=(True, None)) as history, \
+             patch("detection.strategies.process_detector.manage_incidents") as publish:
+            ProcessDetector().detect(self.rule)
+        query.assert_called_once_with(1, "worker", self.rule["metrics"][0], require_freshness=True)
+        timer.assert_called_once()
+        self.assertEqual(timer.call_args.args[0]["pid"], "42")
+        history.assert_called_once_with(
+            "process_cpu_percent", self.sample["metric"], "Greater Than (>)", 80.0, 10.0
+        )
+        publish.assert_called_once()
+
+    def test_unverified_history_does_not_publish_or_clear_timer(self):
+        with patch("detection.strategies.process_detector.get_process_metric", return_value=[self.sample]), \
+             patch("detection.strategies.process_detector.check_duration", return_value=True), \
+             patch("detection.strategies.process_detector.verify_prometheus_duration", return_value=(False, "gap")), \
+             patch("detection.strategies.process_detector.manage_incidents") as publish:
+            ProcessDetector().detect(self.rule)
+        publish.assert_not_called()
+
+    def test_absent_metric_does_not_infer_process_recovery(self):
+        with patch("detection.strategies.process_detector.get_process_metric", return_value=[]), \
+             patch("detection.strategies.process_detector.manage_incidents") as publish:
+            ProcessDetector().detect(self.rule)
+        publish.assert_not_called()
+
+    def test_failed_timer_clear_does_not_emit_recovery(self):
+        recovered = {**self.sample, "value": ["100", "10"]}
+        with patch("detection.strategies.process_detector.get_process_metric", return_value=[recovered]), \
+             patch("detection.strategies.process_detector.clear_duration", return_value=False), \
+             patch("detection.strategies.process_detector.manage_incidents") as publish:
+            ProcessDetector().detect(self.rule)
+        publish.assert_not_called()
 
 
 class PrometheusDurationTests(unittest.TestCase):
@@ -466,7 +595,7 @@ class PrometheusDurationTests(unittest.TestCase):
             )
         self.assertTrue(satisfied)
         self.assertIsNone(reason)
-        self.assertEqual(query.call_args.args[1:], (700, 1000, 5.0))
+        self.assertEqual(query.call_args.args[1:], (695, 1000, 5.0))
         self.assertEqual(
             query.call_args.args[0],
             '(disk_usage_percent{device="/dev/sda1",filesystem="ext4",mountpoint="/mnt/data",system_id="1"}) and '
@@ -501,6 +630,36 @@ class PrometheusDurationTests(unittest.TestCase):
             )
         self.assertFalse(satisfied)
         self.assertIn("full configured duration", reason)
+
+    def test_single_sample_cannot_prove_a_positive_duration(self):
+        now = 1000
+        row = self.range_row([[now, "90"]])
+        with patch("detection.duration.query_prometheus_range", return_value=[row]):
+            satisfied, reason = verify_prometheus_duration(
+                "disk_usage_percent", self.labels, "Greater Than (>)", 80, 30, now=now
+            )
+        self.assertFalse(satisfied)
+        self.assertIn("too few observations", reason)
+
+    def test_ambiguous_series_and_non_finite_history_are_rejected(self):
+        now = 1000
+        values = [[now - 30 + index * 5, "90"] for index in range(7)]
+        row = self.range_row(values)
+        duplicate = {"metric": {**self.labels, "extra": "series"}, "values": values}
+        with patch("detection.duration.query_prometheus_range", return_value=[row, duplicate]):
+            satisfied, reason = verify_prometheus_duration(
+                "disk_usage_percent", self.labels, "Greater Than (>)", 80, 30, now=now
+            )
+        self.assertFalse(satisfied)
+        self.assertIn("ambiguous", reason)
+
+        values[3][1] = "NaN"
+        with patch("detection.duration.query_prometheus_range", return_value=[row]):
+            satisfied, reason = verify_prometheus_duration(
+                "disk_usage_percent", self.labels, "Greater Than (>)", 80, 30, now=now
+            )
+        self.assertFalse(satisfied)
+        self.assertIn("non-finite", reason)
 
     def test_duration_zero_requires_a_fresh_sample(self):
         with patch("detection.duration.query_prometheus", return_value=[]):
@@ -759,20 +918,23 @@ class IncidentManagerTests(unittest.TestCase):
         self.redis_patch.start()
         self.publish_patch = patch.object(manager, "publish_incident", side_effect=lambda item, event: {"incident": {"id": item["incident_id"]}})
         self.publish = self.publish_patch.start()
-        self.de_patch = patch.object(manager, "_send_process_to_decision_engine")
-        self.send_decision = self.de_patch.start()
         self.decision_response = MagicMock()
-        self.decision_response.json.return_value = {"decision": {"decision": "NO_ACTION"}}
         self.decision_request_patch = patch.object(
             manager.requests,
             "post",
             return_value=self.decision_response,
         )
         self.decision_request = self.decision_request_patch.start()
+        self.decision_response.json.side_effect = lambda: {
+            "incident_id": self.decision_request.call_args.kwargs["json"]["incident_id"],
+            "fingerprint": self.decision_request.call_args.kwargs["json"]["fingerprint"],
+            "outcome": "PERMITTED",
+            "decision": {"decision": "NO_ACTION"},
+            "policy": {"allowed": True},
+        }
 
     def tearDown(self):
         self.decision_request_patch.stop()
-        self.de_patch.stop()
         self.publish_patch.stop()
         self.redis_patch.stop()
 
@@ -797,7 +959,7 @@ class IncidentManagerTests(unittest.TestCase):
             [call.args[1] for call in self.publish.call_args_list],
             ["opened", "resolved", "opened"],
         )
-        self.send_decision.assert_not_called()
+        self.assertEqual(self.decision_request.call_count, 2)
 
     def test_successful_persistence_response_clears_retry_marker_and_reuses_id(self):
         self.publish.side_effect = lambda item, event: {"incident": {"id": "INC-database-id"}}
@@ -832,6 +994,10 @@ class IncidentManagerTests(unittest.TestCase):
             "fingerprint": fingerprint,
             "incident_id": "INC-existing",
             "status": "OPEN",
+            "analytics_generation": manager.ANALYTICS_GENERATION,
+            "_decision_outcome": "PERMITTED",
+            "decision_outcome": "PERMITTED",
+            "policy_outcome": "ALLOWED",
             "_backend_pending_event": "updated",
         }))
 
@@ -853,17 +1019,21 @@ class IncidentManagerTests(unittest.TestCase):
             ["opened", "updated"],
         )
 
-    def test_failed_resolution_is_retried_before_a_new_open(self):
+    def test_new_violation_supersedes_pending_resolution_with_same_identity(self):
         first = manager.manage_incidents(self.incident(), True)
         self.publish.side_effect = TimeoutError("backend response timed out")
         with patch.object(manager.logger, "exception"):
             manager.manage_incidents(self.incident(), False)
         self.publish.side_effect = lambda item, event: {"incident": {"id": item["incident_id"]}}
+        retry_key = manager._active_key(manager.incident_fingerprint(self.incident()))
+        state = json.loads(self.redis.get(retry_key))
+        state["_backend_retry_at"] = 0
+        self.redis.set(retry_key, json.dumps(state))
         reopened = manager.manage_incidents(self.incident(), True)
-        self.assertNotEqual(first["incident_id"], reopened["incident_id"])
+        self.assertEqual(first["incident_id"], reopened["incident_id"])
         self.assertEqual(
             [call.args[1] for call in self.publish.call_args_list],
-            ["opened", "resolved", "resolved", "opened"],
+            ["opened", "resolved", "opened"],
         )
 
     def test_separate_partitions_get_distinct_incident_identities(self):
@@ -907,26 +1077,442 @@ class IncidentManagerTests(unittest.TestCase):
             current = manager.manage_incidents(incident, True)
             repeated = manager.manage_incidents(incident, True)
 
-        self.assertNotEqual(current["incident_id"], "INC-previous-run")
+        self.assertEqual(current["incident_id"], "INC-previous-run")
         self.assertEqual(current["incident_id"], repeated["incident_id"])
-        self.assertNotEqual(current["fingerprint"], old_fingerprint)
+        self.assertEqual(current["fingerprint"], old_fingerprint)
         self.assertEqual(self.decision_request.call_count, 1)
         self.assertEqual(json.loads(self.redis.get(old_key))["_decision_submission_status"], "submitted")
 
-    def test_decision_failure_does_not_block_backend_persistence_or_retry_forever(self):
+    def test_previous_generation_disk_permit_is_revalidated_with_stable_identity(self):
+        incident = self.incident()
+        fingerprint = manager.incident_fingerprint(incident)
+        key = manager._active_key(fingerprint)
+        self.redis.set(key, json.dumps({
+            **incident,
+            "fingerprint": fingerprint,
+            "incident_id": "INC-prior-generation",
+            "status": "OPEN",
+            "analytics_generation": "old-run",
+            "_decision_outcome": "PERMITTED",
+            "_decision_result": {"outcome": "PERMITTED", "decision": {"decision": "NO_ACTION"}},
+            "decision_outcome": "PERMITTED",
+            "decision": {"decision": "NO_ACTION"},
+            "policy": {"allowed": True},
+        }))
+
+        with patch.object(manager, "ANALYTICS_GENERATION", "new-run"):
+            current = manager.manage_incidents(incident, True)
+
+        self.assertEqual(current["incident_id"], "INC-prior-generation")
+        self.assertEqual(self.decision_request.call_count, 1)
+        self.assertEqual(self.decision_request.call_args.kwargs["json"]["incident_id"], "INC-prior-generation")
+        stored = json.loads(self.redis.get(key))
+        self.assertEqual(stored["_decision_outcome"], "PERMITTED")
+        self.assertEqual(stored["analytics_generation"], "new-run")
+        self.publish.assert_called_once()
+
+    def test_decision_failure_keeps_incident_pending_and_blocks_backend_publish(self):
         self.decision_request.side_effect = TimeoutError("Decision Engine unavailable")
         with patch.object(manager.logger, "exception"):
             first = manager.manage_incidents(self.incident(), True)
             repeated = manager.manage_incidents(self.incident(), True)
 
         self.assertEqual(first["incident_id"], repeated["incident_id"])
-        self.assertEqual(self.publish.call_count, 1)
+        self.assertEqual(self.publish.call_count, 0)
         self.assertEqual(self.decision_request.call_count, 1)
         stored = json.loads(self.redis.get(manager._active_key(first["fingerprint"])))
-        self.assertEqual(stored["_decision_submission_status"], "failed")
+        self.assertEqual(stored["_decision_status"], "pending")
+        self.assertEqual(stored["incident_id"], first["incident_id"])
+
+    def test_denied_and_approval_required_outcomes_never_publish(self):
+        for outcome in ("DENIED", "APPROVAL_REQUIRED"):
+            self.redis.values.clear()
+            self.publish.reset_mock()
+            self.decision_response.json.side_effect = lambda outcome=outcome: {
+                "incident_id": self.decision_request.call_args.kwargs["json"]["incident_id"],
+                "fingerprint": self.decision_request.call_args.kwargs["json"]["fingerprint"],
+                "outcome": outcome,
+                "decision": {"decision": "NO_ACTION"},
+                "policy": {"allowed": outcome == "DENIED" and False},
+            }
+            item = manager.manage_incidents(self.incident(), True)
+            self.assertEqual(item["_decision_outcome"], outcome)
+            self.publish.assert_not_called()
+
+    def test_denied_disk_rule_does_not_suppress_an_independent_permitted_rule(self):
+        def decision_body():
+            request = self.decision_request.call_args.kwargs["json"]
+            allowed = request["rule_id"] == 13
+            return {
+                "incident_id": request["incident_id"],
+                "fingerprint": request["fingerprint"],
+                "outcome": "PERMITTED" if allowed else "DENIED",
+                "decision": {"decision": "ALERT_ONLY"},
+                "policy": {"allowed": allowed, "reason": "ALLOWED" if allowed else "Denied"},
+            }
+
+        self.decision_response.json.side_effect = decision_body
+        blocked = self.incident()
+        blocked["rule_id"] = 12
+        eligible = self.incident()
+        eligible["rule_id"] = 13
+
+        manager.manage_incidents(blocked, True)
+        published = manager.manage_incidents(eligible, True)
+
+        self.assertEqual(self.publish.call_count, 1)
+        self.assertEqual(self.publish.call_args.args[0]["rule_id"], 13)
+        self.assertEqual(published["_decision_outcome"], "PERMITTED")
+
+    def test_transient_decision_failure_retries_same_identity_after_backoff(self):
+        self.decision_request.side_effect = TimeoutError("offline")
+        with patch.object(manager.logger, "exception"):
+            first = manager.manage_incidents(self.incident(), True)
+        state_key = manager._active_key(first["fingerprint"])
+        stored = json.loads(self.redis.get(state_key))
+        stored["_decision_retry_at"] = 0
+        self.redis.set(state_key, json.dumps(stored))
+
+        def permitted_response(url, *, json, timeout):
+            response = MagicMock()
+            response.json.return_value = {
+                "incident_id": json["incident_id"],
+                "fingerprint": json["fingerprint"],
+                "outcome": "PERMITTED",
+                "decision": {"decision": "NO_ACTION"},
+                "policy": {"allowed": True},
+            }
+            return response
+
+        self.decision_request.side_effect = permitted_response
+        retried = manager.manage_incidents(self.incident(), True)
+        self.assertEqual(retried["incident_id"], first["incident_id"])
+        self.assertEqual(self.publish.call_count, 1)
+
+    def _permitted_response(self, request):
+        response = MagicMock()
+        response.json.return_value = {
+            "incident_id": request["incident_id"],
+            "fingerprint": request["fingerprint"],
+            "outcome": "PERMITTED",
+            "decision": {"decision": "NO_ACTION"},
+            "policy": {"allowed": True},
+        }
+        return response
+
+    def test_retry_worker_retries_pending_decision_without_detector_call(self):
+        self.decision_request.side_effect = TimeoutError("offline")
+        with patch.object(manager.logger, "exception"):
+            pending = manager.manage_incidents(self.incident(), True)
+        key = manager._active_key(pending["fingerprint"])
+        state = json.loads(self.redis.get(key))
+        state["_decision_retry_at"] = 0
+        self.redis.set(key, json.dumps(state))
+        self.decision_request.side_effect = lambda url, *, json, timeout: self._permitted_response(json)
+
+        result = manager.retry_pending_incidents()
+
+        self.assertEqual(result["retried"], 1)
+        self.assertEqual(self.publish.call_count, 1)
+        self.assertEqual(self.publish.call_args.args[0]["incident_id"], pending["incident_id"])
+
+    def test_retry_worker_does_not_process_future_deadline(self):
+        self.decision_request.side_effect = TimeoutError("offline")
+        with patch.object(manager.logger, "exception"):
+            pending = manager.manage_incidents(self.incident(), True)
+        self.decision_request.reset_mock()
+        result = manager.retry_pending_incidents()
+        self.assertEqual(result["retried"], 0)
+        self.decision_request.assert_not_called()
+        self.assertIsNotNone(self.redis.get(manager._active_key(pending["fingerprint"])))
+
+    def test_retry_timeout_and_non_permitted_outcomes_never_publish(self):
+        self.decision_request.side_effect = TimeoutError("offline")
+        with patch.object(manager.logger, "exception"):
+            pending = manager.manage_incidents(self.incident(), True)
+        key = manager._active_key(pending["fingerprint"])
+        state = json.loads(self.redis.get(key))
+        state["_decision_retry_at"] = 0
+        self.redis.set(key, json.dumps(state))
+        with patch.object(manager.logger, "exception"):
+            manager.retry_pending_incidents()
+        self.assertEqual(json.loads(self.redis.get(key))["_decision_status"], "pending")
+        self.publish.assert_not_called()
+
+        for outcome in ("DENIED", "APPROVAL_REQUIRED"):
+            self.redis.values.clear()
+            self.publish.reset_mock()
+            self.decision_response.json.side_effect = lambda outcome=outcome: {
+                "incident_id": self.decision_request.call_args.kwargs["json"]["incident_id"],
+                "fingerprint": self.decision_request.call_args.kwargs["json"]["fingerprint"],
+                "outcome": outcome,
+                "decision": {"decision": "NO_ACTION"},
+                "policy": {"allowed": False},
+            }
+            incident = manager.manage_incidents(self.incident(), True)
+            key = manager._active_key(incident["fingerprint"])
+            stored = json.loads(self.redis.get(key))
+            stored["_decision_retry_at"] = 0
+            self.redis.set(key, json.dumps(stored))
+            manager.retry_pending_incidents()
+            self.publish.assert_not_called()
+
+    def test_malformed_decision_response_stays_unapproved(self):
+        self.decision_response.json.side_effect = None
+        self.decision_response.json.return_value = {"outcome": "PERMITTED"}
+        with patch.object(manager.logger, "exception"):
+            incident = manager.manage_incidents(self.incident(), True)
+        state = json.loads(self.redis.get(manager._active_key(incident["fingerprint"])))
+        self.assertEqual(state["_decision_status"], "pending")
+        self.assertEqual(state["_decision_last_error"], "ValueError")
+        self.publish.assert_not_called()
+
+    def test_backend_retry_reuses_incident_id(self):
+        self.publish.side_effect = [TimeoutError("backend offline"), {"incident": {"id": "INC-db"}}]
+        with patch.object(manager.logger, "exception"):
+            pending = manager.manage_incidents(self.incident(), True)
+        key = manager._active_key(pending["fingerprint"])
+        stored = json.loads(self.redis.get(key))
+        stored["_backend_retry_at"] = 0
+        self.redis.set(key, json.dumps(stored))
+
+        result = manager.retry_pending_incidents()
+
+        self.assertEqual(result["retried"], 1)
+        self.assertEqual([call.args[1] for call in self.publish.call_args_list], ["opened", "opened"])
+        first_id, retry_id = [call.args[0]["incident_id"] for call in self.publish.call_args_list]
+        self.assertEqual(first_id, retry_id)
+        self.assertEqual(json.loads(self.redis.get(key))["incident_id"], "INC-db")
+
+    def test_retry_worker_leaves_disk_resolution_event_for_existing_lifecycle(self):
+        incident = self.incident()
+        fingerprint = manager.incident_fingerprint(incident)
+        key = manager._active_key(fingerprint)
+        self.redis.set(key, json.dumps({
+            **incident,
+            "fingerprint": fingerprint,
+            "incident_id": "INC-resolved",
+            "status": "RESOLVED",
+            "_backend_pending_event": "resolved",
+            "_backend_retry_at": 0,
+        }))
+
+        result = manager.retry_pending_incidents()
+
+        self.assertEqual(result["retried"], 0)
+        self.publish.assert_not_called()
+        retained = json.loads(self.redis.get(key))
+        self.assertEqual(retained["_backend_pending_event"], "resolved")
+
+    def test_retry_worker_does_not_publish_stale_open_marker_on_resolved_disk_state(self):
+        incident = self.incident()
+        fingerprint = manager.incident_fingerprint(incident)
+        key = manager._active_key(fingerprint)
+        self.redis.set(key, json.dumps({
+            **incident,
+            "fingerprint": fingerprint,
+            "incident_id": "INC-stale-open",
+            "status": "RESOLVED",
+            "_backend_pending_event": "opened",
+            "_decision_outcome": "PERMITTED",
+        }))
+
+        result = manager.retry_pending_incidents()
+
+        self.assertEqual(result["retried"], 0)
+        self.publish.assert_not_called()
+        self.assertEqual(json.loads(self.redis.get(key))["status"], "RESOLVED")
+
+    def test_retry_worker_does_not_complete_saved_recovery_after_gate_permits(self):
+        self.decision_request.side_effect = TimeoutError("decision unavailable")
+        with patch.object(manager.logger, "exception"):
+            pending = manager.manage_incidents(self.incident(), True)
+            recovery = manager.manage_incidents(self.incident(), False)
+        self.assertEqual(recovery["status"], "OPEN")
+        self.assertIn("_recovery_pending", recovery)
+        self.publish.assert_not_called()
+
+        key = manager._active_key(pending["fingerprint"])
+        state = json.loads(self.redis.get(key))
+        state["_decision_retry_at"] = 0
+        self.redis.set(key, json.dumps(state))
+        self.decision_request.side_effect = lambda url, *, json, timeout: self._permitted_response(json)
+        self.publish.side_effect = lambda item, event: {"incident": {"id": item["incident_id"]}}
+
+        manager.retry_pending_incidents()
+
+        self.assertEqual([call.args[1] for call in self.publish.call_args_list], ["opened"])
+        self.assertEqual(self.publish.call_args.args[0]["incident_id"], pending["incident_id"])
+        retained = json.loads(self.redis.get(key))
+        self.assertNotIn("_backend_pending_event", retained)
+        self.assertIn("_recovery_pending", retained)
+
+    def test_retry_worker_ignores_process_pending_event(self):
+        incident = {**self.incident(), "monitor_type": "process", "incident_type": "process"}
+        fingerprint = manager.incident_fingerprint(incident)
+        key = manager._active_key(fingerprint)
+        self.redis.set(key, json.dumps({
+            **incident,
+            "fingerprint": fingerprint,
+            "incident_id": "INC-process",
+            "status": "OPEN",
+            "_backend_pending_event": "opened",
+            "_decision_outcome": "PERMITTED",
+        }))
+
+        result = manager.retry_pending_incidents()
+
+        self.assertEqual(result["retried"], 0)
+        self.publish.assert_not_called()
+        self.assertIsNotNone(self.redis.get(key))
+
+    def test_retry_worker_retains_malformed_redis_state(self):
+        key = manager._active_key("malformed")
+        self.redis.set(key, "not-json")
+
+        result = manager.retry_pending_incidents()
+
+        self.assertEqual(result["retried"], 0)
+        self.assertEqual(self.redis.get(key), "not-json")
+
+    def test_mismatched_decision_response_never_publishes(self):
+        self.decision_request.side_effect = TimeoutError("offline")
+        with patch.object(manager.logger, "exception"):
+            pending = manager.manage_incidents(self.incident(), True)
+        key = manager._active_key(pending["fingerprint"])
+        state = json.loads(self.redis.get(key))
+        state["_decision_retry_at"] = 0
+        self.redis.set(key, json.dumps(state))
+        self.decision_request.side_effect = None
+        self.decision_response.json.side_effect = None
+        self.decision_response.json.return_value = {
+            "incident_id": "INC-wrong",
+            "fingerprint": pending["fingerprint"],
+            "outcome": "PERMITTED",
+            "decision": {"decision": "NO_ACTION"},
+            "policy": {"allowed": True},
+        }
+
+        with patch.object(manager.logger, "exception"):
+            manager.retry_pending_incidents()
+
+        stored = json.loads(self.redis.get(key))
+        self.assertEqual(stored["_decision_status"], "pending")
+        self.assertEqual(stored["_decision_last_error"], "ValueError")
+        self.publish.assert_not_called()
+
+    def test_decision_http_422_logs_validation_body_and_keeps_incident_pending(self):
+        from requests import HTTPError
+
+        response = MagicMock()
+        response.status_code = 422
+        response.text = '{"detail":{"outcome":"INVALID_INCIDENT","missing":["value"]}}'
+        error = HTTPError("422 Client Error")
+        error.response = response
+        self.decision_response.raise_for_status.side_effect = error
+
+        with self.assertLogs(manager.logger, level="ERROR") as captured:
+            incident = manager.manage_incidents(self.incident(), True)
+
+        self.assertEqual(self.publish.call_count, 0)
+        state = json.loads(self.redis.get(manager._active_key(incident["fingerprint"])))
+        self.assertEqual(state["_decision_http_status"], 422)
+        self.assertEqual(state["_decision_status"], "rejected")
+        self.assertEqual(state["_backend_pending_event"], "opened")
+        logs = "\n".join(captured.output)
+        self.assertIn('"missing":["value"]', logs)
+        self.assertIn(incident["incident_id"], logs)
+
+    def test_invalid_rule_422_is_retained_without_indefinite_retry(self):
+        from requests import HTTPError
+
+        response = MagicMock()
+        response.status_code = 422
+        response.text = '{"detail":{"outcome":"INVALID_RULE"}}'
+        error = HTTPError("422 Client Error")
+        error.response = response
+        self.decision_response.raise_for_status.side_effect = error
+
+        with patch.object(manager.logger, "error"):
+            incident = manager.manage_incidents(self.incident(), True)
+
+        key = manager._active_key(incident["fingerprint"])
+        state = json.loads(self.redis.get(key))
+        self.assertEqual(state["_decision_status"], "invalid_rule")
+        self.assertEqual(state["_decision_last_error"], "INVALID_RULE")
+        self.assertEqual(state["_backend_pending_event"], "opened")
+        self.assertNotIn("_decision_retry_at", state)
+        self.decision_request.reset_mock()
+
+        manager.retry_pending_incidents()
+
+        self.decision_request.assert_not_called()
+        self.publish.assert_not_called()
+        self.assertIsNotNone(self.redis.get(key))
+
+    def test_scan_failure_does_not_break_later_worker_pass(self):
+        self.redis.fail_scan = True
+        self.assertEqual(manager.retry_pending_incidents()["failed"], 1)
+        self.redis.fail_scan = False
+        self.assertEqual(manager.retry_pending_incidents()["failed"], 0)
+
+    def test_pending_work_uses_saved_state_after_restart_or_rule_disable(self):
+        self.decision_request.side_effect = TimeoutError("offline")
+        with patch.object(manager.logger, "exception"):
+            pending = manager.manage_incidents(self.incident(), True)
+        key = manager._active_key(pending["fingerprint"])
+        state = json.loads(self.redis.get(key))
+        state["_decision_retry_at"] = 0
+        state["rule_status"] = "DISABLED"
+        self.redis.set(key, json.dumps(state))
+        self.decision_request.side_effect = lambda url, *, json, timeout: self._permitted_response(json)
+
+        manager.retry_pending_incidents()
+
+        self.assertEqual(self.publish.call_count, 1)
+        self.assertEqual(self.publish.call_args.args[0]["incident_id"], pending["incident_id"])
+
+    def test_concurrent_retry_scans_in_one_process_do_not_duplicate_publish(self):
+        pending = manager.manage_incidents(self.incident(), True)
+        key = manager._active_key(pending["fingerprint"])
+        state = json.loads(self.redis.get(key))
+        state["_backend_pending_event"] = "opened"
+        state["_backend_retry_at"] = 0
+        self.redis.set(key, json.dumps(state))
+        entered = threading.Event()
+        release = threading.Event()
+
+        def slow_publish(item, event):
+            entered.set()
+            release.wait(timeout=2)
+            return {"incident": {"id": item["incident_id"]}}
+
+        self.publish.side_effect = slow_publish
+        self.publish.reset_mock()
+        first = threading.Thread(target=manager.retry_pending_incidents)
+        second = threading.Thread(target=manager.retry_pending_incidents)
+        first.start()
+        self.assertTrue(entered.wait(timeout=2))
+        second.start()
+        release.set()
+        first.join(timeout=2)
+        second.join(timeout=2)
+        self.assertFalse(first.is_alive())
+        self.assertFalse(second.is_alive())
+        self.assertEqual(self.publish.call_count, 1)
 
 
 class AnalyticsLifecycleTests(unittest.IsolatedAsyncioTestCase):
+    async def test_lifespan_cancels_and_awaits_both_background_tasks(self):
+        import main as analytics_main
+
+        async def wait_forever():
+            await asyncio.Event().wait()
+        with patch.object(analytics_main, "analysis_loop", side_effect=wait_forever), \
+             patch.object(analytics_main, "incident_retry_loop", side_effect=wait_forever):
+            async with analytics_main.lifespan(analytics_main.app):
+                await asyncio.sleep(0)
+
     async def test_normal_disk_alert_cycle_starts_immediately_after_first_round(self):
         import main as analytics_main
 
@@ -972,3 +1558,38 @@ class AnalyticsLifecycleTests(unittest.IsolatedAsyncioTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class UnsupportedRuleTests(unittest.TestCase):
+    def test_unsupported_service_rule_is_skipped_once_and_disk_still_dispatches(self):
+        from detection import detector
+
+        service = {"rule": {"id": 7401, "monitor_type": "service", "status": "ENABLED"}}
+        disk = {"rule": {"id": 7402, "monitor_type": "disk", "status": "ENABLED"}}
+        disk_strategy = MagicMock()
+        with patch.dict(detector.strategies, {"disk": disk_strategy}), \
+             self.assertLogs(detector.logger, level="WARNING") as captured:
+            self.assertIsNone(detector.detect(service))
+            self.assertIsNone(detector.detect(service))
+            detector.detect(disk)
+
+        self.assertEqual(len(captured.output), 1)
+        self.assertIn("rule_id=7401 monitor_type=service", captured.output[0])
+        disk_strategy.detect.assert_called_once_with(disk, allow_incident_creation=True)
+
+    def test_unsupported_process_metric_is_skipped_without_traceback(self):
+        rule = {
+            "rule": {"id": 7403, "system_id": 1, "status": "ENABLED"},
+            "targets": [{"target": "example"}],
+            "metrics": [{"metric": "Network Usage (%)"}],
+        }
+        with patch(
+            "detection.strategies.process_detector.get_process_metric",
+            side_effect=ValueError("Unsupported Process metric: Network Usage (%)"),
+        ), self.assertLogs("detection.strategies.process_detector", level="WARNING") as captured:
+            ProcessDetector().detect(rule)
+            ProcessDetector().detect(rule)
+
+        self.assertEqual(len(captured.output), 1)
+        self.assertIn("rule_id=7403 metric=Network Usage (%)", captured.output[0])
+        self.assertNotIn("Traceback", captured.output[0])

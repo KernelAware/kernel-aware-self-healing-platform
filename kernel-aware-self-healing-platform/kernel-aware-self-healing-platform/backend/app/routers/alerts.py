@@ -41,6 +41,19 @@ async def _persist_and_broadcast(data: dict, db: Session, *, disk_lifecycle: boo
     if not incident_detail:
         raise HTTPException(status_code=422, detail="incident_detail is required")
 
+    # Resolution is a lifecycle operation for an existing incident. New or
+    # updated active alerts require an explicit Decision Engine permit.
+    if event != "resolved":
+        decision_outcome = incident_detail.get("decision_outcome") or data.get("decision_outcome")
+        policy_outcome = incident_detail.get("policy_outcome") or data.get("policy_outcome")
+        policy = incident_detail.get("policy") or {}
+        if decision_outcome != "PERMITTED" or not policy_outcome or policy.get("allowed") is not True:
+            raise HTTPException(status_code=403, detail="A permitted Decision Engine outcome is required")
+        if not incident_detail.get("fingerprint"):
+            raise HTTPException(status_code=422, detail="fingerprint is required")
+        if not (incident_detail.get("incident_id") or incident_detail.get("id")):
+            raise HTTPException(status_code=422, detail="incident_id is required")
+
     generation = incident_detail.get("analytics_generation") or data.get("analytics_generation")
     if disk_lifecycle:
         try:
@@ -99,6 +112,15 @@ async def _persist_and_broadcast(data: dict, db: Session, *, disk_lifecycle: boo
     else:
         saved_alert = {}
 
+    is_disk = str(saved_incident.get("monitor_type") or saved_incident.get("category") or "").lower() == "disk"
+    if is_disk:
+        logger.info(
+            "DISK_BACKEND_INCIDENT_PERSISTED system_id=%s rule_id=%s incident_id=%s fingerprint=%s event=%s created=%s status=%s",
+            saved_incident.get("system_id"), saved_incident.get("rule_id"),
+            saved_incident.get("incident_id"), saved_incident.get("fingerprint"),
+            event, created, saved_incident.get("status"),
+        )
+
     if disk_lifecycle and not store_active_alert(system_id, generation, event, saved_incident):
         # The Analytics Engine may have restarted while persistence was running.
         # Keep the database row for history, but never publish it as current.
@@ -121,6 +143,12 @@ async def _persist_and_broadcast(data: dict, db: Session, *, disk_lifecycle: boo
             {"type": "incident_update", "event": event, "data": saved_incident},
             systemid=int(system_id),
         )
+        if is_disk:
+            logger.info(
+                "DISK_WEBSOCKET_EVENT_BROADCAST system_id=%s rule_id=%s incident_id=%s fingerprint=%s event=incident_update:%s",
+                system_id, saved_incident.get("rule_id"), saved_incident.get("incident_id"),
+                saved_incident.get("fingerprint"), event,
+            )
         if created and saved["status"] != "RESOLVED" and saved_alert:
             delivered_alert = {**saved_alert, "event": event}
             await give_message(

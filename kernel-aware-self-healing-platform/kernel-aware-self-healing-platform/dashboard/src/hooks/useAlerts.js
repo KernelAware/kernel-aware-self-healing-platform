@@ -122,9 +122,28 @@ function handleLiveIncidentMessage(message) {
   const liveIncident = message.data
   if (!liveIncident) return
   const monitorType = incidentType(liveIncident)
-  if (monitorType === "disk" && !isCurrentRunDiskIncident(liveIncident, currentAnalyticsGeneration)) return
+  if (monitorType === "disk" && !isCurrentRunDiskIncident(liveIncident, currentAnalyticsGeneration)) {
+    console.debug("DASHBOARD_INCIDENT_FILTERED", {
+      incident_id: liveIncident.incident_id || liveIncident.id,
+      fingerprint: liveIncident.fingerprint,
+      monitor_type: monitorType,
+      incident_generation: liveIncident.analytics_generation,
+      current_generation: currentAnalyticsGeneration,
+      reason: "not current Analytics generation",
+    })
+    return
+  }
   const id = incidentId(liveIncident)
-  if (!id) return
+  if (!id) {
+    if (monitorType === "disk") {
+      console.debug("DASHBOARD_INCIDENT_FILTERED", {
+        fingerprint: liveIncident.fingerprint,
+        monitor_type: monitorType,
+        reason: "missing incident ID",
+      })
+    }
+    return
+  }
 
   const normalizedIncident = { ...liveIncident, id, incident_id: id }
   const version = ++incidentEventVersion
@@ -140,6 +159,17 @@ function handleLiveIncidentMessage(message) {
   const startsLiveEntry = message.event === "opened"
     || (monitorType === "disk" && message.event === "updated")
 
+  if (monitorType === "disk") {
+    console.info("DASHBOARD_WEBSOCKET_EVENT_RECEIVED", {
+      incident_id: id,
+      fingerprint: normalizedIncident.fingerprint,
+      monitor_type: monitorType,
+      event: message.event,
+      status: normalizedIncident.status,
+      generation: normalizedIncident.analytics_generation,
+    })
+  }
+
   if (message.event === "resolved") {
     if (monitorType === "disk") {
       if (index >= 0) publishLiveIncidents(liveIncidentState.filter(item => (item.incident_id || item.id) !== id))
@@ -152,7 +182,14 @@ function handleLiveIncidentMessage(message) {
   }
 
   if (index < 0) {
-    if (startsLiveEntry) publishLiveIncidents([normalizedIncident, ...liveIncidentState])
+    if (startsLiveEntry) {
+      publishLiveIncidents([normalizedIncident, ...liveIncidentState])
+      if (monitorType === "disk") {
+        console.info("DASHBOARD_INCIDENT_ACCEPTED", { incident_id: id, fingerprint: normalizedIncident.fingerprint })
+      }
+    } else if (monitorType === "disk") {
+      console.debug("DASHBOARD_INCIDENT_FILTERED", { incident_id: id, event: message.event, reason: "event does not open an active entry" })
+    }
     return
   }
   publishLiveIncidents(liveIncidentState.map((item, itemIndex) =>

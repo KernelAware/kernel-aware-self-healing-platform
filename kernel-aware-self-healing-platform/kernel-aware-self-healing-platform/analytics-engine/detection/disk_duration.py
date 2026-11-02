@@ -73,19 +73,24 @@ def observe_disk_violation(
     key = _state_key(identity)
     state = _read_state(key)
 
-    if state is None or state.get("status") == "recovered":
+    if state is None or state.get("status") in {"recovered", "resolution_pending"}:
+        previous_resolution_id = None
+        if state and state.get("status") == "resolution_pending":
+            previous_incident = state.get("incident") or {}
+            previous_resolution_id = state.get("incident_id") or previous_incident.get("incident_id")
         state = {
             "identity": identity,
             "status": "pending",
             "started_at": current_time,
             "last_observed_at": current_time,
         }
+        if previous_resolution_id:
+            # Keep a compact audit link while starting a fresh trigger-duration
+            # window. The old resolution is not part of new-alert qualification.
+            state["previous_resolution_incident_id"] = previous_resolution_id
         ttl = max(3600, int(duration) + 3600)
         _write_state(key, state, ttl=ttl)
         return duration == 0, state
-
-    if state.get("status") == "resolution_pending":
-        return False, state
     try:
         started_at = float(state["started_at"])
     except (KeyError, TypeError, ValueError) as error:

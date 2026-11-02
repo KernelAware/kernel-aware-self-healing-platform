@@ -1,6 +1,7 @@
 import hashlib
 import json
 import logging
+import math
 import time
 
 from detection.threshold import check_threshold
@@ -53,11 +54,20 @@ def verify_prometheus_duration(
 
     end = time.time() if now is None else float(now)
     start = end - duration
-    rows = query_prometheus_range(fresh_selector, start, end, step)
-    matching_rows = [
-        row for row in rows
-        if all((row.get("metric") or {}).get(key) == str(value) for key, value in labels.items())
-    ]
+    # Fetch one cadence before the requested window so that the window's left
+    # boundary must be backed by an actual observation. A lone sample returned
+    # somewhere in the range is not evidence for the complete duration.
+    rows = query_prometheus_range(fresh_selector, start - step, end, step)
+    expected_labels = {key: str(value) for key, value in labels.items() if key != "__name__"}
+    matching_rows = []
+    for row in rows:
+        row_labels = {
+            key: str(value)
+            for key, value in (row.get("metric") or {}).items()
+            if key != "__name__"
+        }
+        if all(row_labels.get(key) == value for key, value in expected_labels.items()):
+            matching_rows.append(row)
     if not matching_rows:
         return False, "no fresh Prometheus history is available for the requested interval"
     if len(matching_rows) != 1:
@@ -72,12 +82,25 @@ def verify_prometheus_duration(
         return False, "no fresh Prometheus history is available for the requested interval"
 
     sample_times = [timestamp for timestamp, _ in samples]
-    if sample_times[0] - start > freshness or end - sample_times[-1] > freshness:
+    if len(set(sample_times)) < 2:
+        return False, "Prometheus returned too few observations to verify the duration"
+    if sample_times[0] > start or start - sample_times[0] > freshness:
         return False, "Prometheus history does not cover the full configured duration"
-    if any((later - earlier) > freshness for earlier, later in zip(sample_times, sample_times[1:])):
+    interval_samples = [
+        (timestamp, value) for timestamp, value in samples
+        if start <= timestamp <= end
+    ]
+    if not interval_samples:
+        return False, "Prometheus history does not cover the full configured duration"
+    if end - interval_samples[-1][0] > freshness:
+        return False, "Prometheus history does not cover the full configured duration"
+    coverage_times = [start, *(timestamp for timestamp, _ in interval_samples), end]
+    if any((later - earlier) > freshness for earlier, later in zip(coverage_times, coverage_times[1:])):
         return False, "Prometheus history contains a scrape gap in the configured duration"
 
-    for _, value in samples:
+    for _, value in interval_samples:
+        if not math.isfinite(value):
+            return False, "Prometheus returned a non-finite range sample"
         if not check_threshold(value, operator, threshold):
             return False, None
     return True, None
@@ -108,9 +131,11 @@ def check_duration(identity: dict, duration_seconds: int | float, now: float | N
         return False
 
 
-def clear_duration(identity: dict, phase: str = "trigger") -> None:
-    """Clear pending duration state after a valid observation disproves it."""
+def clear_duration(identity: dict, phase: str = "trigger") -> bool:
+    """Clear timer state; report failure so callers cannot assume it reset."""
     try:
         redis_client.delete(_state_key(identity, phase))
+        return True
     except Exception:
         logger.exception("Unable to clear Redis duration state")
+        return False

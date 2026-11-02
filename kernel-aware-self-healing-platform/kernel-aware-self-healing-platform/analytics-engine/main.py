@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
+from contextlib import suppress
 
 from fastapi import FastAPI
 import requests
@@ -10,9 +11,11 @@ from load_data.database.db_connection.connection import SessionLocal
 from load_data.systems_details.system_repository import get_active_systems
 from analyzer.server_analyzer import analyze_server
 from lifecycle import ANALYTICS_GENERATION
+from incident_management.manager import retry_pending_incidents
 
 logger = logging.getLogger(__name__)
 ANALYSIS_INTERVAL_SECONDS = 15
+INCIDENT_RETRY_INTERVAL_SECONDS = float(os.environ.get("INCIDENT_RETRY_INTERVAL_SECONDS", "5"))
 BACKEND_URL = os.environ.get("KAISP_BACKEND_URL", "http://localhost:8000").rstrip("/")
 
 
@@ -130,16 +133,31 @@ async def analysis_loop():
             await asyncio.sleep(ANALYSIS_INTERVAL_SECONDS)
 
 
+async def incident_retry_loop():
+    while True:
+        try:
+            result = await asyncio.to_thread(retry_pending_incidents)
+            if result["failed"]:
+                logger.warning("Incident retry pass completed with failures: %s", result)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("Incident retry worker pass failed")
+        await asyncio.sleep(max(0.5, INCIDENT_RETRY_INTERVAL_SECONDS))
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-
-    task = asyncio.create_task(
-        analysis_loop()
-    )
-
-    yield
-
-    task.cancel()
+    analysis_task = asyncio.create_task(analysis_loop(), name="analytics-loop")
+    retry_task = asyncio.create_task(incident_retry_loop(), name="incident-retry-loop")
+    try:
+        yield
+    finally:
+        for task in (analysis_task, retry_task):
+            task.cancel()
+        for task in (analysis_task, retry_task):
+            with suppress(asyncio.CancelledError):
+                await task
 
 
 app = FastAPI(

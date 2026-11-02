@@ -18,6 +18,7 @@ from routers.incidents import get_incidents
 from routers.monitoring import monitoring_readiness, update_monitoring_readiness
 from routers.websocket import connected_clients, give_message
 from models.user_rules.rule_notification import RuleNotification
+from models.user_rules.rule_metric import RuleMetric
 from models.user_rules.rule import Rule
 from repository import user_rules as user_rule_repository
 from services.user_rule_service import user_rules_service
@@ -58,6 +59,10 @@ def sample_detail(incident_id="INC-one", status="OPEN", value=92.4):
         "priority": "P1",
         "severity": "Critical",
         "status": status,
+        "decision_outcome": "PERMITTED",
+        "policy_outcome": "ALLOWED",
+        "decision": {"decision": "NO_ACTION"},
+        "policy": {"allowed": True, "outcome": "ALLOWED"},
         "created_at": "2026-10-19T10:00:00+00:00",
         "updated_at": "2026-10-19T10:00:00+00:00",
         "resolved_at": "2026-10-19T10:05:00+00:00" if status == "RESOLVED" else None,
@@ -240,6 +245,20 @@ class IncidentApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(sent[1]["data"]["monitor_type"], "disk")
             self.assertEqual(sent[1]["data"]["incident_id"], "INC-route")
             self.assertFalse(inspect(engine).has_table("alert_incidents"))
+        finally:
+            db.close()
+            engine.dispose()
+
+    async def test_unverified_active_incident_is_rejected_before_persistence(self):
+        engine = test_engine()
+        db = Session(engine)
+        detail = sample_detail(incident_id="INC-unverified")
+        detail.pop("decision_outcome")
+        try:
+            with self.assertRaises(HTTPException) as raised:
+                await alert_incidents({"event": "opened", "incident_detail": detail}, db)
+            self.assertEqual(raised.exception.status_code, 403)
+            self.assertEqual(db.query(Incident).count(), 0)
         finally:
             db.close()
             engine.dispose()
@@ -561,6 +580,7 @@ class RuleNotificationPersistenceTests(unittest.TestCase):
         Base.metadata.create_all(engine)
         test_session_factory = sessionmaker(bind=engine, autoflush=False, autocommit=False)
         form = {
+            "system_id": 2,
             "ruleName": "Disk recipients",
             "enabled": True,
             "priority": "Medium",
@@ -569,19 +589,24 @@ class RuleNotificationPersistenceTests(unittest.TestCase):
             "environment": "Production",
             "region": "US-East-1",
             "monitorSource": "disk",
-            "targets": [{
-                "type": "host",
-                "name": "Whole System",
-                "metrics": [{
-                    "conditions": [{
-                        "metric": "disk_read_bytes",
-                        "operator": "Greater Than (>)",
-                        "threshold": "1",
-                        "duration": "5",
-                        "durationUnit": "Minutes",
-                    }],
-                }],
-            }],
+            "targets": [
+                {
+                    "type": "host",
+                    "name": "Whole System",
+                    "metrics": [{"conditions": [{
+                        "metric": "disk_read_bytes", "operator": "Greater Than (>)",
+                        "threshold": "1", "duration": "5", "durationUnit": "Minutes",
+                    }]}],
+                },
+                {
+                    "type": "device",
+                    "name": "/dev/sda1",
+                    "metrics": [{"conditions": [{
+                        "metric": "disk_write_bytes", "operator": "Greater Than (>)",
+                        "threshold": "2", "duration": "10", "durationUnit": "Seconds",
+                    }]}],
+                },
+            ],
             "notifications": {
                 "events": [],
                 "channels": [],
@@ -595,6 +620,7 @@ class RuleNotificationPersistenceTests(unittest.TestCase):
 
             with Session(engine) as db:
                 saved = db.query(RuleNotification).all()
+                saved_metrics = db.query(RuleMetric).all()
                 self.assertEqual(result, {"success": True})
                 self.assertEqual(len(saved), 2)
                 self.assertEqual(
@@ -604,6 +630,8 @@ class RuleNotificationPersistenceTests(unittest.TestCase):
                 self.assertEqual(len({item.rule_id for item in saved}), 1)
                 rule_id = saved[0].rule_id
                 self.assertIsNotNone(db.get(Rule, rule_id))
+                self.assertEqual(db.get(Rule, rule_id).system_id, 2)
+                self.assertEqual({item.metric for item in saved_metrics}, {"disk_read_bytes", "disk_write_bytes"})
                 self.assertEqual({item.rule_id for item in saved}, {rule_id})
                 self.assertEqual({item.channel for item in saved}, {"email"})
                 self.assertEqual({item.event_type for item in saved}, {"Incident detected"})
