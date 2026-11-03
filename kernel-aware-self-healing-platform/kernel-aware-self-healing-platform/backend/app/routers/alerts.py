@@ -1,7 +1,8 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, BackgroundTasks
 
 from routers.websocket import give_message
 from services.incident_service import persist_incident
+from integrations.email.email_service import send_incident_detected_emails
 
 router = APIRouter()
 
@@ -16,11 +17,12 @@ def _resolve_system_id(system_value):
 
 
 @router.post("/alert_incidents")
-async def alert_incidents(data: dict):
+async def alert_incidents(data: dict, background_tasks: BackgroundTasks):
 
     incident_detail = data.get("incident_detail") or {}
     alert = data.get("alert") or {}
     persisted_incident = persist_incident(data)
+    background_tasks.add_task(send_incident_detected_emails, persisted_incident)
 
     system_id = (
         incident_detail.get("system_id")

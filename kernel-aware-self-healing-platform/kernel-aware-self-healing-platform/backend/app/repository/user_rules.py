@@ -184,3 +184,34 @@ def get_rules_with_details(system_id: int | None = None, rule_id: int | None = N
 
     finally:
         db.close()
+
+def get_notification_recipients(
+    rule_id: int | None,
+    event_type: str,
+    channel: str,
+):
+    """Get unique recipients configured for a rule, event, and channel."""
+    if rule_id is None:
+        return []
+
+    db = SessionLocal()
+
+    try:
+        rows = (
+            db.query(RuleNotification.recipient)
+            .filter(RuleNotification.rule_id == rule_id)
+            .filter(RuleNotification.event_type.ilike(event_type))
+            .filter(RuleNotification.channel.ilike(channel))
+            .filter(RuleNotification.recipient.isnot(None))
+            .distinct()
+            .all()
+        )
+
+        return sorted({
+            recipient.strip()
+            for (recipient,) in rows
+            if recipient and recipient.strip()
+        })
+
+    finally:
+        db.close()
