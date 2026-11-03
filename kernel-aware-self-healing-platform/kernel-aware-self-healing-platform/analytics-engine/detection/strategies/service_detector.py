@@ -8,7 +8,6 @@ from incident_management.manager import manage_incidents
 class ServiceDetector(DetectionStrategy):
 
     def detect(self, rule):
-
         if rule is None:
             return None
 

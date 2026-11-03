@@ -17,6 +17,7 @@ def _resolve_system_id(system_value):
 
 @router.post("/alert_incidents")
 async def alert_incidents(data: dict):
+
     incident_detail = data.get("incident_detail") or {}
     alert = data.get("alert") or {}
     persisted_incident = persist_incident(data)
