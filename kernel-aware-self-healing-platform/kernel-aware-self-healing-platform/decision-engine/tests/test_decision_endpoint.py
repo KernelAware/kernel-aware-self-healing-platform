@@ -1,9 +1,10 @@
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from fastapi import HTTPException
+import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -12,6 +13,47 @@ from policies.policy_checker import check_policy
 
 
 class DecisionEndpointTests(unittest.TestCase):
+    def test_transient_rule_lookup_failure_is_retried(self):
+        from rules import rule_loader
+
+        response = MagicMock()
+        response.raise_for_status.side_effect = [
+            httpx.HTTPStatusError(
+                "temporary failure",
+                request=MagicMock(),
+                response=MagicMock(status_code=503),
+            ),
+            None,
+        ]
+        response.json.return_value = [{
+            "rule": {"id": 138, "system_id": 1, "monitor_type": "disk", "status": "ENABLED"},
+            "targets": [],
+            "metrics": [],
+            "actions": [],
+        }]
+
+        with patch.object(rule_loader.httpx, "get", return_value=response) as request, \
+             patch.object(rule_loader.time, "sleep"):
+            rule = rule_loader.load_rules({"rule_id": 138})
+
+        self.assertEqual(rule["rule"]["id"], 138)
+        self.assertEqual(request.call_count, 2)
+
+    def test_exhausted_transient_rule_lookup_failure_remains_an_error(self):
+        from rules import rule_loader
+
+        error = httpx.HTTPStatusError(
+            "database unavailable",
+            request=MagicMock(),
+            response=MagicMock(status_code=503),
+        )
+        with patch.object(rule_loader.httpx, "get", side_effect=error) as request, \
+             patch.object(rule_loader.time, "sleep"):
+            with self.assertRaises(httpx.HTTPStatusError):
+                rule_loader.load_rules({"rule_id": 138})
+
+        self.assertEqual(request.call_count, rule_loader.RULE_LOOKUP_ATTEMPTS)
+
     def test_disk_alert_is_permitted_only_when_saved_approval_policy_allows_it(self):
         def rule_with_approval(approval):
             return {

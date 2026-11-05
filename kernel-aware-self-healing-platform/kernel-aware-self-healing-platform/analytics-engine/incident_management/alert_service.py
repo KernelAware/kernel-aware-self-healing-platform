@@ -89,15 +89,19 @@ def build_payload(incident: dict, event: str) -> dict:
         },
         "decision": {
             "recommendedAction": "Alert only" if category == "disk" else (incident.get("decision") or {}).get("Selected_action"),
-            "decision": incident.get("decision_outcome"),
-            "reason": (incident.get("decision") or {}).get("reason") or "Decision Engine permitted alert publication.",
+            "decision": incident.get("decision_outcome") if category != "disk" else None,
+            "reason": (
+                "Monitoring alert; healing authorization was not evaluated."
+                if category == "disk"
+                else (incident.get("decision") or {}).get("reason") or "Decision Engine permitted alert publication."
+            ),
         },
         "policy": {
             "ruleEnabled": True,
-            "outcome": incident.get("policy_outcome"),
-            "allowed": True,
-            "automaticExecution": False if category == "disk" else None,
-            "approvalRequired": False if category == "disk" else None,
+            "outcome": incident.get("policy_outcome") if category != "disk" else "NOT_APPLICABLE",
+            "allowed": incident.get("policy", {}).get("allowed") if category != "disk" else None,
+            "automaticExecution": None,
+            "approvalRequired": None,
             "cooldownPassed": None,
         },
         "rootCause": {
@@ -116,8 +120,8 @@ def build_payload(incident: dict, event: str) -> dict:
             "reason": "No healing or remediation is configured for Disk alerts." if category == "disk" else None,
         },
         "status": status,
-        "decision_outcome": incident.get("decision_outcome"),
-        "policy_outcome": incident.get("policy_outcome"),
+        "decision_outcome": incident.get("decision_outcome") if category != "disk" else None,
+        "policy_outcome": incident.get("policy_outcome") if category != "disk" else "NOT_APPLICABLE",
         "event": event,
     }
 
@@ -150,8 +154,8 @@ def build_payload(incident: dict, event: str) -> dict:
         "title": title,
         "body": body,
         "status": status,
-        "decision_outcome": incident.get("decision_outcome"),
-        "policy_outcome": incident.get("policy_outcome"),
+        "decision_outcome": incident.get("decision_outcome") if category != "disk" else None,
+        "policy_outcome": incident.get("policy_outcome") if category != "disk" else "NOT_APPLICABLE",
         "acked": False,
         "analytics_generation": incident.get("analytics_generation"),
         "system": system_label,

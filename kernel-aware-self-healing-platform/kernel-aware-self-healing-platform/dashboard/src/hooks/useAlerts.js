@@ -36,6 +36,12 @@ function getActiveSnapshotState() {
 
 function publishLiveIncidents(nextIncidents) {
   liveIncidentState = nextIncidents
+  console.debug("DASHBOARD_ACTIVE_ALERT_STATE_UPDATED", {
+    count: nextIncidents.length,
+    disk_incident_ids: nextIncidents
+      .filter(incident => incidentType(incident) === "disk")
+      .map(incident => incidentId(incident)),
+  })
   liveIncidentListeners.forEach(listener => listener())
 }
 
@@ -84,6 +90,11 @@ function reconcileDiskSnapshot(rows, requestVersion, generation) {
     else nextById.set(id, lastEvent.incident)
   })
 
+  console.info("DASHBOARD_ACTIVE_SNAPSHOT_HYDRATED", {
+    generation,
+    received_count: Array.isArray(rows) ? rows.length : 0,
+    accepted_count: nextById.size - liveIncidentState.filter(incident => incidentType(incident) !== "disk").length,
+  })
   publishLiveIncidents([...nextById.values()])
 }
 
@@ -96,6 +107,10 @@ function loadActiveDiskIncidents(readiness, requestContext = {}) {
   publishActiveSnapshotState({ status: "loading", error: "" })
   if (requestLifecycleVersion !== lifecycleVersion) return
   if (readiness.generation !== currentAnalyticsGeneration) return
+  console.debug("DASHBOARD_ACTIVE_SNAPSHOT_REQUEST_ACCEPTED", {
+    generation: readiness.generation,
+    active_alert_count: Array.isArray(readiness.active_alerts) ? readiness.active_alerts.length : 0,
+  })
   reconcileDiskSnapshot(readiness.active_alerts, requestVersion, readiness.generation)
   publishActiveSnapshotState({ status: "loaded", error: "" })
 }
@@ -106,6 +121,7 @@ function handleLiveIncidentMessage(message) {
     if (isStaleAnalyticsGeneration(generation, currentAnalyticsGeneration)) return
     if (generation !== currentAnalyticsGeneration) {
       resetDiskIncidentsForNewLifecycle(generation)
+      console.info("DASHBOARD_ANALYTICS_GENERATION_CHANGED", { generation })
     }
     if (message.data?.ready === true) {
       loadActiveDiskIncidents(message.data, {

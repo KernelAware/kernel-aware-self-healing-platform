@@ -113,6 +113,11 @@ async def analysis_loop():
                 ))
             )
 
+        if first_round_complete:
+            # Re-register readiness after a Backend restart without resetting
+            # the current Analytics generation or active-alert snapshot.
+            await asyncio.to_thread(_report_monitoring_ready, systems, generation)
+
         completed = await asyncio.to_thread(
             run_analysis,
             systems,

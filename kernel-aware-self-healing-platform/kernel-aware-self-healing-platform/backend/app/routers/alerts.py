@@ -41,9 +41,14 @@ async def _persist_and_broadcast(data: dict, db: Session, *, disk_lifecycle: boo
     if not incident_detail:
         raise HTTPException(status_code=422, detail="incident_detail is required")
 
-    # Resolution is a lifecycle operation for an existing incident. New or
-    # updated active alerts require an explicit Decision Engine permit.
-    if event != "resolved":
+    # Disk rule incidents are monitoring records. Their saved action policy
+    # controls healing only and is not required to display the alert.
+    is_disk_monitoring = disk_lifecycle and str(
+        incident_detail.get("monitor_type") or incident_detail.get("category") or ""
+    ).lower() == "disk"
+    # Resolution is a lifecycle operation for an existing incident. Process
+    # and other active alerts still require an explicit Decision Engine permit.
+    if event != "resolved" and not is_disk_monitoring:
         decision_outcome = incident_detail.get("decision_outcome") or data.get("decision_outcome")
         policy_outcome = incident_detail.get("policy_outcome") or data.get("policy_outcome")
         policy = incident_detail.get("policy") or {}

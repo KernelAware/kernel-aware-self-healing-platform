@@ -249,6 +249,32 @@ class IncidentApiTests(unittest.IsolatedAsyncioTestCase):
             db.close()
             engine.dispose()
 
+    async def test_disk_monitoring_alert_does_not_require_healing_policy(self):
+        engine = test_engine()
+        db = Session(engine)
+        detail = sample_detail("INC-monitoring-only")
+        for field in ("decision_outcome", "policy_outcome", "decision", "policy"):
+            detail.pop(field, None)
+        payload = {
+            "event": "opened",
+            "incident_detail": detail,
+            "alert": sample_alert("INC-monitoring-only"),
+        }
+        try:
+            with patch("routers.alerts.give_message", new_callable=AsyncMock) as send:
+                response = await publish_rule_alert(payload, db)
+
+            self.assertEqual(response["status"], "success")
+            self.assertEqual(db.get(Incident, "INC-monitoring-only").status, "OPEN")
+            self.assertEqual(send.await_count, 3)
+            self.assertEqual(
+                monitoring_readiness(1)["active_alerts"][0]["id"],
+                "INC-monitoring-only",
+            )
+        finally:
+            db.close()
+            engine.dispose()
+
     async def test_unverified_active_incident_is_rejected_before_persistence(self):
         engine = test_engine()
         db = Session(engine)

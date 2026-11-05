@@ -13,8 +13,16 @@ class WebSocketService {
     if (!this.shouldReconnect) return
     if (this.socket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(this.socket.readyState)) return
 
-    const socket = new WebSocket(`${this.baseUrl}/${encodeURIComponent(this.systemId)}`)
+    const url = `${this.baseUrl}/${encodeURIComponent(this.systemId)}`
+    console.info("DASHBOARD_WEBSOCKET_CONNECTING", {
+      system_id: this.systemId,
+      url,
+    })
+    const socket = new WebSocket(url)
     this.socket = socket
+    socket.onopen = () => {
+      console.info("DASHBOARD_WEBSOCKET_CONNECTED", { system_id: this.systemId })
+    }
     socket.onmessage = event => {
       try {
         const message = JSON.parse(event.data)
@@ -23,7 +31,14 @@ class WebSocketService {
         console.error("Invalid WebSocket message:", error)
       }
     }
+    socket.onerror = error => {
+      console.error("DASHBOARD_WEBSOCKET_ERROR", {
+        system_id: this.systemId,
+        error,
+      })
+    }
     socket.onclose = () => {
+      console.warn("DASHBOARD_WEBSOCKET_CLOSED", { system_id: this.systemId })
       if (this.socket === socket) this.socket = null
       if (this.shouldReconnect && this.reconnectTimer == null) {
         this.reconnectTimer = window.setTimeout(() => {

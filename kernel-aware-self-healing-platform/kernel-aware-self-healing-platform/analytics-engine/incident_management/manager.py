@@ -23,6 +23,23 @@ BACKEND_RETRY_MAX_SECONDS = 300
 INCIDENT_RETRY_SCAN_COUNT = 100
 _incident_state_lock = threading.RLock()
 
+
+def _generation_timestamp(generation: str | None) -> int | None:
+    value = str(generation or "")
+    timestamp = value.split("-", 1)[0]
+    return int(timestamp) if timestamp.isdigit() and len(timestamp) >= 16 else None
+
+
+def _incoming_generation_is_stale(current: str | None, incoming: str | None) -> bool:
+    current_timestamp = _generation_timestamp(current)
+    incoming_timestamp = _generation_timestamp(incoming)
+    return (
+        current_timestamp is not None
+        and incoming_timestamp is not None
+        and incoming_timestamp < current_timestamp
+    )
+
+
 def _now():
     return datetime.now(timezone.utc).isoformat()
 
@@ -50,6 +67,11 @@ def _active_key(fingerprint: str) -> str:
 
 def _is_disk_incident(incident: dict) -> bool:
     return str(incident.get("monitor_type") or incident.get("incident_type") or "").strip().lower() == "disk"
+
+
+def _requires_decision_authorization(incident: dict) -> bool:
+    """Keep monitoring publication independent from healing authorization."""
+    return not _is_disk_incident(incident)
 
 
 def _is_retryable_disk_open(incident: dict) -> bool:
@@ -90,7 +112,11 @@ def _retry_pending_event(key: str, incident: dict) -> bool:
     if event != "resolved" and str(incident.get("status", "")).upper() != "OPEN":
         logger.warning("Skipping stale %s retry for non-open incident %s", event, incident.get("incident_id"))
         return False
-    if event != "resolved" and not _evaluate_for_publication(key, incident):
+    if (
+        event != "resolved"
+        and _requires_decision_authorization(incident)
+        and not _evaluate_for_publication(key, incident)
+    ):
         return False
     attempt = int(incident.get("_backend_attempts") or 0) + 1
     incident["_backend_attempts"] = attempt
@@ -354,27 +380,33 @@ def _manage_incidents(incident: dict, condition_violated: bool = True):
         if is_disk and not is_new and current.get("incident_id"):
             pending_event = current.get("_backend_pending_event")
             if current.get("analytics_generation") != incident.get("analytics_generation"):
-                # Preserve the active incident identity over Analytics restart,
-                # while re-registering it in the new current-run snapshot.
-                current["analytics_generation"] = incident.get("analytics_generation")
-                current["_backend_pending_event"] = "opened"
                 if is_disk:
-                    # A permit from the previous Analytics generation may
-                    # contain a stale Decision Engine strategy result. Re-run
-                    # the mandatory gate before publishing in this generation.
-                    for field in (
-                        "_decision_outcome", "_decision_result", "_decision_status",
-                        "_decision_retry_at", "_decision_attempts", "_decision_last_error",
-                        "_decision_http_status", "decision_outcome", "policy_outcome",
-                        "decision", "policy",
+                    if _incoming_generation_is_stale(
+                        current.get("analytics_generation"),
+                        incident.get("analytics_generation"),
                     ):
-                        current.pop(field, None)
-                pending_event = "opened"
-                try:
-                    redis_client.set(key, json.dumps(current))
-                except Exception:
-                    logger.exception("Unable to retain Disk incident across Analytics generation")
-                    return current
+                        logger.warning(
+                            "Ignoring stale Disk observation from Analytics generation %s; current generation is %s",
+                            incident.get("analytics_generation"),
+                            current.get("analytics_generation"),
+                        )
+                        return current
+                    # A new generation starts a new active incident identity.
+                    # The prior PostgreSQL row remains historical, while this
+                    # shared Redis slot is safely replaced for the new run.
+                    current = {}
+                    is_new = True
+                    pending_event = "opened"
+                elif not is_new:
+                    # Preserve the established Process identity across runs.
+                    current["analytics_generation"] = incident.get("analytics_generation")
+                    current["_backend_pending_event"] = "opened"
+                    pending_event = "opened"
+                    try:
+                        redis_client.set(key, json.dumps(current))
+                    except Exception:
+                        logger.exception("Unable to retain incident across Analytics generation")
+                        return current
             if pending_event == "updated":
                 # Older versions queued an update each cycle; it is not a
                 # lifecycle transition and does not need to be retried.
@@ -389,7 +421,10 @@ def _manage_incidents(incident: dict, condition_violated: bool = True):
                     return current
                 pending_event = None
             if not pending_event:
-                if current.get("_decision_outcome") != "PERMITTED":
+                if (
+                    _requires_decision_authorization(current)
+                    and current.get("_decision_outcome") != "PERMITTED"
+                ):
                     if not _evaluate_for_publication(key, current):
                         return current
                     stored = json.dumps(current)
@@ -429,7 +464,10 @@ def _manage_incidents(incident: dict, condition_violated: bool = True):
             logger.exception("Unable to persist active incident state in Redis")
             return None
 
-        if not _evaluate_for_publication(key, incident):
+        if (
+            _requires_decision_authorization(incident)
+            and not _evaluate_for_publication(key, incident)
+        ):
             return incident
 
         try:
