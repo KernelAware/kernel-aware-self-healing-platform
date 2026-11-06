@@ -161,12 +161,22 @@ def user_rules_service(userRules):
     channels = notifications.get("channels", [])
     recipients = notifications.get("recipients", [])
 
-    # Channel-specific webhook fields from the notification step are stored in
-    # the same recipient column as email addresses. This keeps the existing
-    # schema compatible while allowing Slack and Teams to be configured per rule.
+    
+    def split_recipients(value):
+        if isinstance(value, list):
+            return [item.strip() for item in value if isinstance(item, str) and item.strip()]
+        if not isinstance(value, str):
+            return []
+        return [item.strip() for item in value.split(",") if item.strip()]
+
     channel_recipients = {
-        "slack": notifications.get("slackWebhook"),
-        "teams": notifications.get("teamsWebhook"),
+        channel: configured
+        for channel, configured in {
+            "email": split_recipients(notifications.get("emailRecipients")),
+            "slack": split_recipients(notifications.get("slackWebhook")),
+            "teams": split_recipients(notifications.get("teamsWebhook")),
+        }.items()
+        if configured
     }
 
 
@@ -185,11 +195,7 @@ def user_rules_service(userRules):
         else:
 
             for channel in channels:
-                configured_recipients = (
-                    [channel_recipients[channel]]
-                    if channel in channel_recipients and channel_recipients[channel]
-                    else recipients
-                )
+                configured_recipients = channel_recipients.get(channel, recipients)
 
                 if not configured_recipients:
                     rule_notification = RuleNotification(
