@@ -3,6 +3,8 @@ from fastapi import APIRouter, BackgroundTasks
 from routers.websocket import give_message
 from services.incident_service import persist_incident
 from integrations.email.email_service import send_incident_detected_emails
+from integrations.slack.slack_service import send_incident_detected_slack
+from integrations.teams.teams_service import send_incident_detected_teams
 
 router = APIRouter()
 
@@ -23,6 +25,8 @@ async def alert_incidents(data: dict, background_tasks: BackgroundTasks):
     alert = data.get("alert") or {}
     persisted_incident = persist_incident(data)
     background_tasks.add_task(send_incident_detected_emails, persisted_incident)
+    background_tasks.add_task(send_incident_detected_slack, persisted_incident)
+    background_tasks.add_task(send_incident_detected_teams, persisted_incident)
 
     system_id = (
         incident_detail.get("system_id")
