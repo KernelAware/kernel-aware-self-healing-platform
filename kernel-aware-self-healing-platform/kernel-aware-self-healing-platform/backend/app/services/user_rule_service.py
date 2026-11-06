@@ -5,6 +5,7 @@ from models.user_rules.rule_action import RuleAction
 from models.user_rules.rule_notification import RuleNotification
 from models.user_rules.rule_recovery import RuleRecovery
 from models.user_rules.rule_jira_config import RuleJiraConfig
+from models.user_rules.rule_servicenow_config import RuleServiceNowConfig
 from repository.user_rules import save_rules, get_rules_with_details
 
 from schemas.user_rules import (
@@ -24,6 +25,7 @@ def user_rules_service(userRules):
     recovery_actions = []
     notifications_actions = []
     jira_config = None
+    servicenow_config = None
 
     rule = Rule(
         name=userRules["ruleName"],
@@ -191,6 +193,14 @@ def user_rules_service(userRules):
     if "jira" in channels and all(jira_values.values()):
         jira_config = RuleJiraConfig(**jira_values)
 
+    servicenow_values = {
+        "instance_url": notifications.get("serviceNowUrl"),
+        "client_id": notifications.get("serviceNowClientId"),
+        "client_secret_encrypted": notifications.get("serviceNowSecret"),
+    }
+    if "servicenow" in channels and all(servicenow_values.values()):
+        servicenow_config = RuleServiceNowConfig(**servicenow_values)
+
 
     for event in events:
 
@@ -209,7 +219,11 @@ def user_rules_service(userRules):
             for channel in channels:
                 # Jira connection details live in rule_jira_configs. Keep its
                 # notification row as a channel marker with no recipient.
-                configured_recipients = [] if channel == "jira" else channel_recipients.get(channel, recipients)
+                configured_recipients = (
+                    []
+                    if channel in {"jira", "servicenow"}
+                    else channel_recipients.get(channel, recipients)
+                )
 
                 if not configured_recipients:
                     rule_notification = RuleNotification(
@@ -239,6 +253,7 @@ def user_rules_service(userRules):
         "actions": rule_actions,
         "notifications": notifications_actions,
         "jira_config": jira_config,
+        "servicenow_config": servicenow_config,
         "recovery": recovery_actions
     }
 

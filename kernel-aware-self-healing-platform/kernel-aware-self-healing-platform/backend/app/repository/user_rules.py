@@ -6,6 +6,7 @@ from models.user_rules.rule_metric import RuleMetric
 from models.user_rules.rule import Rule
 from models.user_rules.rule_targets import RuleTarget
 from models.user_rules.rule_jira_config import RuleJiraConfig
+from models.user_rules.rule_servicenow_config import RuleServiceNowConfig
 
 
 def save_rules(rule_details):
@@ -38,6 +39,11 @@ def save_rules(rule_details):
         if jira_config is not None:
             jira_config.rule_id = rule.id
             db.add(jira_config)
+
+        servicenow_config = rule_details.get("servicenow_config")
+        if servicenow_config is not None:
+            servicenow_config.rule_id = rule.id
+            db.add(servicenow_config)
 
         for recovery in rule_details["recovery"]:
             recovery.rule_id = rule.id
