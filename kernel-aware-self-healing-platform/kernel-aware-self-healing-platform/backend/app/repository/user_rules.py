@@ -5,6 +5,7 @@ from models.user_rules.rule_notification import RuleNotification
 from models.user_rules.rule_metric import RuleMetric
 from models.user_rules.rule import Rule
 from models.user_rules.rule_targets import RuleTarget
+from models.user_rules.rule_jira_config import RuleJiraConfig
 
 
 def save_rules(rule_details):
@@ -32,6 +33,11 @@ def save_rules(rule_details):
         for notification in rule_details["notifications"]:
             notification.rule_id = rule.id
             db.add(notification)
+
+        jira_config = rule_details.get("jira_config")
+        if jira_config is not None:
+            jira_config.rule_id = rule.id
+            db.add(jira_config)
 
         for recovery in rule_details["recovery"]:
             recovery.rule_id = rule.id

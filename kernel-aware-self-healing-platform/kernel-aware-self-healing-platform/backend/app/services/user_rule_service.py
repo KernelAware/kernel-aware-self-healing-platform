@@ -4,6 +4,7 @@ from models.user_rules.rule_metric import RuleMetric
 from models.user_rules.rule_action import RuleAction
 from models.user_rules.rule_notification import RuleNotification
 from models.user_rules.rule_recovery import RuleRecovery
+from models.user_rules.rule_jira_config import RuleJiraConfig
 from repository.user_rules import save_rules, get_rules_with_details
 
 from schemas.user_rules import (
@@ -22,6 +23,7 @@ def user_rules_service(userRules):
     rule_actions = []
     recovery_actions = []
     notifications_actions = []
+    jira_config = None
 
     rule = Rule(
         name=userRules["ruleName"],
@@ -179,6 +181,16 @@ def user_rules_service(userRules):
         if configured
     }
 
+    jira_values = {
+        "site_url": notifications.get("jiraUrl"),
+        "account_email": notifications.get("jiraEmail"),
+        "api_token_encrypted": notifications.get("jiraToken"),
+        "project_key": notifications.get("jiraProjectKey") or "OPS",
+        "issue_type": notifications.get("jiraIssueType") or "Task",
+    }
+    if "jira" in channels and all(jira_values.values()):
+        jira_config = RuleJiraConfig(**jira_values)
+
 
     for event in events:
 
@@ -195,7 +207,9 @@ def user_rules_service(userRules):
         else:
 
             for channel in channels:
-                configured_recipients = channel_recipients.get(channel, recipients)
+                # Jira connection details live in rule_jira_configs. Keep its
+                # notification row as a channel marker with no recipient.
+                configured_recipients = [] if channel == "jira" else channel_recipients.get(channel, recipients)
 
                 if not configured_recipients:
                     rule_notification = RuleNotification(
@@ -224,6 +238,7 @@ def user_rules_service(userRules):
         "metrics": metrics,
         "actions": rule_actions,
         "notifications": notifications_actions,
+        "jira_config": jira_config,
         "recovery": recovery_actions
     }
 
