@@ -11,7 +11,10 @@ from load_data.database.db_connection.connection import SessionLocal
 from load_data.systems_details.system_repository import get_active_systems
 from analyzer.server_analyzer import analyze_server
 from lifecycle import ANALYTICS_GENERATION
-from incident_management.manager import retry_pending_incidents
+from incident_management.manager import (
+    republish_active_disk_incidents,
+    retry_pending_incidents,
+)
 
 logger = logging.getLogger(__name__)
 ANALYSIS_INTERVAL_SECONDS = 15
@@ -64,7 +67,7 @@ def _report_monitoring_lifecycle(system, generation, stage):
             timeout=3,
         )
         response.raise_for_status()
-        return True
+        return response.json()
     except Exception as error:
         logger.warning(
             "Unable to report Analytics lifecycle stage %s for system %s (%s)",
@@ -72,7 +75,7 @@ def _report_monitoring_lifecycle(system, generation, stage):
             system,
             type(error).__name__,
         )
-        return False
+        return None
 
 
 def _report_monitoring_ready(systems, generation):
@@ -80,7 +83,22 @@ def _report_monitoring_ready(systems, generation):
         _report_monitoring_lifecycle(system, generation, "completed")
         for system in systems
     ]
-    return all(results)
+    for system, state in zip(systems, results):
+        if not isinstance(state, dict) or state.get("ready") is not True:
+            continue
+        active_ids = {
+            str(incident.get("incident_id") or incident.get("id"))
+            for incident in state.get("active_alerts", [])
+            if incident.get("incident_id") or incident.get("id")
+        }
+        reconciliation = republish_active_disk_incidents(generation, active_ids)
+        if reconciliation["failed"]:
+            logger.warning(
+                "Active Disk reconciliation completed with failures: system_id=%s result=%s",
+                system,
+                reconciliation,
+            )
+    return all(isinstance(result, dict) for result in results)
 
 
 async def _sleep_until_next_cycle(cycle_started_at):

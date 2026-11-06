@@ -234,6 +234,11 @@ const toneForSeverity = severity => ({
 
 export function useAlerts({ ruleAlertsOnly = false } = {}) {
   const [acknowledged, setAcknowledged] = useState(() => new Set())
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
   const snapshotState = useSyncExternalStore(
     subscribeToLiveIncidents,
     getActiveSnapshotState,
@@ -334,7 +339,7 @@ export function useAlerts({ ruleAlertsOnly = false } = {}) {
         level: original.level || `${incident.priority} - ${incident.severity}`,
         acked: acknowledged.has(id),
       }
-    }), [liveIncidents, acknowledged])
+    }), [liveIncidents, acknowledged, now])
 
   const acknowledgeAlert = id => setAcknowledged(current => new Set(current).add(id))
   const updateLiveIncident = useCallback((incidentId, updates) => {

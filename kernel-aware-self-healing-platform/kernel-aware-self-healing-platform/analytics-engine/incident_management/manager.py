@@ -69,11 +69,6 @@ def _is_disk_incident(incident: dict) -> bool:
     return str(incident.get("monitor_type") or incident.get("incident_type") or "").strip().lower() == "disk"
 
 
-def _requires_decision_authorization(incident: dict) -> bool:
-    """Keep monitoring publication independent from healing authorization."""
-    return not _is_disk_incident(incident)
-
-
 def _is_retryable_disk_open(incident: dict) -> bool:
     """Limit the independent worker to pending Disk alert publication."""
     return (
@@ -112,11 +107,7 @@ def _retry_pending_event(key: str, incident: dict) -> bool:
     if event != "resolved" and str(incident.get("status", "")).upper() != "OPEN":
         logger.warning("Skipping stale %s retry for non-open incident %s", event, incident.get("incident_id"))
         return False
-    if (
-        event != "resolved"
-        and _requires_decision_authorization(incident)
-        and not _evaluate_for_publication(key, incident)
-    ):
+    if event != "resolved" and not _evaluate_for_publication(key, incident):
         return False
     attempt = int(incident.get("_backend_attempts") or 0) + 1
     incident["_backend_attempts"] = attempt
@@ -194,7 +185,7 @@ def _decision_error_outcome(response) -> str | None:
 
 def _evaluate_for_publication(key: str, incident: dict) -> bool:
     """Persist and retry Decision Engine evaluation before any opened event."""
-    if incident.get("_decision_outcome") == "PERMITTED":
+    if incident.get("_decision_publication_outcome") == "PUBLISH":
         return True
     if incident.get("_decision_status") in {"invalid_rule", "rejected"}:
         return False
@@ -231,33 +222,45 @@ def _evaluate_for_publication(key: str, incident: dict) -> bool:
             raise ValueError("Decision Engine response must be a JSON object")
         if result.get("incident_id") != incident.get("incident_id") or result.get("fingerprint") != incident.get("fingerprint"):
             raise ValueError("Decision Engine response identity does not match incident")
-        if not isinstance(result.get("decision"), dict) or not isinstance(result.get("policy"), dict):
-            raise ValueError("Decision Engine response is missing decision or policy data")
+        if (
+            not isinstance(result.get("decision"), dict)
+            or not isinstance(result.get("policy"), dict)
+            or not isinstance(result.get("publication"), dict)
+        ):
+            raise ValueError("Decision Engine response is missing publication or decision data")
+        publication_outcome = result["publication"].get("outcome")
+        if publication_outcome not in {"PUBLISH", "REJECT"}:
+            raise ValueError("Decision Engine returned an unknown publication outcome")
         outcome = result.get("outcome")
         if outcome not in {"PERMITTED", "DENIED", "APPROVAL_REQUIRED"}:
             raise ValueError("Decision Engine returned an unknown outcome")
-        if outcome == "PERMITTED" and result["policy"].get("allowed") is not True:
-            raise ValueError("Decision Engine permitted an incident without an allowed policy")
+        if publication_outcome == "PUBLISH" and str(
+            (result.get("publication") or {}).get("reason") or ""
+        ).strip() == "":
+            raise ValueError("Decision Engine published an incident without a reason")
         incident["_decision_outcome"] = outcome
+        incident["_decision_publication_outcome"] = publication_outcome
         incident["_decision_result"] = result
         incident["_decision_status"] = "evaluated"
         incident.pop("_decision_last_error", None)
         incident.pop("_decision_http_status", None)
-        if outcome == "PERMITTED":
-            incident["decision_outcome"] = outcome
-            incident["policy_outcome"] = result.get("policy", {}).get("reason") or "ALLOWED"
-            incident["decision"] = result.get("decision")
-            incident["policy"] = result.get("policy")
+        incident["decision_outcome"] = outcome
+        incident["policy_outcome"] = result.get("policy", {}).get("reason") or "ALLOWED"
+        incident["decision"] = result.get("decision")
+        incident["policy"] = result.get("policy")
+        incident["publication"] = result.get("publication")
+        incident["publication_outcome"] = publication_outcome
+        if publication_outcome == "PUBLISH":
             incident.pop("_decision_retry_at", None)
             redis_client.set(key, json.dumps(incident))
             if _is_disk_incident(incident):
                 logger.info(
-                    "DISK_DECISION_PERMITTED system_id=%s rule_id=%s incident_id=%s fingerprint=%s outcome=%s allowed=%s",
+                    "DISK_PUBLICATION_DECISION_PUBLISH system_id=%s rule_id=%s incident_id=%s fingerprint=%s healing_outcome=%s",
                     incident.get("system_id"), incident.get("rule_id"),
-                    incident.get("incident_id"), incident.get("fingerprint"),
-                    outcome, result["policy"].get("allowed"),
+                    incident.get("incident_id"), incident.get("fingerprint"), outcome,
                 )
             return True
+        incident["_decision_status"] = "rejected"
         if _is_disk_incident(incident):
             logger.warning(
                 "DISK_DECISION_REJECTED system_id=%s rule_id=%s incident_id=%s fingerprint=%s outcome=%s allowed=%s",
@@ -348,10 +351,10 @@ def _manage_incidents(incident: dict, condition_violated: bool = True):
                 current.pop("_backend_attempts", None)
                 current.pop("_recovery_pending", None)
                 for field in (
-                    "_decision_outcome", "_decision_result", "_decision_status",
+                    "_decision_outcome", "_decision_publication_outcome", "_decision_result", "_decision_status",
                     "_decision_retry_at", "_decision_attempts", "_decision_last_error",
                     "_decision_http_status", "decision_outcome", "policy_outcome",
-                    "decision", "policy",
+                    "decision", "policy", "publication", "publication_outcome",
                 ):
                     current.pop(field, None)
                 timeline = list(current.get("timeline") or [])
@@ -422,8 +425,7 @@ def _manage_incidents(incident: dict, condition_violated: bool = True):
                 pending_event = None
             if not pending_event:
                 if (
-                    _requires_decision_authorization(current)
-                    and current.get("_decision_outcome") != "PERMITTED"
+                    current.get("_decision_publication_outcome") != "PUBLISH"
                 ):
                     if not _evaluate_for_publication(key, current):
                         return current
@@ -465,8 +467,7 @@ def _manage_incidents(incident: dict, condition_violated: bool = True):
             return None
 
         if (
-            _requires_decision_authorization(incident)
-            and not _evaluate_for_publication(key, incident)
+            not _evaluate_for_publication(key, incident)
         ):
             return incident
 
@@ -620,7 +621,7 @@ def retry_pending_incidents() -> dict:
                     retry_at = float(incident.get("_backend_retry_at") or 0)
                     if (
                         incident.get("_backend_pending_event") != "resolved"
-                        and incident.get("_decision_outcome") != "PERMITTED"
+                        and incident.get("_decision_publication_outcome") != "PUBLISH"
                     ):
                         retry_at = max(retry_at, float(incident.get("_decision_retry_at") or 0))
                     if datetime.now(timezone.utc).timestamp() < retry_at:
@@ -645,6 +646,53 @@ def retry_pending_incidents() -> dict:
         except Exception:
             result["failed"] += 1
             logger.exception("Unable to scan pending incidents in Redis")
+    return result
+
+
+def republish_active_disk_incidents(
+    generation: str,
+    active_incident_ids: set[str] | None = None,
+) -> dict:
+    """Restore missing current-run Disk state after a Backend restart."""
+    result = {"scanned": 0, "republished": 0, "failed": 0}
+    existing_ids = {str(value) for value in (active_incident_ids or set())}
+    try:
+        keys = redis_client.scan_iter(match="incident:active:*", count=INCIDENT_RETRY_SCAN_COUNT)
+        for key in keys:
+            result["scanned"] += 1
+            try:
+                stored = redis_client.get(key)
+                if stored is None:
+                    continue
+                incident = json.loads(stored)
+                if not isinstance(incident, dict) or not _is_disk_incident(incident):
+                    continue
+                if incident.get("analytics_generation") != generation:
+                    continue
+                if str(incident.get("status") or "").upper() != "OPEN":
+                    continue
+                incident_id = incident.get("incident_id") or incident.get("id")
+                if not incident_id or str(incident_id) in existing_ids:
+                    continue
+                if incident.get("_decision_publication_outcome") != "PUBLISH":
+                    continue
+                incident["_backend_pending_event"] = "opened"
+                incident["_backend_retry_at"] = 0
+                redis_client.set(key, json.dumps(incident))
+                if _retry_pending_event(key, incident):
+                    result["republished"] += 1
+                    existing_ids.add(str(incident_id))
+                else:
+                    result["failed"] += 1
+            except (TypeError, ValueError, json.JSONDecodeError):
+                result["failed"] += 1
+                logger.exception("Unable to reconcile active Disk incident state at %s", key)
+            except Exception:
+                result["failed"] += 1
+                logger.exception("Active Disk incident reconciliation failed for Redis key %s", key)
+    except Exception:
+        result["failed"] += 1
+        logger.exception("Unable to scan active Disk incidents for Backend reconciliation")
     return result
 
 

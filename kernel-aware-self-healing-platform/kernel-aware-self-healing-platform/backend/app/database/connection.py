@@ -8,7 +8,12 @@ engine = create_engine(
     pool_pre_ping=True,
     pool_recycle=300,
     pool_timeout=3,
-    connect_args={"connect_timeout": 3},
+    connect_args={
+        "connect_timeout": 3,
+        # Bound remote queries so a stalled PostgreSQL operation cannot hold
+        # a backend worker indefinitely.
+        "options": "-c statement_timeout=9000",
+    },
 )
 
 SessionLocal = sessionmaker(

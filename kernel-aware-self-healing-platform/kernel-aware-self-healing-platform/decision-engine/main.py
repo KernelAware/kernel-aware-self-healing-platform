@@ -63,7 +63,14 @@ def _evaluate_incident(incident: dict):
     if str(rule_info.get("monitor_type", "")).lower() != str(incident.get("monitor_type", "")).lower():
         raise HTTPException(status_code=422, detail={"outcome": "INVALID_RULE"})
     if str(rule_info.get("status", "")).upper() != "ENABLED":
-        return {"outcome": "DENIED", "incident_id": incident["incident_id"], "fingerprint": incident["fingerprint"], "decision": {"decision": "NO_ACTION", "reason": "Rule is disabled"}, "policy": {"allowed": False, "reason": "Rule is disabled"}}
+        return {
+            "outcome": "DENIED",
+            "incident_id": incident["incident_id"],
+            "fingerprint": incident["fingerprint"],
+            "publication": {"outcome": "REJECT", "reason": "Rule is disabled"},
+            "decision": {"decision": "NO_ACTION", "reason": "Rule is disabled"},
+            "policy": {"allowed": False, "reason": "Rule is disabled"},
+        }
     policy = check_policy(rules)
     decision = make_decision(incident, rules, policy)
     if policy.get("reason") == "Approval required":
@@ -73,7 +80,17 @@ def _evaluate_incident(incident: dict):
         outcome = "PERMITTED"
     else:
         outcome = "DENIED"
-    return {"outcome": outcome, "incident_id": incident["incident_id"], "fingerprint": incident["fingerprint"], "decision": decision, "policy": policy}
+    return {
+        "outcome": outcome,
+        "incident_id": incident["incident_id"],
+        "fingerprint": incident["fingerprint"],
+        "publication": {
+            "outcome": "PUBLISH",
+            "reason": "Enabled monitoring rule qualified for alert publication",
+        },
+        "decision": decision,
+        "policy": policy,
+    }
 
 
 @app.get("/health")

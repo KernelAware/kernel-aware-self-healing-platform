@@ -89,12 +89,12 @@ def build_payload(incident: dict, event: str) -> dict:
         },
         "decision": {
             "recommendedAction": "Alert only" if category == "disk" else (incident.get("decision") or {}).get("Selected_action"),
-            "decision": incident.get("decision_outcome") if category != "disk" else None,
-            "reason": (
-                "Monitoring alert; healing authorization was not evaluated."
-                if category == "disk"
-                else (incident.get("decision") or {}).get("reason") or "Decision Engine permitted alert publication."
-            ),
+            "decision": incident.get("decision_outcome"),
+            "reason": (incident.get("decision") or {}).get("reason") or "Decision Engine evaluated the incident.",
+        },
+        "publication": incident.get("publication") or {
+            "outcome": incident.get("publication_outcome"),
+            "reason": "Decision Engine approved monitoring publication.",
         },
         "policy": {
             "ruleEnabled": True,
@@ -120,8 +120,9 @@ def build_payload(incident: dict, event: str) -> dict:
             "reason": "No healing or remediation is configured for Disk alerts." if category == "disk" else None,
         },
         "status": status,
-        "decision_outcome": incident.get("decision_outcome") if category != "disk" else None,
-        "policy_outcome": incident.get("policy_outcome") if category != "disk" else "NOT_APPLICABLE",
+        "decision_outcome": incident.get("decision_outcome"),
+        "policy_outcome": incident.get("policy_outcome"),
+        "publication_outcome": incident.get("publication_outcome"),
         "event": event,
     }
 
@@ -154,8 +155,9 @@ def build_payload(incident: dict, event: str) -> dict:
         "title": title,
         "body": body,
         "status": status,
-        "decision_outcome": incident.get("decision_outcome") if category != "disk" else None,
-        "policy_outcome": incident.get("policy_outcome") if category != "disk" else "NOT_APPLICABLE",
+        "decision_outcome": incident.get("decision_outcome"),
+        "policy_outcome": incident.get("policy_outcome"),
+        "publication_outcome": incident.get("publication_outcome"),
         "acked": False,
         "analytics_generation": incident.get("analytics_generation"),
         "system": system_label,

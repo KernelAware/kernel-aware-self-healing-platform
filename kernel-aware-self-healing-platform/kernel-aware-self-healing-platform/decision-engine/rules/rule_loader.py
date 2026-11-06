@@ -7,6 +7,7 @@ import httpx
 BACKEND_URL = os.environ.get("KAISP_BACKEND_URL", "http://localhost:8000").rstrip("/")
 RULE_LOOKUP_ATTEMPTS = 3
 RULE_LOOKUP_RETRY_DELAY_SECONDS = 0.25
+RULE_LOOKUP_TIMEOUT_SECONDS = 10.0
 logger = logging.getLogger(__name__)
 
 def load_rules(incident: dict) -> dict:
@@ -17,7 +18,10 @@ def load_rules(incident: dict) -> dict:
             response = httpx.get(
                 f"{BACKEND_URL}/get_user_rule",
                 params={"rule_id": rule_id},
-                timeout=5.0,
+                # The Backend performs a remote PostgreSQL lookup. Live
+                # responses for saved rules have exceeded five seconds while
+                # still returning complete rule data.
+                timeout=RULE_LOOKUP_TIMEOUT_SECONDS,
             )
             response.raise_for_status()
             break
