@@ -5,6 +5,7 @@ from services.incident_service import persist_incident
 from integrations.email.email_service import send_incident_detected_emails
 from integrations.slack.slack_service import send_incident_detected_slack
 from integrations.teams.teams_service import send_incident_detected_teams
+from integrations.jira.jira_service import send_incident_detected_jira
 
 router = APIRouter()
 
@@ -27,6 +28,7 @@ async def alert_incidents(data: dict, background_tasks: BackgroundTasks):
     background_tasks.add_task(send_incident_detected_emails, persisted_incident)
     background_tasks.add_task(send_incident_detected_slack, persisted_incident)
     background_tasks.add_task(send_incident_detected_teams, persisted_incident)
+    background_tasks.add_task(send_incident_detected_jira, persisted_incident)
 
     system_id = (
         incident_detail.get("system_id")

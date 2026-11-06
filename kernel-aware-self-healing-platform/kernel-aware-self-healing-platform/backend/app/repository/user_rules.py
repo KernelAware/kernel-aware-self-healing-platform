@@ -221,3 +221,20 @@ def get_notification_recipients(
 
     finally:
         db.close()
+
+
+def get_jira_config(rule_id: int | None):
+    """Get the Jira connection details configured for one rule."""
+    if rule_id is None:
+        return None
+
+    db = SessionLocal()
+
+    try:
+        return (
+            db.query(RuleJiraConfig)
+            .filter(RuleJiraConfig.rule_id == rule_id)
+            .first()
+        )
+    finally:
+        db.close()
