@@ -69,12 +69,16 @@ def _is_disk_incident(incident: dict) -> bool:
     return str(incident.get("monitor_type") or incident.get("incident_type") or "").strip().lower() == "disk"
 
 
-def _is_retryable_disk_open(incident: dict) -> bool:
-    """Limit the independent worker to pending Disk alert publication."""
+def _is_retryable_incident(incident: dict) -> bool:
+    """Select pending monitoring events for the shared retry worker."""
     return (
-        _is_disk_incident(incident)
-        and incident.get("_backend_pending_event") == "opened"
-        and str(incident.get("status") or "").upper() == "OPEN"
+        str(incident.get("monitor_type") or incident.get("incident_type") or "").lower()
+        in {"disk", "process"}
+        and incident.get("_backend_pending_event") in {"opened", "resolved"}
+        and (
+            incident.get("_backend_pending_event") == "resolved"
+            or str(incident.get("status") or "").upper() == "OPEN"
+        )
         and incident.get("_decision_status") not in {"invalid_rule", "rejected"}
     )
 
@@ -616,7 +620,7 @@ def retry_pending_incidents() -> dict:
                     if not isinstance(incident, dict):
                         logger.error("Ignoring malformed pending incident state at %s", key)
                         continue
-                    if not _is_retryable_disk_open(incident):
+                    if not _is_retryable_incident(incident):
                         continue
                     retry_at = float(incident.get("_backend_retry_at") or 0)
                     if (

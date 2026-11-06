@@ -8,6 +8,7 @@ from detection.threshold import check_threshold
 from load_data.system_metrics.metrics_loader import (
     PROMETHEUS_SCRAPE_INTERVAL_SECONDS,
     build_metric_selector,
+    canonical_metric_name,
     query_prometheus,
     query_prometheus_range,
 )
@@ -34,7 +35,7 @@ def verify_prometheus_duration(
     duration = max(0.0, float(duration_seconds or 0))
     step = max(0.1, float(PROMETHEUS_SCRAPE_INTERVAL_SECONDS))
     freshness = step * 1.25
-    selector = build_metric_selector(metric_name, labels)
+    selector = build_metric_selector(canonical_metric_name(metric_name), labels)
     fresh_selector = (
         f"({selector}) and ((time() - timestamp({selector})) <= {freshness:g})"
     )

@@ -18,7 +18,6 @@ METRIC_MAP = {
     "Thread Count": "process_threads",
     "Open Files": "process_open_files",
 }
-
 PROMETHEUS_URL = os.environ.get("PROMETHEUS_URL", "http://localhost:9090").rstrip("/")
 logger = logging.getLogger(__name__)
 try:
@@ -136,21 +135,57 @@ def get_network_metrics():
     return query_prometheus("network_byte_sent_total")
 
 
-def get_process_metric(system_id, process_name, metric, require_freshness=False):
+def canonical_process_metric(metric) -> str:
     metric_name = metric.get("metric") if isinstance(metric, dict) else str(metric)
-    prometheus_metric = METRIC_MAP.get(metric_name, metric_name)
+    prometheus_metric = canonical_metric_name(metric_name)
     if not prometheus_metric.startswith("process_"):
         raise ValueError(f"Unsupported Process metric: {metric_name}")
+    if not re.fullmatch(r"[a-zA-Z_:][a-zA-Z0-9_:]*", prometheus_metric):
+        raise ValueError(f"Invalid Prometheus metric name: {metric_name}")
+    return prometheus_metric
+
+
+def canonical_metric_name(metric_name: str) -> str:
+    return METRIC_MAP.get(str(metric_name or ""), str(metric_name or ""))
+
+
+def process_target_labels(process_name: str) -> dict[str, str]:
+    """Translate the dashboard's enriched process target into exporter labels."""
+    target = str(process_name)
+    name, separator, metadata = target.partition("@")
+    labels = {"name": name}
+    if separator:
+        for field in metadata.split("@"):
+            key, equals, value = field.partition("=")
+            if equals and key == "pid" and value.isdigit():
+                labels["pid"] = value
+    return labels
+
+
+def get_process_metric_selector(system_id, process_name, metric, require_freshness=False):
+    prometheus_metric = canonical_process_metric(metric)
 
     labels = {
         "system_id": str(system_id),
-        "name": str(process_name),
+        **process_target_labels(process_name),
     }
-    label_selector = ",".join(f"{key}={json.dumps(value)}" for key, value in labels.items())
-    selector = f"{prometheus_metric}{{{label_selector}}}"
+    selector = build_metric_selector(prometheus_metric, labels)
     if require_freshness:
         freshness = PROMETHEUS_SCRAPE_INTERVAL_SECONDS * 1.25
         selector = f"({selector}) and ((time() - timestamp({selector})) <= {freshness:g})"
+    return prometheus_metric, selector
+
+
+def get_process_metric(system_id, process_name, metric, require_freshness=False):
+    prometheus_metric, selector = get_process_metric_selector(
+        system_id, process_name, metric, require_freshness
+    )
+    logger.debug(
+        "Process Prometheus query: canonical_metric=%s target=%s selector=%s",
+        prometheus_metric,
+        process_name,
+        selector,
+    )
     return query_prometheus(selector)
 
 
