@@ -244,3 +244,20 @@ def get_jira_config(rule_id: int | None):
         )
     finally:
         db.close()
+
+
+def get_servicenow_config(rule_id: int | None):
+    """Get the ServiceNow connection details configured for one rule."""
+    if rule_id is None:
+        return None
+
+    db = SessionLocal()
+
+    try:
+        return (
+            db.query(RuleServiceNowConfig)
+            .filter(RuleServiceNowConfig.rule_id == rule_id)
+            .first()
+        )
+    finally:
+        db.close()
