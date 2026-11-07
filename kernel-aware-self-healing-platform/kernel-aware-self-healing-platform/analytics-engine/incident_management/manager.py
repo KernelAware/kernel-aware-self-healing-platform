@@ -25,7 +25,7 @@ def manage_incidents(incident):
             key,
             json.dumps(incident)
         )
-    send_to_decision_engine(incident)
+        send_to_decision_engine(incident)
 
 
 
