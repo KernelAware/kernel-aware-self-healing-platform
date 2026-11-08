@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react"
-import { AlertCircle, Eye, Plus, RefreshCw, Shield, Target, TrendingUp } from "lucide-react"
+import { AlertCircle, ChevronDown, Eye, Info, Lock, Pencil, Plus, RefreshCw, Save, Shield, Target, TrendingUp, X } from "lucide-react"
 import { Panel } from "@/components/kit"
 import { cn } from "@/utils/cn"
-import { getUserRules } from "@/services/api"
+import { getUserRules, updateUserRule } from "@/services/api"
 import { INITIAL_FORM } from "./steps/wizardConstants"
 import { WizardProgress, StepNav } from "./steps/wizardComponents"
 import Step1 from "./steps/Step1"
@@ -33,6 +33,99 @@ const TABS = [
   { id: "execution-history", label: "Execution History" },
 ]
 
+const EDIT_OPERATORS = [
+  { value: ">=", label: "Greater Than or Equal (>=)" },
+  { value: ">", label: "Greater Than (>)" },
+  { value: "<=", label: "Less Than or Equal (<=)" },
+  { value: "<", label: "Less Than (<)" },
+  { value: "=", label: "Equal (=)" },
+]
+
+function EditField({ label, required, hint, children, className = "" }) {
+  return <label className={cn("block space-y-2", className)}>
+    <span className="flex items-center gap-1.5 font-mono text-[11px] font-semibold text-foreground">{label}{required && <span className="text-destructive">*</span>}{hint && <Info className="size-3 text-muted-foreground" />}</span>
+    {children}
+  </label>
+}
+
+const editInputClass = "h-8 w-full rounded-md border border-input bg-background/70 px-2.5 font-mono text-[11px] text-foreground placeholder:text-muted-foreground/70 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary/40"
+const editSelectClass = `${editInputClass} appearance-none pr-9`
+
+function EditRuleModal({ ruleData, onClose, onSaved }) {
+  const { rule, metrics = [] } = ruleData
+  const metric = metrics[0] || {}
+  const [form, setForm] = useState({
+    name: rule.name || "",
+    enabled: rule.status === "ENABLED",
+    priority: (rule.priority || "MEDIUM").toUpperCase(),
+    severity: (rule.severity || "WARNING").toUpperCase(),
+    threshold: metric.threshold ?? "",
+    operator: metric.operator || ">=",
+    duration: metric.duration_seconds ?? "",
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState("")
+  const setValue = (field, value) => setForm(current => ({ ...current, [field]: value }))
+
+  const save = async event => {
+    event.preventDefault()
+    setSaving(true)
+    setError("")
+    try {
+      await updateUserRule(rule.id, {
+        name: form.name.trim(),
+        status: form.enabled ? "ENABLED" : "DISABLED",
+        priority: form.priority,
+        severity: form.severity,
+        metric: {
+          operator: form.operator,
+          threshold: form.threshold === "" ? null : Number(form.threshold),
+          duration_seconds: form.duration === "" ? null : Number(form.duration),
+        },
+      })
+      onSaved()
+    } catch (saveError) {
+      setError(saveError.message || "Failed to save changes")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return <div className="fixed inset-0 z-50 flex min-h-full items-center justify-center overflow-y-auto bg-black/80 p-3" role="dialog" aria-modal="true" aria-labelledby="edit-rule-title" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
+    <form onSubmit={save} className="w-full max-w-[540px] overflow-hidden rounded-lg border border-muted-foreground/50 bg-background shadow-2xl shadow-black/70">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+        <div className="flex items-center gap-2.5"><span className="flex size-8 items-center justify-center rounded-md bg-primary/15"><Pencil className="size-4 text-primary" /></span><div className="flex items-baseline gap-2"><h2 id="edit-rule-title" className="text-base font-semibold">Edit Rule</h2><span className="font-mono text-[10px] text-muted-foreground">Rule ID: #{rule.id}</span></div><span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[9px] font-bold", form.enabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground")}><span className={cn("size-1.5 rounded-full", form.enabled ? "bg-primary" : "bg-muted-foreground")} />{form.enabled ? "ENABLED" : "DISABLED"}</span></div>
+        <button type="button" onClick={onClose} className="rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground" aria-label="Close edit form"><X className="size-5" /></button>
+      </div>
+
+      <div className="max-h-[60vh] space-y-3 overflow-y-auto p-4">
+        <section className="rounded-md border border-border bg-card/30 p-3">
+          <div className="mb-3 flex items-center gap-2 border-b border-border pb-2"><ChevronDown className="size-3.5 text-primary" /><h3 className="text-xs font-semibold">General Information</h3></div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <EditField label="Rule Name" required><input autoFocus required value={form.name} onChange={event => setValue("name", event.target.value)} className={editInputClass} /></EditField>
+            <EditField label="Status"><div className="flex h-8 items-center gap-2"><button type="button" role="switch" aria-checked={form.enabled} onClick={() => setValue("enabled", !form.enabled)} className={cn("relative h-5 w-9 rounded-full transition-colors", form.enabled ? "bg-primary" : "bg-muted")}><span className={cn("absolute top-0.5 size-4 rounded-full bg-white transition-transform", form.enabled ? "translate-x-4" : "translate-x-0.5")} /></button><span className="font-mono text-[11px]">{form.enabled ? "Enabled" : "Disabled"}</span></div><p className="font-mono text-[9px] text-muted-foreground">Enable or disable this rule.</p></EditField>
+            <EditField label="Priority"><div className="relative"><select value={form.priority} onChange={event => setValue("priority", event.target.value)} className={editSelectClass}><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="CRITICAL">Critical</option></select><ChevronDown className="pointer-events-none absolute right-3 top-3 size-3.5 text-muted-foreground" /></div></EditField>
+            <EditField label="Severity" hint=""><div className="relative"><select value={form.severity} onChange={event => setValue("severity", event.target.value)} className={editSelectClass}><option value="LOW">Low</option><option value="WARNING">Warning</option><option value="HIGH">High</option><option value="CRITICAL">Critical</option></select><ChevronDown className="pointer-events-none absolute right-3 top-3 size-3.5 text-muted-foreground" /></div></EditField>
+          </div>
+        </section>
+
+        <section className="rounded-md border border-border bg-card/30 p-3">
+          <div className="mb-3 flex items-center gap-2 border-b border-border pb-2"><ChevronDown className="size-3.5 text-primary" /><h3 className="text-xs font-semibold">Rule Conditions</h3></div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <EditField label="Existing Metric" hint=""><div className="relative"><input value={metric.metric || "No metric configured"} readOnly className={`${editInputClass} pr-9 text-muted-foreground`} /><Lock className="absolute right-3 top-3 size-3.5 text-muted-foreground" /></div><p className="font-mono text-[10px] text-muted-foreground">Read-only — the metric cannot be changed.</p></EditField>
+            <EditField label="Operator" hint=""><div className="relative"><select value={form.operator} onChange={event => setValue("operator", event.target.value)} className={editSelectClass}>{EDIT_OPERATORS.map(operator => <option key={operator.value} value={operator.value}>{operator.label}</option>)}</select><ChevronDown className="pointer-events-none absolute right-3 top-3 size-3.5 text-muted-foreground" /></div></EditField>
+            <EditField label="Threshold" hint=""><input type="number" step="any" value={form.threshold} onChange={event => setValue("threshold", event.target.value)} placeholder="Enter value..." className={editInputClass} /></EditField>
+            <EditField label="Duration (seconds)" hint=""><input type="number" min="0" value={form.duration} onChange={event => setValue("duration", event.target.value)} placeholder="Enter duration..." className={editInputClass} /></EditField>
+          </div>
+        </section>
+        {error && <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 font-mono text-xs text-destructive">{error}</p>}
+      </div>
+
+      <div className="flex justify-end gap-2 border-t border-border bg-secondary/10 px-4 py-3"><button type="button" onClick={onClose} className="inline-flex h-8 items-center gap-2 rounded-md border border-border px-3 font-mono text-[11px] font-semibold hover:bg-secondary">Cancel</button><button disabled={saving} className="inline-flex h-8 items-center gap-2 rounded-md bg-primary px-3 font-mono text-[11px] font-bold text-primary-foreground shadow-glow-primary hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"><Save className="size-3" />{saving ? "Saving..." : "Save Changes"}</button></div>
+    </form>
+  </div>
+}
+
 export default function PolicyPage() {
   const [activeTab, setActiveTab] = useState("all-user_rules")
   const [step, setStep] = useState(1)
@@ -40,6 +133,7 @@ export default function PolicyPage() {
   const [rules, setRules] = useState([])
   const [rulesLoading, setRulesLoading] = useState(false)
   const [rulesError, setRulesError] = useState("")
+  const [editingRule, setEditingRule] = useState(null)
 
   const loadRules = useCallback(async () => {
     setRulesLoading(true)
@@ -73,7 +167,7 @@ export default function PolicyPage() {
     if (rulesError) return <Panel className="flex flex-col items-center justify-center gap-3 py-16 text-center"><AlertCircle className="size-8 text-destructive" /><p className="font-mono text-sm text-destructive">{rulesError}</p><button onClick={loadRules} className="inline-flex h-9 items-center gap-2 rounded-md border border-border px-4 font-mono text-xs hover:bg-secondary"><RefreshCw className="size-3.5" /> Retry</button></Panel>
     if (!rules.length) return <Panel className="flex flex-col items-center justify-center gap-4 py-20"><Shield className="size-10 text-muted-foreground/30" /><p className="font-mono text-sm text-muted-foreground">No rules found in the database</p><button onClick={() => { setActiveTab("create-rule"); setStep(1) }} className="inline-flex h-9 items-center gap-2 rounded-md bg-primary/10 border border-primary/20 px-4 font-mono text-xs text-primary hover:bg-primary/20 transition-colors cursor-pointer"><Plus className="size-3.5" /> Create New Rule</button></Panel>
 
-    return <div className="grid grid-cols-1 gap-4">{rules.map(({ rule, targets = [], metrics = [], actions = [], notifications = [] }) => (
+    return <div className="grid grid-cols-1 gap-4">{rules.map(({ rule, targets = [], metrics = [], actions = [], notifications = [], ...ruleData }) => (
       <Panel key={rule.id} className="overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-border px-5 py-4 md:flex-row md:items-center md:justify-between">
           <div><div className="flex items-center gap-3"><h2 className="text-lg font-semibold">{rule.name}</h2><span className={cn("rounded border px-2 py-0.5 font-mono text-[10px] uppercase", rule.status === "ENABLED" ? "border-primary/30 bg-primary/10 text-primary" : "border-border text-muted-foreground")}>{rule.status || "UNKNOWN"}</span></div><p className="mt-1 font-mono text-[11px] text-muted-foreground">ID #{rule.id} · {rule.monitor_type} · {rule.environment || "No environment"} · {rule.region || "No region"}</p></div>
@@ -85,7 +179,7 @@ export default function PolicyPage() {
           <div><p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Actions</p>{actions.length ? actions.map((action, index) => <p key={index} className="font-mono text-xs">{action.action_type}</p>) : <p className="font-mono text-xs text-muted-foreground">—</p>}</div>
           <div><p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Notifications</p>{notifications.length ? <p className="font-mono text-xs">{[...new Set(notifications.map(notification => notification.channel))].join(", ")}</p> : <p className="font-mono text-xs text-muted-foreground">—</p>}</div>
         </div>
-        <div className="flex items-center justify-between border-t border-border bg-secondary/10 px-5 py-2.5"><span className="font-mono text-[10px] text-muted-foreground">Owner: {rule.owner || "Unassigned"}</span><button type="button" className="inline-flex items-center gap-1.5 font-mono text-[10px] text-primary hover:underline"><Eye className="size-3" /> View details</button></div>
+        <div className="flex items-center justify-between border-t border-border bg-secondary/10 px-5 py-2.5"><span className="font-mono text-[10px] text-muted-foreground">Owner: {rule.owner || "Unassigned"}</span><div className="flex items-center gap-4"><button type="button" onClick={() => setEditingRule({ rule, targets, metrics, actions, notifications, ...ruleData })} className="inline-flex items-center gap-1.5 font-mono text-[10px] text-primary hover:underline"><Pencil className="size-3" /> Edit</button><button type="button" className="inline-flex items-center gap-1.5 font-mono text-[10px] text-primary hover:underline"><Eye className="size-3" /> View details</button></div></div>
       </Panel>
     ))}</div>
   }
@@ -163,6 +257,7 @@ export default function PolicyPage() {
       ) : activeTab === "all-user_rules" ? renderRules() : (
         <Panel className="flex flex-col items-center justify-center gap-4 py-20"><Shield className="size-10 text-muted-foreground/30" /><p className="font-mono text-sm text-muted-foreground">{TABS.find(t => t.id === activeTab)?.label} — Click "Create New Rule" to get started</p><button onClick={() => { setActiveTab("create-rule"); setStep(1); }} className="inline-flex h-9 items-center gap-2 rounded-md bg-primary/10 border border-primary/20 px-4 font-mono text-xs text-primary hover:bg-primary/20 transition-colors cursor-pointer"><Plus className="size-3.5" /> Create New Rule</button></Panel>
       )}
+      {editingRule && <EditRuleModal ruleData={editingRule} onClose={() => setEditingRule(null)} onSaved={async () => { setEditingRule(null); await loadRules() }} />}
     </div>
   )
 }

@@ -6,7 +6,7 @@ from models.user_rules.rule_notification import RuleNotification
 from models.user_rules.rule_recovery import RuleRecovery
 from models.user_rules.rule_jira_config import RuleJiraConfig
 from models.user_rules.rule_servicenow_config import RuleServiceNowConfig
-from repository.user_rules import save_rules, get_rules_with_details
+from repository.user_rules import save_rules, get_rules_with_details, update_rule
 
 from schemas.user_rules import (
     RuleResponse,
@@ -342,3 +342,10 @@ def get_user_rules(system_id: int | None = None, rule_id: int | None = None):
         )
 
     return result
+
+
+def update_user_rule(rule_id: int, updates: dict):
+    rule = update_rule(rule_id, updates)
+    if rule is None:
+        return None
+    return {"success": True, "rule_id": rule.id}
