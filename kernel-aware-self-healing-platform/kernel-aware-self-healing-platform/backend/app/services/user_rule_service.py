@@ -348,7 +348,7 @@ def update_user_rule(rule_id: int, updates: dict):
     rule = update_rule(rule_id, updates)
     if rule is None:
         return None
-    return {"success": True, "rule_id": rule.id}
+    return {"success": True, "rule_id": rule_id}
 
 
 def delete_user_rule(rule_id: int):
