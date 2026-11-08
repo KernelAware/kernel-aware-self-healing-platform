@@ -12,7 +12,6 @@ from incident_management.alert_service import publish_incident
 from load_data.redis_connection.redis_connection import redis_client
 from lifecycle import ANALYTICS_GENERATION
 
-
 logger = logging.getLogger(__name__)
 DECISION_ENGINE_URL = os.environ.get("DECISION_ENGINE_URL", "http://localhost:8002").rstrip("/")
 DECISION_ENGINE_TIMEOUT_SECONDS = 5

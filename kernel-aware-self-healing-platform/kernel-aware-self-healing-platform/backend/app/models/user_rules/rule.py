@@ -40,12 +40,12 @@ class Rule(Base):
 
     priority: Mapped[str | None] = mapped_column(
         String(20),
-        default="MEDIUM"
+        default="Medium"
     )
 
     severity: Mapped[str | None] = mapped_column(
         String(20),
-        default="WARNING"
+        default="Warning"
     )
 
     owner: Mapped[str | None] = mapped_column(

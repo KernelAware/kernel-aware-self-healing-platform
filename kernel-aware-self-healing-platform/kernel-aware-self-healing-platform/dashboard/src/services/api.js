@@ -1,5 +1,10 @@
 
+import { getConfiguredSystemId } from "@/services/system"
+
+// --------------------------------------------------
 // Backend and Prometheus configuration
+// --------------------------------------------------
+
 const API_BASE_URL = (
   import.meta.env.VITE_BACKEND_URL ||
   import.meta.env.VITE_API_URL ||
@@ -13,7 +18,10 @@ const PROMETHEUS_URL = (
 
 const SYSTEM_ID = getConfiguredSystemId()
 
+// --------------------------------------------------
 // Common response handler
+// --------------------------------------------------
+
 async function handleResponse(response, fallbackMessage) {
   const text = await response.text()
 
@@ -42,7 +50,10 @@ async function handleResponse(response, fallbackMessage) {
   return json
 }
 
-// Mock API endpoints to simulate backend operations
+// --------------------------------------------------
+// Mock API endpoints
+// --------------------------------------------------
+
 export const api = {
   async purgeCache() {
     await new Promise((resolve) => setTimeout(resolve, 800))
@@ -311,4 +322,56 @@ export async function userRules(form) {
     "Failed to save user rule"
   )
 }
-import { getConfiguredSystemId } from '@/services/system'
+
+export async function getUserRules(systemId = SYSTEM_ID) {
+  const url = new URL(`${API_BASE_URL}/get_user_rules`)
+
+  url.searchParams.set("system_id", String(systemId))
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  })
+
+  return handleResponse(
+    response,
+    "Failed to load user rules"
+  )
+}
+
+export async function updateUserRule(ruleId, updates) {
+  const response = await fetch(
+    `${API_BASE_URL}/user_rules/${encodeURIComponent(ruleId)}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updates),
+    }
+  )
+
+  return handleResponse(
+    response,
+    "Failed to update user rule"
+  )
+}
+
+export async function deleteUserRule(ruleId) {
+  const response = await fetch(
+    `${API_BASE_URL}/user_rules/${encodeURIComponent(ruleId)}`,
+    {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  )
+
+  return handleResponse(
+    response,
+    "Failed to delete user rule"
+  )
+}

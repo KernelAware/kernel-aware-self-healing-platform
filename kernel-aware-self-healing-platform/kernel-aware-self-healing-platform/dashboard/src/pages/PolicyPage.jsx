@@ -1,7 +1,8 @@
-import React, { useState } from "react"
-import { Plus, Shield, TrendingUp } from "lucide-react"
+import React, { useCallback, useEffect, useState } from "react"
+import { AlertCircle, AlertTriangle, CheckCircle2, ChevronDown, Eye, Info, Lock, Pencil, Plus, RefreshCw, Save, Shield, Target, Trash2, TrendingUp, X } from "lucide-react"
 import { Panel } from "@/components/kit"
 import { cn } from "@/utils/cn"
+import { deleteUserRule, getUserRules, updateUserRule } from "@/services/api"
 import { INITIAL_FORM } from "./steps/wizardConstants"
 import { WizardProgress, StepNav } from "./steps/wizardComponents"
 import Step1 from "./steps/Step1"
@@ -30,7 +31,7 @@ import Step13Disk from "./steps/disk/Step13Disk"
 import { DISK_METRICS } from "./steps/disk/diskHelpers"
 
 const STATS = [
-  { label: "Active Rules", value: "42", hint: "↑ 8 from last week", tone: "text-primary" },
+  { label: "Active Rules", value: "0", hint: "Loaded from database", tone: "text-primary" },
   { label: "Policies", value: "15", hint: "↑ 3 from last week", tone: "text-primary" },
   { label: "Auto-Healing", value: "38", hint: "90.5% success rate", tone: "text-primary" },
   { label: "Pending Approvals", value: "2", hint: "Requires action", tone: "text-warning" },
@@ -43,11 +44,344 @@ const TABS = [
   { id: "execution-history", label: "Execution History" },
 ]
 
+const EDIT_OPERATORS = [
+  { value: ">=", label: "Greater Than or Equal (>=)" },
+  { value: ">", label: "Greater Than (>)" },
+  { value: "<=", label: "Less Than or Equal (<=)" },
+  { value: "<", label: "Less Than (<)" },
+  { value: "=", label: "Equal (=)" },
+]
+
+function EditField({ label, required, hint, children, className = "" }) {
+  return <label className={cn("block space-y-2", className)}>
+    <span className="flex items-center gap-1.5 font-mono text-[11px] font-semibold text-foreground">{label}{required && <span className="text-destructive">*</span>}{hint && <Info className="size-3 text-muted-foreground" />}</span>
+    {children}
+  </label>
+}
+
+const editInputClass = "h-8 w-full rounded-md border border-input bg-background/70 px-2.5 font-mono text-[11px] text-foreground placeholder:text-muted-foreground/70 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary/40"
+const editSelectClass = `${editInputClass} appearance-none pr-9`
+
+function EditRuleModal({ ruleData, onClose, onSaved }) {
+  const { rule, metrics = [] } = ruleData
+  const metric = metrics[0] || {}
+  const [form, setForm] = useState({
+    name: rule.name || "",
+    enabled: rule.status === "ENABLED",
+    priority: (rule.priority || "Medium"),
+    severity: (rule.severity || "Warning"),
+    threshold: metric.threshold ?? "",
+    operator: metric.operator || ">=",
+    duration: metric.duration_seconds ?? "",
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState("")
+  const setValue = (field, value) => setForm(current => ({ ...current, [field]: value }))
+
+  const save = async event => {
+    event.preventDefault()
+    setSaving(true)
+    setError("")
+    try {
+      await updateUserRule(rule.id, {
+        name: form.name.trim(),
+        status: form.enabled ? "ENABLED" : "DISABLED",
+        priority: form.priority,
+        severity: form.severity,
+        metric: {
+          operator: form.operator,
+          threshold: form.threshold === "" ? null : Number(form.threshold),
+          duration_seconds: form.duration === "" ? null : Number(form.duration),
+        },
+      })
+      onSaved()
+    } catch (saveError) {
+      setError("Unable to save changes. Please try again.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return <div className="fixed inset-0 z-50 flex min-h-full items-center justify-center overflow-y-auto bg-black/80 p-3" role="dialog" aria-modal="true" aria-labelledby="edit-rule-title" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
+    <form onSubmit={save} className="w-full max-w-[540px] overflow-hidden rounded-lg border border-muted-foreground/50 bg-background shadow-2xl shadow-black/70">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+        <div className="flex items-center gap-2.5"><span className="flex size-8 items-center justify-center rounded-md bg-primary/15"><Pencil className="size-4 text-primary" /></span><div className="flex items-baseline gap-2"><h2 id="edit-rule-title" className="text-base font-semibold">Edit Rule</h2><span className="font-mono text-[10px] text-muted-foreground">Rule ID: #{rule.id}</span></div><span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[9px] font-bold", form.enabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground")}><span className={cn("size-1.5 rounded-full", form.enabled ? "bg-primary" : "bg-muted-foreground")} />{form.enabled ? "ENABLED" : "DISABLED"}</span></div>
+        <button type="button" onClick={onClose} className="rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground" aria-label="Close edit form"><X className="size-5" /></button>
+      </div>
+
+      <div className="max-h-[60vh] space-y-3 overflow-y-auto p-4">
+        <section className="rounded-md border border-border bg-card/30 p-3">
+          <div className="mb-3 flex items-center gap-2 border-b border-border pb-2"><ChevronDown className="size-3.5 text-primary" /><h3 className="text-xs font-semibold">General Information</h3></div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <EditField label="Rule Name" required><input autoFocus required value={form.name} onChange={event => setValue("name", event.target.value)} className={editInputClass} /></EditField>
+            <EditField label="Status"><div className="flex h-8 items-center gap-2.5"><button type="button" role="switch" aria-checked={form.enabled} onClick={() => setValue("enabled", !form.enabled)} className={cn("relative h-5 w-10 shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40", form.enabled ? "bg-primary" : "bg-muted")}><span className={cn("absolute left-0.5 top-0.5 size-4 rounded-full bg-white shadow-sm transition-transform duration-200", form.enabled ? "translate-x-5" : "translate-x-0")} /></button><span className="shrink-0 font-mono text-[11px]">{form.enabled ? "Enabled" : "Disabled"}</span></div><p className="font-mono text-[9px] text-muted-foreground">Enable or disable this rule.</p></EditField>
+            <EditField label="Priority"><div className="relative"><select value={form.priority} onChange={event => setValue("priority", event.target.value)} className={editSelectClass}><option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option><option value="Critical">Critical</option></select><ChevronDown className="pointer-events-none absolute right-3 top-3 size-3.5 text-muted-foreground" /></div></EditField>
+            <EditField label="Severity" hint=""><div className="relative"><select value={form.severity} onChange={event => setValue("severity", event.target.value)} className={editSelectClass}><option value="Low">Low</option><option value="Warning">Warning</option><option value="High">High</option><option value="Critical">Critical</option></select><ChevronDown className="pointer-events-none absolute right-3 top-3 size-3.5 text-muted-foreground" /></div></EditField>
+          </div>
+        </section>
+
+        <section className="rounded-md border border-border bg-card/30 p-3">
+          <div className="mb-3 flex items-center gap-2 border-b border-border pb-2"><ChevronDown className="size-3.5 text-primary" /><h3 className="text-xs font-semibold">Rule Conditions</h3></div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <EditField label="Existing Metric" hint=""><div className="relative"><input value={metric.metric || "No metric configured"} readOnly className={`${editInputClass} pr-9 text-muted-foreground`} /><Lock className="absolute right-3 top-3 size-3.5 text-muted-foreground" /></div><p className="font-mono text-[10px] text-muted-foreground">Read-only — the metric cannot be changed.</p></EditField>
+            <EditField label="Operator" hint=""><div className="relative"><select value={form.operator} onChange={event => setValue("operator", event.target.value)} className={editSelectClass}>{EDIT_OPERATORS.map(operator => <option key={operator.value} value={operator.value}>{operator.label}</option>)}</select><ChevronDown className="pointer-events-none absolute right-3 top-3 size-3.5 text-muted-foreground" /></div></EditField>
+            <EditField label="Threshold" hint=""><input type="number" step="any" value={form.threshold} onChange={event => setValue("threshold", event.target.value)} placeholder="Enter value..." className={editInputClass} /></EditField>
+            <EditField label="Duration (seconds)" hint=""><input type="number" min="0" value={form.duration} onChange={event => setValue("duration", event.target.value)} placeholder="Enter duration..." className={editInputClass} /></EditField>
+          </div>
+        </section>
+        {error && <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 font-mono text-xs text-destructive">{error}</p>}
+      </div>
+
+      <div className="flex justify-end gap-2 border-t border-border bg-secondary/10 px-4 py-3"><button type="button" onClick={onClose} className="inline-flex h-8 items-center gap-2 rounded-md border border-border px-3 font-mono text-[11px] font-semibold hover:bg-secondary">Cancel</button><button disabled={saving} className="inline-flex h-8 items-center gap-2 rounded-md bg-primary px-3 font-mono text-[11px] font-bold text-primary-foreground shadow-glow-primary hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"><Save className="size-3" />{saving ? "Saving..." : "Save Changes"}</button></div>
+    </form>
+  </div>
+}
+
+function DeleteRuleModal({ rule, onClose, onDeleted }) {
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState("")
+
+  const confirmDelete = async () => {
+    setDeleting(true)
+    setError("")
+    try {
+      await deleteUserRule(rule.id)
+      onDeleted()
+    } catch (deleteError) {
+      setError(deleteError.message || "Failed to delete rule")
+      setDeleting(false)
+    }
+  }
+
+  return <div className="fixed inset-0 z-50 flex min-h-full items-center justify-center bg-black/80 p-3" role="dialog" aria-modal="true" aria-labelledby="delete-rule-title" onMouseDown={event => { if (event.target === event.currentTarget && !deleting) onClose() }}>
+    <div className="w-full max-w-[420px] overflow-hidden rounded-lg border border-muted-foreground/50 bg-background shadow-2xl shadow-black/70">
+      <div className="flex items-center gap-3 border-b border-border px-4 py-3"><span className="flex size-8 items-center justify-center rounded-md bg-destructive/15"><AlertTriangle className="size-4 text-destructive" /></span><div><h2 id="delete-rule-title" className="text-sm font-semibold">Delete Rule</h2><p className="font-mono text-[10px] text-muted-foreground">Permanent database removal</p></div><button type="button" onClick={onClose} disabled={deleting} className="ml-auto rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-50" aria-label="Close delete confirmation"><X className="size-4" /></button></div>
+      <div className="space-y-3 px-4 py-4"><p className="text-sm text-foreground">Are you sure you want to delete <span className="font-semibold text-destructive">“{rule.name}”</span>?</p><p className="font-mono text-[10px] leading-relaxed text-muted-foreground">This will permanently delete the rule and all of its targets, conditions, actions, notifications, recovery settings, and integration configuration from the database.</p>{error && <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 font-mono text-[10px] text-destructive">{error}</p>}</div>
+      <div className="flex justify-end gap-2 border-t border-border bg-secondary/10 px-4 py-3"><button type="button" onClick={onClose} disabled={deleting} className="inline-flex h-8 items-center gap-2 rounded-md border border-border px-3 font-mono text-[11px] font-semibold hover:bg-secondary disabled:opacity-50">Cancel</button><button type="button" onClick={confirmDelete} disabled={deleting} className="inline-flex h-8 items-center gap-2 rounded-md bg-destructive px-3 font-mono text-[11px] font-bold text-destructive-foreground hover:bg-destructive/90 disabled:cursor-not-allowed disabled:opacity-60"><Trash2 className="size-3" />{deleting ? "Deleting..." : "Delete Rule"}</button></div>
+    </div>
+  </div>
+}
+
 export default function PolicyPage() {
-  const [activeTab, setActiveTab] = useState("create-rule")
+  const [activeTab, setActiveTab] = useState("all-user_rules")
   const [step, setStep] = useState(1)
   const [form, setForm] = useState(INITIAL_FORM)
+  // Existing Disk wizard validation
   const [stepValidationError, setStepValidationError] = useState("")
+
+  // Database-backed rule management
+  const [rules, setRules] = useState([])
+  const [rulesLoading, setRulesLoading] = useState(false)
+  const [rulesError, setRulesError] = useState("")
+  const [actionMessage, setActionMessage] = useState("")
+  const [editingRule, setEditingRule] = useState(null)
+  const [deletingRule, setDeletingRule] = useState(null)
+
+  const loadRules = useCallback(async () => {
+    setRulesLoading(true)
+    setRulesError("")
+
+    try {
+      setRules(await getUserRules(2))   //meeka balapaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaan
+    } catch (error) {
+      setRulesError(error.message || "Failed to load rules")
+    } finally {
+      setRulesLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === "all-user_rules") loadRules()
+  }, [activeTab, loadRules])
+
+  const stats = STATS.map(stat => stat.label === "Active Rules"
+    ? {
+        ...stat,
+        value: rules.filter(({ rule }) => rule.status === "ENABLED").length,
+        hint: "From database"
+      }
+    : stat)
+
+  const formatDuration = seconds => {
+    if (seconds == null) return "—"
+    if (seconds >= 3600) return `${seconds / 3600}h`
+    if (seconds >= 60) return `${seconds / 60}m`
+    return `${seconds}s`
+  }
+
+  const renderRules = () => {
+    if (rulesLoading) return (
+      <Panel className="flex items-center justify-center gap-3 py-20">
+        <RefreshCw className="size-4 animate-spin text-primary" />
+        <span className="font-mono text-sm text-muted-foreground">
+          Loading rules from database…
+        </span>
+      </Panel>
+    )
+
+    if (rulesError) return (
+      <Panel className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+        <AlertCircle className="size-8 text-destructive" />
+        <p className="font-mono text-sm text-destructive">{rulesError}</p>
+        <button
+          onClick={loadRules}
+          className="inline-flex h-9 items-center gap-2 rounded-md border border-border px-4 font-mono text-xs hover:bg-secondary"
+        >
+          <RefreshCw className="size-3.5" /> Retry
+        </button>
+      </Panel>
+    )
+
+    if (!rules.length) return (
+      <Panel className="flex flex-col items-center justify-center gap-4 py-20">
+        <Shield className="size-10 text-muted-foreground/30" />
+        <p className="font-mono text-sm text-muted-foreground">
+          No rules found in the database
+        </p>
+        <button
+          onClick={() => {
+            setActiveTab("create-rule")
+            setStep(1)
+          }}
+          className="inline-flex h-9 items-center gap-2 rounded-md bg-primary/10 border border-primary/20 px-4 font-mono text-xs text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+        >
+          <Plus className="size-3.5" /> Create New Rule
+        </button>
+      </Panel>
+    )
+
+    return (
+      <div className="grid grid-cols-1 gap-4">
+        {rules.map(({
+          rule,
+          targets = [],
+          metrics = [],
+          actions = [],
+          notifications = [],
+          ...ruleData
+        }) => (
+          <Panel key={rule.id} className="overflow-hidden">
+            <div className="flex flex-col gap-3 border-b border-border px-5 py-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-lg font-semibold">{rule.name}</h2>
+                  <span className={cn(
+                    "rounded border px-2 py-0.5 font-mono text-[10px] uppercase",
+                    rule.status === "ENABLED"
+                      ? "border-primary/30 bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground"
+                  )}>
+                    {rule.status || "UNKNOWN"}
+                  </span>
+                </div>
+                <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+                  ID #{rule.id} · {rule.monitor_type} · {rule.environment || "No environment"} · {rule.region || "No region"}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 font-mono text-[11px] text-muted-foreground">
+                <span>
+                  Priority: <b className="text-foreground">{rule.priority || "—"}</b>
+                </span>
+                <span>
+                  Severity: <b className="text-warning">{rule.severity || "—"}</b>
+                </span>
+              </div>
+            </div>
+
+            <div className="grid gap-4 px-5 py-4 md:grid-cols-4">
+              <div>
+                <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Targets
+                </p>
+                {targets.length ? targets.map((target, index) => (
+                  <p key={index} className="flex items-center gap-2 font-mono text-xs">
+                    <Target className="size-3 text-primary" />
+                    {target.target}{target.host ? ` @ ${target.host}` : ""}
+                  </p>
+                )) : (
+                  <p className="font-mono text-xs text-muted-foreground">—</p>
+                )}
+              </div>
+
+              <div>
+                <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Conditions
+                </p>
+                {metrics.length ? metrics.map(metric => (
+                  <p key={metric.id} className="font-mono text-xs">
+                    {metric.metric} {metric.operator} {metric.threshold ?? "—"}
+                    <span className="text-muted-foreground">
+                      ({formatDuration(metric.duration_seconds)})
+                    </span>
+                  </p>
+                )) : (
+                  <p className="font-mono text-xs text-muted-foreground">—</p>
+                )}
+              </div>
+
+              <div>
+                <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Actions
+                </p>
+                {actions.length ? actions.map((action, index) => (
+                  <p key={index} className="font-mono text-xs">
+                    {action.action_type}
+                  </p>
+                )) : (
+                  <p className="font-mono text-xs text-muted-foreground">—</p>
+                )}
+              </div>
+
+              <div>
+                <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Notifications
+                </p>
+                {notifications.length ? (
+                  <p className="font-mono text-xs">
+                    {[...new Set(notifications.map(notification => notification.channel))].join(", ")}
+                  </p>
+                ) : (
+                  <p className="font-mono text-xs text-muted-foreground">—</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between border-t border-border bg-secondary/10 px-5 py-2.5">
+              <span className="font-mono text-[10px] text-muted-foreground">
+                Owner: {rule.owner || "Unassigned"}
+              </span>
+
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => setEditingRule({
+                    rule,
+                    targets,
+                    metrics,
+                    actions,
+                    notifications,
+                    ...ruleData
+                  })}
+                  className="inline-flex items-center gap-1.5 font-mono text-[10px] text-primary hover:underline"
+                >
+                  <Pencil className="size-3" /> Edit
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDeletingRule(rule)}
+                  className="inline-flex items-center gap-1.5 font-mono text-[10px] text-destructive hover:underline"
+                >
+                  <Trash2 className="size-3" /> Delete
+                </button>
+              </div>
+            </div>
+          </Panel>
+        ))}
+      </div>
+    )
+  }
 
   const handleNext = () => {
     if (form.monitorSource === "disk") {
@@ -128,7 +462,7 @@ export default function PolicyPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {STATS.map(s => (
+        {stats.map(s => (
           <Panel key={s.label} className="p-4 flex flex-col gap-1">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{s.label}</p>
             <p className="text-3xl font-bold tracking-tight">{s.value}</p>
@@ -147,6 +481,8 @@ export default function PolicyPage() {
         ))}
       </div>
 
+      {actionMessage && <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-2 font-mono text-xs text-primary" role="status"><CheckCircle2 className="size-4" />{actionMessage}</div>}
+
       {activeTab === "create-rule" ? (
         <div className="space-y-4">
           <WizardProgress current={step} />
@@ -155,15 +491,11 @@ export default function PolicyPage() {
             <StepNav current={step} onBack={handleBack} onNext={handleNext} nextLabel={step === 12 ? "Review" : "Next"} />
           )}
         </div>
-      ) : (
-        <Panel className="flex flex-col items-center justify-center gap-4 py-20">
-          <Shield className="size-10 text-muted-foreground/30" />
-          <p className="font-mono text-sm text-muted-foreground">{TABS.find(t => t.id === activeTab)?.label} — Click "Create New Rule" to get started</p>
-          <button onClick={() => { setActiveTab("create-rule"); setStep(1); }} className="inline-flex h-9 items-center gap-2 rounded-md bg-primary/10 border border-primary/20 px-4 font-mono text-xs text-primary hover:bg-primary/20 transition-colors cursor-pointer">
-            <Plus className="size-3.5" /> Create New Rule
-          </button>
-        </Panel>
+      ) : activeTab === "all-user_rules" ? renderRules() : (
+        <Panel className="flex flex-col items-center justify-center gap-4 py-20"><Shield className="size-10 text-muted-foreground/30" /><p className="font-mono text-sm text-muted-foreground">{TABS.find(t => t.id === activeTab)?.label} — Click "Create New Rule" to get started</p><button onClick={() => { setActiveTab("create-rule"); setStep(1); }} className="inline-flex h-9 items-center gap-2 rounded-md bg-primary/10 border border-primary/20 px-4 font-mono text-xs text-primary hover:bg-primary/20 transition-colors cursor-pointer"><Plus className="size-3.5" /> Create New Rule</button></Panel>
       )}
+      {editingRule && <EditRuleModal ruleData={editingRule} onClose={() => setEditingRule(null)} onSaved={async () => { setEditingRule(null); await loadRules(); setActionMessage("Rule updated successfully!") }} />}
+      {deletingRule && <DeleteRuleModal rule={deletingRule} onClose={() => setDeletingRule(null)} onDeleted={async () => { setDeletingRule(null); await loadRules() }} />}
     </div>
   )
 }

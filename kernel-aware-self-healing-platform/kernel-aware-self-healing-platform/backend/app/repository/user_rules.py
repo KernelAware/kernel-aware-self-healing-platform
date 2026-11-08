@@ -99,6 +99,77 @@ def get_rule_by_id(rule_id: int):
         db.close()
 
 
+def update_rule(rule_id: int, updates: dict):
+    """Update the editable policy fields and the first metric condition."""
+    db = SessionLocal()
+
+    try:
+        rule = db.query(Rule).filter(Rule.id == rule_id).first()
+        if rule is None:
+            return None
+
+        for field in ("name", "status", "priority", "severity"):
+            if field in updates and updates[field] is not None:
+                setattr(rule, field, updates[field])
+
+        metric_updates = updates.get("metric") or {}
+        if metric_updates:
+            metric = (
+                db.query(RuleMetric)
+                .filter(RuleMetric.rule_id == rule_id)
+                .order_by(RuleMetric.id)
+                .first()
+            )
+            if metric is not None:
+                for field in ("operator", "threshold", "duration_seconds"):
+                    if field in metric_updates:
+                        setattr(metric, field, metric_updates[field])
+
+        db.commit()
+        return rule
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+def delete_rule(rule_id: int):
+    """Delete a rule and every row owned by it across the rule tables."""
+    db = SessionLocal()
+
+    try:
+        rule = db.query(Rule).filter(Rule.id == rule_id).first()
+        if rule is None:
+            return False
+
+        for model in (
+            RuleTarget,
+            RuleMetric,
+            RuleAction,
+            RuleNotification,
+            RuleRecovery,
+            RuleJiraConfig,
+            RuleServiceNowConfig,
+        ):
+            db.query(model).filter(model.rule_id == rule_id).delete(
+                synchronize_session=False
+            )
+
+        db.delete(rule)
+        db.commit()
+        return True
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
 def _empty_rule_details(rule_ids: list[int]):
     return {
         rule_id: {

@@ -11,6 +11,8 @@ from models.user_rules.rule_servicenow_config import RuleServiceNowConfig
 from repository.user_rules import (
     save_rules,
     get_rules_with_details,
+    update_rule,
+    delete_rule,
 )
 
 from schemas.user_rules import (
@@ -419,3 +421,16 @@ def get_user_rules(
         )
 
     return result
+
+
+def update_user_rule(rule_id: int, updates: dict):
+    rule = update_rule(rule_id, updates)
+    if rule is None:
+        return None
+    return {"success": True, "rule_id": rule_id}
+
+
+def delete_user_rule(rule_id: int):
+    if not delete_rule(rule_id):
+        return None
+    return {"success": True, "rule_id": rule_id}

@@ -5,7 +5,12 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 
-from services.user_rule_service import get_user_rules, user_rules_service
+from services.user_rule_service import (
+    get_user_rules,
+    user_rules_service,
+    update_user_rule,
+    delete_user_rule,
+)
 
 
 router = APIRouter()
@@ -62,3 +67,29 @@ def get_user_rules_api(system_id: int):
 @router.get("/get_user_rule")
 def get_rule_by_id_api(rule_id: int):
     return _get_rules_or_503(rule_id=rule_id)
+
+
+@router.patch("/user_rules/{rule_id}")
+def update_rule_api(rule_id: int, data: dict[str, Any]):
+    result = update_user_rule(rule_id, data)
+
+    if result is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Rule not found",
+        )
+
+    return result
+
+
+@router.delete("/user_rules/{rule_id}")
+def delete_rule_api(rule_id: int):
+    result = delete_user_rule(rule_id)
+
+    if result is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Rule not found",
+        )
+
+    return result

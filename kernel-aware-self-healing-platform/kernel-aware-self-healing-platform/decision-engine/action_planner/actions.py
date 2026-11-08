@@ -126,9 +126,15 @@ def create_alert(decision, incident, rules, policy):
     duration = violated_metric.get("duration_seconds", 0)
 
     severity = incident.get(
-        "incident_severity",
-        incident.get("severity", "Medium")
+        "severity",
+        incident.get("incident_severity", "Warning")
     )
+
+    priority = incident.get(
+        "incident_priority",
+        incident.get("priority", "P2")
+    )
+
 
     priority = incident.get(
         "incident_priority",
