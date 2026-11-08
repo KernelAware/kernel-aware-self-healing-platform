@@ -1,56 +1,129 @@
+
+import { getConfiguredSystemId } from '@/services/system'
+
 class WebSocketService {
   constructor() {
     this.socket = null
     this.listeners = new Set()
-    this.systemId = 2
+
+    this.reconnectTimer = null
+    this.shouldReconnect = true
+
+    this.systemId = getConfiguredSystemId()
+
+    this.baseUrl = (
+      import.meta.env.VITE_WEBSOCKET_URL ||
+      import.meta.env.VITE_WS_URL ||
+      "ws://localhost:8000/ws"
+    ).replace(/\/+$/, "")
   }
 
-  connect(systemId = 2) {
-    this.systemId = systemId
+  connect(systemId = this.systemId) {
+    this.systemId = String(systemId)
+
+    if (!this.shouldReconnect) return
 
     if (
       this.socket &&
-      (
-        this.socket.readyState === WebSocket.OPEN ||
-        this.socket.readyState === WebSocket.CONNECTING
-      )
+      [
+        WebSocket.OPEN,
+        WebSocket.CONNECTING,
+      ].includes(this.socket.readyState)
     ) {
       return
     }
 
-    const url = `ws://localhost:8000/ws/${systemId}`
-    this.socket = new WebSocket(url)
+    const url = `${this.baseUrl}/${encodeURIComponent(this.systemId)}`
 
-    this.socket.onopen = () => {
-      console.log(`WebSocket connected to system ${systemId}`)
+    console.info("DASHBOARD_WEBSOCKET_CONNECTING", {
+      system_id: this.systemId,
+      url,
+    })
+
+    const socket = new WebSocket(url)
+    this.socket = socket
+
+    socket.onopen = () => {
+      console.info("DASHBOARD_WEBSOCKET_CONNECTED", {
+        system_id: this.systemId,
+      })
     }
 
-    this.socket.onmessage = (event) => {
+    socket.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data)
+
         this.listeners.forEach((listener) => {
-          listener(message)
+          try {
+            listener(message)
+          } catch (error) {
+            console.error(
+              "WebSocket listener error:",
+              error
+            )
+          }
         })
       } catch (error) {
-        console.error('Invalid WebSocket message:', error)
+        console.error(
+          "Invalid WebSocket message:",
+          error
+        )
       }
     }
 
-    this.socket.onerror = (error) => {
-      console.error('WebSocket error:', error)
+    socket.onerror = (error) => {
+      console.error("DASHBOARD_WEBSOCKET_ERROR", {
+        system_id: this.systemId,
+        error,
+      })
     }
 
-    this.socket.onclose = () => {
-      console.log(`WebSocket disconnected from system ${systemId}`)
-      this.socket = null
+    socket.onclose = () => {
+      console.warn("DASHBOARD_WEBSOCKET_CLOSED", {
+        system_id: this.systemId,
+      })
+
+      if (this.socket === socket) {
+        this.socket = null
+      }
+
+      if (
+        this.shouldReconnect &&
+        this.reconnectTimer == null
+      ) {
+        this.reconnectTimer = window.setTimeout(() => {
+          this.reconnectTimer = null
+          this.connect(this.systemId)
+        }, 2000)
+      }
     }
   }
 
   disconnect() {
-    if (this.socket) {
-      this.socket.close()
-      this.socket = null
+    this.shouldReconnect = false
+
+    if (this.reconnectTimer != null) {
+      window.clearTimeout(this.reconnectTimer)
     }
+
+    this.reconnectTimer = null
+
+    const socket = this.socket
+    this.socket = null
+
+    socket?.close()
+  }
+
+  changeSystem(systemId) {
+    const nextSystemId = String(systemId)
+    if (nextSystemId === this.systemId) return
+
+    this.shouldReconnect = true
+    const previousSocket = this.socket
+    this.socket = null
+    previousSocket?.close()
+    this.systemId = nextSystemId
+    this.connect(nextSystemId)
   }
 
   subscribe(callback) {
@@ -60,17 +133,6 @@ class WebSocketService {
       this.listeners.delete(callback)
     }
   }
-
-  send(message) {
-    if (
-      this.socket &&
-      this.socket.readyState === WebSocket.OPEN
-    ) {
-      this.socket.send(JSON.stringify(message))
-    }
-  }
 }
 
 export const wsBroker = new WebSocketService()
-
-wsBroker.connect(2)

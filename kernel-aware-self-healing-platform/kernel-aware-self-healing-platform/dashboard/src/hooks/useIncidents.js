@@ -1,127 +1,333 @@
-import { useEffect, useState } from 'react'
-import { useWebSocket } from '@/hooks/useWebSocket.js'
-import { getIncidents } from '@/services/api'
+
+import { useCallback, useEffect, useState } from "react"
+import { fetchIncidents } from "@/services/incidents"
+import { getConfiguredSystemId } from "@/services/system"
 
 function formatDisplayDate(value) {
-  if (!value) return '--'
+  if (!value) return "--"
+
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value)
+  }
+
   return date.toLocaleString([], {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   })
 }
 
 function formatResolvedDuration(start, resolvedAt) {
-  if (!start || !resolvedAt) return '--'
+  if (!start || !resolvedAt) return "--"
+
   const startTs = new Date(start).getTime()
   const endTs = new Date(resolvedAt).getTime()
-  if (Number.isNaN(startTs) || Number.isNaN(endTs)) return '--'
-  const diffSeconds = Math.max(0, Math.floor((endTs - startTs) / 1000))
-  if (diffSeconds < 60) return `${diffSeconds}s`
-  if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)}m ${diffSeconds % 60}s`
-  return `${Math.floor(diffSeconds / 3600)}h ${Math.floor((diffSeconds % 3600) / 60)}m`
+
+  if (Number.isNaN(startTs) || Number.isNaN(endTs)) {
+    return "--"
+  }
+
+  const diffSeconds = Math.max(
+    0,
+    Math.floor((endTs - startTs) / 1000)
+  )
+
+  if (diffSeconds < 60) {
+    return `${diffSeconds}s`
+  }
+
+  if (diffSeconds < 3600) {
+    return `${Math.floor(diffSeconds / 60)}m ${diffSeconds % 60}s`
+  }
+
+  return `${Math.floor(diffSeconds / 3600)}h ${Math.floor(
+    (diffSeconds % 3600) / 60
+  )}m`
 }
 
-function normalizeIncidentPayload(source) {
-  if (!source || typeof source !== 'object') return null
-  const raw = source.data && typeof source.data === 'object' ? source.data : source
-  const trigger = raw.trigger || raw.metadata?.trigger || {}
-  const decision = raw.decision || raw.metadata?.decision || {}
-  const rootCause = raw.rootCause || raw.metadata?.rootCause || { timeline: [] }
-  const policy = raw.policy || { ruleEnabled: true, automaticExecution: false, approvalRequired: false, cooldownPassed: true }
-  const operatorAction = raw.operatorAction || {
-    required: raw.status !== 'RESOLVED',
-    message: raw.status === 'RESOLVED' ? 'Incident resolved.' : 'Review the recommendation and select an approved remediation action.',
-    recommendedAction: decision.recommendedAction || 'No action',
-    allowedActions: [],
-    selectedAction: decision.recommendedAction || 'No action',
-    reason: decision.reason || 'No reason provided'
+function normalizeIncident(value) {
+  if (!value || typeof value !== "object") return null
+
+  // Support both direct incident objects and wrapped payloads.
+  const detail =
+    value.data && typeof value.data === "object"
+      ? value.data
+      : value
+
+  const metadata = detail.metadata || {}
+  const alert = detail.alert || {}
+
+  const trigger =
+    detail.trigger ||
+    metadata.trigger ||
+    {}
+
+  const decision =
+    detail.decision ||
+    metadata.decision ||
+    {}
+
+  const rootCause =
+    detail.rootCause ||
+    metadata.rootCause ||
+    { verified: false, source: "Monitoring metrics", timeline: [] }
+
+  const id = detail.incident_id || detail.id
+
+  const status = String(detail.status || "OPEN").toUpperCase()
+
+  const category = String(
+    detail.monitor_type ||
+    detail.incident_type ||
+    detail.category ||
+    "unknown"
+  ).toLowerCase()
+
+  const target =
+    detail.target ||
+    detail.process ||
+    detail.service ||
+    "Whole System"
+
+  const createdAt =
+    detail.created_at ||
+    detail.createdAt ||
+    detail.detected_at ||
+    null
+
+  const resolvedAt = detail.resolved_at || null
+
+  const priority =
+    detail.priority ||
+    detail.prio ||
+    alert.priority ||
+    detail.level?.split(" - ")[0] ||
+    "Medium"
+
+  const severity =
+    detail.severity ||
+    alert.severity ||
+    detail.level?.split(" - ")[1] ||
+    "Warning"
+
+  const policy = detail.policy || {
+    ruleEnabled: true,
+    automaticExecution: false,
+    approvalRequired: false,
+    cooldownPassed: true,
   }
 
-  const priority = raw.priority || raw.level?.split(' - ')[0] || 'P2'
-  const severity = raw.severity || raw.level?.split(' - ')[1] || 'Medium'
-  const status = raw.status === 'RESOLVED' ? 'RESOLVED' : 'OPEN'
+  const operatorAction = detail.operatorAction || {
+    required: status !== "RESOLVED",
+    message:
+      status === "RESOLVED"
+        ? "Incident resolved."
+        : "Review the recommendation and select an approved remediation action.",
+    recommendedAction: decision.recommendedAction || "No action",
+    allowedActions: [],
+    selectedAction: decision.recommendedAction || "No action",
+    reason: decision.reason || "No reason provided",
+  }
+
+  const durationSeconds =
+    trigger.durationSeconds ??
+    detail.duration_seconds ??
+    0
+
+  const duration =
+    trigger.duration ||
+    `${durationSeconds} seconds`
 
   return {
-    id: raw.id || raw.incident_id || 'UNKNOWN',
-    title: raw.title || 'Incident detected',
-    prio: priority,
+    ...detail,
+
+    id,
+    incident_id: id,
+
+    category,
+    monitor_type: category,
+
+    target,
+    system_id: detail.system_id ?? alert.system_id,
+    system:
+      detail.system ||
+      alert.system ||
+      `System ${detail.system_id ?? ""}`,
+
+    title:
+      detail.title ||
+      alert.title ||
+      `${trigger.metric || detail.metric || category} - ${target}`,
+
+    description:
+      detail.description ||
+      detail.body ||
+      decision.reason ||
+      "Incident description unavailable",
+
     priority,
+    prio: priority,
     severity,
     status,
-    start: formatDisplayDate(raw.created_at || raw.createdAt),
-    res: raw.resolved_at ? formatDisplayDate(raw.resolved_at) : status === 'RESOLVED' ? 'Resolved' : '--',
-    description: raw.description || raw.body || decision.reason || 'Incident description unavailable',
-    system: raw.system || 'unknown',
-    process: raw.process || raw.service || 'system',
-    pid: raw.pid ?? null,
-    metric: raw.metric || trigger.metric || 'Unknown metric',
-    trigger,
+
+    created_at: createdAt,
+    start: createdAt ? formatDisplayDate(createdAt) : "--",
+
+    resolved_at: resolvedAt,
+    res: resolvedAt
+      ? formatDisplayDate(resolvedAt)
+      : status === "RESOLVED"
+        ? "Resolved"
+        : "--",
+
+    resolvedDuration: formatResolvedDuration(
+      createdAt,
+      resolvedAt
+    ),
+
+    trigger: {
+      ...trigger,
+      metric:
+        trigger.metric ||
+        detail.metric ||
+        alert.metric ||
+        "Unknown metric",
+
+      currentValue:
+        trigger.currentValue ??
+        detail.current_value ??
+        alert.current_value,
+
+      operator:
+        trigger.operator ||
+        detail.operator ||
+        alert.operator ||
+        "",
+
+      threshold:
+        trigger.threshold ??
+        detail.threshold ??
+        alert.threshold,
+
+      unit:
+        trigger.unit ||
+        detail.violated_metric?.unit ||
+        detail.unit ||
+        alert.unit,
+
+      duration,
+      durationSeconds,
+    },
+
+    rootCause,
     decision,
     policy,
-    rootCause,
     operatorAction,
-    created_at: raw.created_at || raw.createdAt || new Date().toISOString(),
-    resolved_at: raw.resolved_at || null,
-    raised_by: raw.raised_by || null,
-    metadata: raw.metadata || {}
+
+    process: detail.process || detail.service || target,
+    pid: detail.pid ?? null,
+
+    raised_by: detail.raised_by || null,
+    metadata,
+    alert: detail.alert || null,
   }
+}
+
+function mergeIncidents(primary, secondary = []) {
+  const byId = new Map()
+
+  ;[...primary, ...secondary].forEach((item) => {
+    const normalized = normalizeIncident(item)
+
+    if (!normalized) return
+
+    const key = normalized.id || `${normalized.category}-${normalized.created_at}`
+
+    byId.set(key, {
+      ...(byId.get(key) || {}),
+      ...normalized,
+    })
+  })
+
+  return [...byId.values()].sort((a, b) => {
+    const aTime =
+      Date.parse(a.updated_at || a.created_at || 0) || 0
+
+    const bTime =
+      Date.parse(b.updated_at || b.created_at || 0) || 0
+
+    return bTime - aTime
+  })
 }
 
 export function useIncidents() {
   const [incidents, setIncidents] = useState([])
   const [timeline, setTimeline] = useState([])
-  const socketIncident = useWebSocket('incident_detail')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
 
   useEffect(() => {
-    let isMounted = true
+    let active = true
 
-    getIncidents()
-      .then((items) => {
-        if (!isMounted) return
-        const normalized = items.map(normalizeIncidentPayload).filter(Boolean)
+    fetchIncidents(getConfiguredSystemId())
+      .then((rows) => {
+        if (!active) return
+
+        const normalized = mergeIncidents(
+          Array.isArray(rows) ? rows : []
+        )
+
         setIncidents(normalized)
-        if (normalized[0]?.rootCause?.timeline?.length) {
-          setTimeline(normalized[0].rootCause.timeline)
-        }
+
+        const latestTimeline =
+          normalized.find(
+            (incident) =>
+              incident.rootCause?.timeline?.length
+          )?.rootCause?.timeline || []
+
+        setTimeline(latestTimeline)
+        setError("")
       })
-      .catch(() => {
-        if (isMounted) {
-          setIncidents([])
-          setTimeline([])
+      .catch((requestError) => {
+        if (!active) return
+
+        setError(
+          requestError.message ||
+          "Unable to load incident history."
+        )
+      })
+      .finally(() => {
+        if (active) {
+          setLoading(false)
         }
       })
 
     return () => {
-      isMounted = false
+      active = false
     }
   }, [])
 
-  useEffect(() => {
-    if (!socketIncident) return
-
-    const normalized = normalizeIncidentPayload(socketIncident)
-    if (!normalized) return
-
-    setIncidents((prev) => {
-      const next = new Map(prev.map((incident) => [incident.id, incident]))
-      next.set(normalized.id, normalized)
-      return [...next.values()].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-    })
-
-    if (normalized.rootCause?.timeline?.length) {
-      setTimeline(normalized.rootCause.timeline)
-    }
-  }, [socketIncident])
+  const updateIncident = useCallback((incidentId, updates) => {
+    setIncidents((current) =>
+      current.map((item) =>
+        item.id === incidentId
+          ? { ...item, ...updates }
+          : item
+      )
+    )
+  }, [])
 
   return {
     incidents,
-    timeline,
     setIncidents,
-    setTimeline
+    updateIncident,
+    timeline,
+    setTimeline,
+    loading,
+    error,
   }
 }

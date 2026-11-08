@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react'
 import { TriangleAlert } from 'lucide-react'
 
@@ -6,7 +7,6 @@ import {
   Panel,
   PanelHeader
 } from '@/components/kit'
-
 
 export default function OperatorActionRequired({
   selectedIncident,
@@ -19,20 +19,37 @@ export default function OperatorActionRequired({
   const [actionLoading, setActionLoading] = useState(null)
   const [showActionScript, setShowActionScript] = useState(false)
 
-  const normalizeAction = (value = '') => String(value)
-    .trim()
-    .toLowerCase()
-    .replace(/[_\s]+/g, '-')
-    .replace(/[^a-z0-9-]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
+  const normalizeAction = (value = '') =>
+    String(value)
+      .trim()
+      .toLowerCase()
+      .replace(/[_\s]+/g, '-')
+      .replace(/[^a-z0-9-]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
 
-  const getActionType = (action = {}) => action.action_type || action.actionType || action.type || action.action_name || action.actionName || action.name || ''
-  const getActionScript = (action = {}) => action?.action_script ?? '';
-  const getActionInputValue = (actionName = '') => customActionInputs[normalizeAction(actionName)] || ''
+  const getActionType = (action = {}) =>
+    action.action_type ||
+    action.actionType ||
+    action.type ||
+    action.action_name ||
+    action.actionName ||
+    action.name ||
+    ''
+
+  const getActionScript = (action = {}) =>
+    action?.action_script ?? ''
+
+  const getActionInputValue = (actionName = '') =>
+    customActionInputs[normalizeAction(actionName)] || ''
+
   const setActionInputValue = (actionName = '', value = '') => {
     const key = normalizeAction(actionName)
-    setCustomActionInputs((prev) => ({ ...prev, [key]: value }))
+
+    setCustomActionInputs(prev => ({
+      ...prev,
+      [key]: value
+    }))
   }
 
   useEffect(() => {
@@ -45,6 +62,7 @@ export default function OperatorActionRequired({
 
       setSelectedAction(nextAction)
       setShowActionScript(false)
+      setActionLoading(null)
     }
   }, [selectedIncident])
 
@@ -55,56 +73,143 @@ export default function OperatorActionRequired({
   if (!selectedIncident) {
     return (
       <Panel>
-        <PanelHeader title="Operator Action Required" icon={TriangleAlert} />
+        <PanelHeader
+          title="Operator Action Required"
+          icon={TriangleAlert}
+        />
+
         <div className="p-4 pt-0">
-          <p className="text-xs text-muted-foreground">Select an incident to view available actions.</p>
+          <p className="text-xs text-muted-foreground">
+            Select an incident to view available actions.
+          </p>
         </div>
       </Panel>
     )
   }
 
-  if (selectedIncident.status === 'RESOLVED') {
+  // Resolved incidents do not require further operator action.
+  if (
+    String(selectedIncident.status || '').toUpperCase() === 'RESOLVED'
+  ) {
     return (
       <Panel>
-        <PanelHeader title="Operator Action Required" icon={TriangleAlert} />
+        <PanelHeader
+          title="Operator Action Required"
+          icon={TriangleAlert}
+        />
+
         <div className="p-4 pt-0 text-xs text-muted-foreground">
-          No operator action is required because incident {selectedIncident.id} is resolved.
+          No operator action is required because incident{' '}
+          {selectedIncident.id} is resolved.
         </div>
       </Panel>
     )
   }
 
-  const autoExecuting = selectedIncident.policy?.automaticExecution === true && selectedIncident.policy?.approvalRequired === false
-  const allowedActions = selectedIncident.operatorAction?.allowedActions || []
-  const recommendedAction = selectedIncident.decision?.recommendedAction || selectedIncident.operatorAction?.recommendedAction || ''
-  const reason = selectedIncident.decision?.reason || selectedIncident.operatorAction?.reason || ''
+  const monitorType = String(
+    selectedIncident.monitor_type ||
+    selectedIncident.category ||
+    selectedIncident.incident_type ||
+    ''
+  ).toLowerCase()
+
+  // Disk incidents are alert-only.
+  // They must not execute healing or remediation actions.
+  if (monitorType === 'disk') {
+    return (
+      <Panel>
+        <PanelHeader
+          title="Disk Alert Handling"
+          icon={TriangleAlert}
+        />
+
+        <div className="p-4 pt-0">
+          <p className="rounded-md border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground">
+            Alert only. Disk alerts do not run healing or remediation.
+            The incident resolves when its saved recovery condition is met.
+          </p>
+        </div>
+      </Panel>
+    )
+  }
+
+  // Automatic execution without approval means the operator
+  // cannot manually approve, reject, or change the action.
+  const autoExecuting =
+    selectedIncident.policy?.automaticExecution === true &&
+    selectedIncident.policy?.approvalRequired === false
+
+  const allowedActions =
+    Array.isArray(selectedIncident.operatorAction?.allowedActions)
+      ? selectedIncident.operatorAction.allowedActions
+      : []
+
+  const recommendedAction =
+    selectedIncident.decision?.recommendedAction ||
+    selectedIncident.operatorAction?.recommendedAction ||
+    ''
+
+  const reason =
+    selectedIncident.decision?.reason ||
+    selectedIncident.operatorAction?.reason ||
+    ''
+
   const normalizedSelectedAction = normalizeAction(selectedAction)
-  const selectedAllowedAction = allowedActions.find((action) => {
+
+  const selectedAllowedAction = allowedActions.find(action => {
     const actionType = getActionType(action)
-    return Boolean(actionType) && normalizeAction(actionType) === normalizedSelectedAction
+
+    return (
+      Boolean(actionType) &&
+      normalizeAction(actionType) === normalizedSelectedAction
+    )
   }) || null
 
-  let selectedActionScript = '';
+  // Get the script belonging to the currently selected action.
+  const selectedActionScript = getActionScript(selectedAllowedAction)
 
-  allowedActions.map((selectedAllowedAction)=>{
-    selectedActionScript = selectedAllowedAction.action_script
-  })
+  const hasSelectedActionScript =
+    typeof selectedActionScript === 'string'
+      ? selectedActionScript.trim().length > 0
+      : Boolean(selectedActionScript)
 
-  const hasSelectedActionScript = typeof selectedActionScript === 'string'
-    ? selectedActionScript.trim().length > 0
-    : Boolean(selectedActionScript)
-  const requiresCustomCommandInput = normalizedSelectedAction === 'run-command'
+  const requiresCustomCommandInput =
+    normalizedSelectedAction === 'run-command'
+
   const customActionInput = getActionInputValue(selectedAction)
 
-  const isProcessing = processingAction?.id === selectedIncident?.id || actionLoading !== null
+  const isProcessing =
+    processingAction?.id === selectedIncident.id ||
+    actionLoading !== null
+
   const canInteract = !autoExecuting && !isProcessing
 
   const handleApprove = async () => {
-    if (!canInteract) return
+    if (!canInteract || !selectedAction) return
+
+    if (
+      requiresCustomCommandInput &&
+      !customActionInput.trim()
+    ) {
+      return
+    }
+
+    if (typeof approveIncident !== 'function') {
+      console.error('approveIncident callback is not provided.')
+      return
+    }
+
     setActionLoading('approve')
 
     try {
-      await approveIncident?.(selectedIncident.id, selectedAction, selectedIncident, customActionInput)
+      await approveIncident(
+        selectedIncident.id,
+        selectedAction,
+        selectedIncident,
+        customActionInput
+      )
+    } catch (error) {
+      console.error('Failed to approve incident action:', error)
     } finally {
       setActionLoading(null)
     }
@@ -112,10 +217,18 @@ export default function OperatorActionRequired({
 
   const handleReject = async () => {
     if (!canInteract) return
+
+    if (typeof rejectIncident !== 'function') {
+      console.error('rejectIncident callback is not provided.')
+      return
+    }
+
     setActionLoading('reject')
 
     try {
-      await rejectIncident?.(selectedIncident.id)
+      await rejectIncident(selectedIncident.id)
+    } catch (error) {
+      console.error('Failed to reject incident action:', error)
     } finally {
       setActionLoading(null)
     }
@@ -123,36 +236,60 @@ export default function OperatorActionRequired({
 
   return (
     <Panel>
-      <PanelHeader title="Operator Action Required" icon={TriangleAlert} />
+      <PanelHeader
+        title="Operator Action Required"
+        icon={TriangleAlert}
+      />
 
       <div className="p-4 pt-0">
-        <div className={`mb-4 rounded-md border p-3 ${autoExecuting ? 'border-primary/30 bg-primary/5' : 'border-border bg-secondary/20'}`}>
+        {/* Execution Information */}
+        <div
+          className={`mb-4 rounded-md border p-3 ${
+            autoExecuting
+              ? 'border-primary/30 bg-primary/5'
+              : 'border-border bg-secondary/20'
+          }`}
+        >
           <p className="text-xs text-muted-foreground">
             {autoExecuting
               ? 'Automatic execution is in progress. Operator actions are disabled.'
-              : selectedIncident.operatorAction?.message || 'Review the recommendation and select an approved remediation action.'}
+              : selectedIncident.operatorAction?.message ||
+                'Review the recommendation and select an approved remediation action.'}
           </p>
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {/* Available Remediation Actions */}
           <div>
-            <label className="mb-2 block text-xs font-medium text-foreground">Select Remediation Action</label>
+            <label className="mb-2 block text-xs font-medium text-foreground">
+              Select Remediation Action
+            </label>
+
             <select
               value={selectedAction}
               disabled={autoExecuting || isProcessing}
-              onChange={(e) => setSelectedAction(e.target.value)}
+              onChange={event => setSelectedAction(event.target.value)}
               className="w-full rounded-md border border-border bg-secondary/40 px-3 py-2 text-xs text-foreground outline-none transition focus:border-accent disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {allowedActions.map((action) => {
+              <option value="">
+                Select an action
+              </option>
+
+              {allowedActions.map((action, index) => {
                 const actionType = getActionType(action)
+
+                if (!actionType) return null
 
                 return (
                   <option
-                    key={actionType || Math.random().toString(36).slice(2)}
+                    key={`${normalizeAction(actionType)}-${index}`}
                     value={actionType}
                   >
                     {actionType}
-                    {actionType === recommendedAction ? ' (Recommended)' : ''}
+                    {normalizeAction(actionType) ===
+                    normalizeAction(recommendedAction)
+                      ? ' (Recommended)'
+                      : ''}
                   </option>
                 )
               })}
@@ -160,23 +297,32 @@ export default function OperatorActionRequired({
 
             <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
               <p className="flex-1">
-                {autoExecuting ? 'Action selection is disabled because automatic execution is enabled.' : 'Only actions allowed by this rule are shown.'}
+                {autoExecuting
+                  ? 'Action selection is disabled because automatic execution is enabled.'
+                  : 'Only actions allowed by this rule are shown.'}
               </p>
-              {(selectedActionScript && (
+
+              {hasSelectedActionScript && (
                 <button
                   type="button"
                   className="shrink-0 text-primary underline-offset-2 hover:text-primary/80 underline"
-                  onClick={() => setShowActionScript(selectedActionScript)}
+                  onClick={() =>
+                    setShowActionScript(current => !current)
+                  }
                 >
                   {showActionScript ? 'Hide script' : 'View script'}
                 </button>
-              ))}
+              )}
             </div>
 
+            {/* Selected Action Script */}
             {showActionScript && hasSelectedActionScript && (
               <div className="mt-2 rounded-md border border-border bg-secondary/20 p-3">
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Action script</span>
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                    Action script
+                  </span>
+
                   <button
                     type="button"
                     className="text-[10px] text-primary underline-offset-2 hover:text-primary/80 underline"
@@ -185,6 +331,7 @@ export default function OperatorActionRequired({
                     Close
                   </button>
                 </div>
+
                 <pre className="max-h-56 overflow-auto whitespace-pre-wrap break-words font-mono text-[10px] leading-relaxed text-foreground">
                   {selectedActionScript}
                 </pre>
@@ -192,35 +339,56 @@ export default function OperatorActionRequired({
             )}
           </div>
 
+          {/* Recommendation */}
           <div className="rounded-md border border-border bg-secondary/30 p-3">
-            <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Recommended Action</p>
-            <p className="mt-1 font-mono text-sm text-primary">{recommendedAction}</p>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              Recommended Action
+            </p>
+
+            <p className="mt-1 font-mono text-sm text-primary">
+              {recommendedAction || 'No recommendation available'}
+            </p>
+
             <p className="mt-1 text-xs text-muted-foreground">
-              <span className="text-foreground">Reason:</span> {reason}
+              <span className="text-foreground">Reason:</span>{' '}
+              {reason || 'No reason provided'}
             </p>
           </div>
         </div>
 
+        {/* Custom Command Input */}
         {requiresCustomCommandInput && (
           <div className="mt-4">
             <label className="mb-2 block text-xs font-medium text-foreground">
               Command to run
             </label>
+
             <textarea
               value={customActionInput}
-              onChange={(event) => setActionInputValue(selectedAction, event.target.value)}
+              onChange={event =>
+                setActionInputValue(
+                  selectedAction,
+                  event.target.value
+                )
+              }
+              disabled={!canInteract}
               rows={5}
               placeholder='Example: systemctl restart nginx || echo "service restarted"'
-              className="w-full rounded-md border border-border bg-secondary/30 px-3 py-2 text-xs text-foreground outline-none transition focus:border-accent"
+              className="w-full rounded-md border border-border bg-secondary/30 px-3 py-2 text-xs text-foreground outline-none transition focus:border-accent disabled:cursor-not-allowed disabled:opacity-40"
             />
           </div>
         )}
 
+        {/* Operator Controls */}
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <ActionButton
             type="button"
             variant="primary"
-            disabled={!canInteract || (requiresCustomCommandInput && !customActionInput.trim())}
+            disabled={
+              !canInteract ||
+              !selectedAction ||
+              (requiresCustomCommandInput && !customActionInput.trim())
+            }
             onClick={handleApprove}
             className="w-full justify-center disabled:cursor-not-allowed disabled:opacity-40"
           >
@@ -229,7 +397,11 @@ export default function OperatorActionRequired({
                 <span className="inline-block size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
                 Approving...
               </>
-            ) : autoExecuting ? 'Auto Executing' : 'Approve & Execute'}
+            ) : autoExecuting ? (
+              'Auto Executing'
+            ) : (
+              'Approve & Execute'
+            )}
           </ActionButton>
 
           <ActionButton
@@ -244,7 +416,9 @@ export default function OperatorActionRequired({
                 <span className="inline-block size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
                 Rejecting...
               </>
-            ) : 'Reject'}
+            ) : (
+              'Reject'
+            )}
           </ActionButton>
         </div>
       </div>

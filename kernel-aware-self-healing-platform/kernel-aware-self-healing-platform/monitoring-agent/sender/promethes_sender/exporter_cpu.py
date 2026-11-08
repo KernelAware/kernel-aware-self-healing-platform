@@ -1,4 +1,5 @@
-from prometheus_client import Gauge, generate_latest
+from prometheus_client import Counter, Gauge, REGISTRY, generate_latest
+from prometheus_client.core import GaugeMetricFamily
 from collectors.system_metrics.cpu import collect
 
 # ─── CPU Usage ─────────────────────────────────────────────
@@ -53,9 +54,49 @@ cpu_times_iowait = Gauge("cpu_times_iowait", "CPU time waiting for IO %")
 cpu_times_steal  = Gauge("cpu_times_steal",  "CPU time stolen by hypervisor %")
 
 # ─── CPU Stats ─────────────────────────────────────────────
-cpu_ctx_switches    = Gauge("cpu_ctx_switches",    "Total CPU context switches")
-cpu_interrupts      = Gauge("cpu_interrupts",      "Total CPU hardware interrupts")
-cpu_soft_interrupts = Gauge("cpu_soft_interrupts", "Total CPU software interrupts")
+cpu_ctx_switches    = Counter("cpu_ctx_switches",    "Total CPU context switches")
+cpu_interrupts      = Counter("cpu_interrupts",      "Total CPU hardware interrupts")
+cpu_soft_interrupts = Counter("cpu_soft_interrupts", "Total CPU software interrupts")
+
+_previous_cpu_stats = {}
+_legacy_cpu_stats = {}
+
+
+class _LegacyCpuStatsCollector:
+    def collect(self):
+        metrics = (
+            ("cpu_ctx_switches", "Total CPU context switches", "ctx_switches"),
+            ("cpu_interrupts", "Total CPU hardware interrupts", "interrupts"),
+            (
+                "cpu_soft_interrupts",
+                "Total CPU software interrupts",
+                "soft_interrupts",
+            ),
+        )
+
+        for metric_name, description, stat_name in metrics:
+            value = _legacy_cpu_stats.get(stat_name)
+            if value is not None:
+                yield GaugeMetricFamily(
+                    metric_name,
+                    description,
+                    value=value,
+                )
+
+    def describe(self):
+        return []
+
+
+REGISTRY.register(_LegacyCpuStatsCollector())
+
+
+def _update_cpu_counter(metric, name, current_value):
+    previous_value = _previous_cpu_stats.get(name)
+    _previous_cpu_stats[name] = current_value
+    _legacy_cpu_stats[name] = current_value
+
+    if previous_value is not None and current_value >= previous_value:
+        metric.inc(current_value - previous_value)
 
 # ─── Top Processes ─────────────────────────────────────────
 cpu_top_process_count = Gauge(
@@ -140,11 +181,23 @@ def update_cpu_metrics():
     # CPU Stats
     stats = data.get("stats", {})
     if stats.get("ctx_switches") is not None:
-        cpu_ctx_switches.set(stats["ctx_switches"])
+        _update_cpu_counter(
+            cpu_ctx_switches,
+            "ctx_switches",
+            stats["ctx_switches"]
+        )
     if stats.get("interrupts") is not None:
-        cpu_interrupts.set(stats["interrupts"])
+        _update_cpu_counter(
+            cpu_interrupts,
+            "interrupts",
+            stats["interrupts"]
+        )
     if stats.get("soft_interrupts") is not None:
-        cpu_soft_interrupts.set(stats["soft_interrupts"])
+        _update_cpu_counter(
+            cpu_soft_interrupts,
+            "soft_interrupts",
+            stats["soft_interrupts"]
+        )
 
     # Top Processes
     processes = data.get("processes", [])

@@ -1,56 +1,457 @@
-import React, { useState } from 'react'
-import { ListFilter, Search } from 'lucide-react'
-import { Panel, PanelHeader, ActionButton, StatusBadge, Dot } from '@/components/kit'
 
-export default function IncidentsTable({ incidents }) {
+import React, { useMemo, useState } from 'react'
+
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  ListFilter,
+  Search,
+  X
+} from 'lucide-react'
+
+import {
+  ActionButton,
+  Panel,
+  PanelHeader,
+  StatusBadge
+} from '@/components/kit'
+
+const SEVERITY_ORDER = ['warning', 'high', 'critical']
+const INITIAL_VISIBLE_COUNT = 15
+
+const openedAt = incident =>
+  incident.opened_at ||
+  incident.created_at ||
+  incident.detected_at ||
+  incident.start
+
+const metricOf = incident =>
+  incident.metric ||
+  incident.trigger?.metric ||
+  incident.violated_metric?.metric ||
+  incident.detail?.trigger?.metric ||
+  incident.detail?.violated_metric?.metric ||
+  incident.alert?.metric
+
+const targetOf = incident =>
+  incident.target ||
+  incident.process ||
+  incident.alert?.target
+
+function unitForMetric(metric) {
+  const name = String(metric || '').trim().toLowerCase()
+
+  if (/(?:_percent(?:age)?|\s*\(%\))$/.test(name)) return '%'
+  if (/_bytes?$/.test(name)) return 'bytes'
+  if (/_gb$/.test(name)) return 'GB'
+  if (/_speed_mb$|_mb_per_second$/.test(name)) return 'MB/s'
+  if (/_ms$/.test(name)) return 'ms'
+  if (/_celsius$/.test(name)) return '°C'
+  if (/_seconds?$/.test(name)) return 'seconds'
+  if (/_hours?$/.test(name)) return 'hours'
+  if (/_iops$/.test(name)) return 'IOPS'
+  if (/_rpm$/.test(name)) return 'RPM'
+  if (/_count$/.test(name)) return 'operations'
+  if (/_health$|_charging$/.test(name)) return '0/1'
+
+  return ''
+}
+
+function violatedMetricCondition(incident) {
+  const trigger = incident.trigger || incident.detail?.trigger || {}
+  const violatedMetric =
+    incident.violated_metric ||
+    incident.detail?.violated_metric ||
+    {}
+
+  const metric = metricOf(incident)
+
+  const operator =
+    trigger.operator ||
+    violatedMetric.operator ||
+    incident.operator ||
+    incident.alert?.operator
+
+  const threshold =
+    trigger.threshold ??
+    violatedMetric.threshold ??
+    incident.threshold ??
+    incident.alert?.threshold
+
+  const unit =
+    trigger.unit ||
+    violatedMetric.unit ||
+    incident.detail?.trigger?.unit ||
+    incident.detail?.violated_metric?.unit ||
+    incident.unit ||
+    incident.alert?.unit ||
+    unitForMetric(metric)
+
+  const symbol = String(operator || '').match(/(?:>=|<=|==|>|<|=)/)?.[0]
+
+  const numericThreshold =
+    threshold === null ||
+    threshold === undefined ||
+    String(threshold).trim() === ''
+      ? null
+      : Number(threshold)
+
+  if (
+    !metric ||
+    String(metric).toLowerCase() === 'unknown metric' ||
+    !symbol ||
+    !unit ||
+    !Number.isFinite(numericThreshold)
+  ) {
+    return 'Condition unavailable'
+  }
+
+  const formattedUnit = ['%', 'percent', 'percentage'].includes(
+    String(unit).trim().toLowerCase()
+  )
+    ? '%'
+    : ` ${unit}`
+
+  return `${metric} ${symbol} ${String(numericThreshold)}${formattedUnit}`
+}
+
+function collectSearchText(value, output) {
+  if (value === null || value === undefined) return
+
+  if (typeof value === 'string' || typeof value === 'number') {
+    output.push(String(value))
+    return
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach(item => collectSearchText(item, output))
+    return
+  }
+
+  if (typeof value === 'object') {
+    Object.entries(value).forEach(([key, item]) => {
+      if (['id', 'incident_id', 'metric'].includes(key)) return
+      collectSearchText(item, output)
+    })
+  }
+}
+
+function searchableText(incident) {
+  const values = []
+
+  collectSearchText(
+    [
+      incident.rule_id,
+      violatedMetricCondition(incident),
+      targetOf(incident),
+      incident.severity,
+      incident.status,
+      incident.priority,
+      incident.prio,
+      incident.category,
+      incident.monitor_type,
+      incident.incident_type,
+      incident.title,
+      incident.description,
+      incident.details,
+      incident.message,
+      incident.body,
+      incident.detail,
+      incident.alert
+    ],
+    values
+  )
+
+  return values.join(' ').toLowerCase()
+}
+
+function compareText(left, right) {
+  return String(left ?? '').localeCompare(String(right ?? ''), undefined, {
+    sensitivity: 'base',
+    numeric: true
+  })
+}
+
+function compareSeverity(left, right) {
+  const leftValue = String(left ?? '').toLowerCase()
+  const rightValue = String(right ?? '').toLowerCase()
+
+  const leftRank = SEVERITY_ORDER.indexOf(leftValue)
+  const rightRank = SEVERITY_ORDER.indexOf(rightValue)
+
+  if (leftRank !== -1 || rightRank !== -1) {
+    if (leftRank === -1) return 1
+    if (rightRank === -1) return -1
+    if (leftRank !== rightRank) return leftRank - rightRank
+  }
+
+  return compareText(leftValue, rightValue)
+}
+
+function compareDates(left, right) {
+  const leftTime = left ? Date.parse(left) : Number.NaN
+  const rightTime = right ? Date.parse(right) : Number.NaN
+
+  if (Number.isFinite(leftTime) && Number.isFinite(rightTime)) {
+    return leftTime - rightTime
+  }
+
+  if (Number.isFinite(leftTime)) return -1
+  if (Number.isFinite(rightTime)) return 1
+
+  return compareText(left, right)
+}
+
+function valueForSort(incident, key) {
+  switch (key) {
+    case 'title':
+      return incident.title || incident.description
+
+    case 'condition':
+      return violatedMetricCondition(incident)
+
+    case 'target':
+      return targetOf(incident)
+
+    case 'severity':
+      return incident.severity
+
+    case 'priority':
+      return incident.priority || incident.prio
+
+    case 'opened_at':
+      return openedAt(incident)
+
+    default:
+      return ''
+  }
+}
+
+function compareIncidents(left, right, key) {
+  if (key === 'severity') {
+    return compareSeverity(
+      valueForSort(left, key),
+      valueForSort(right, key)
+    )
+  }
+
+  if (key === 'opened_at') {
+    return compareDates(
+      valueForSort(left, key),
+      valueForSort(right, key)
+    )
+  }
+
+  return compareText(
+    valueForSort(left, key),
+    valueForSort(right, key)
+  )
+}
+
+function normalizedStatus(incident) {
+  const status = String(incident.status || '').toUpperCase()
+
+  if (status === 'RESOLVED' || status === 'CLOSED') {
+    return 'resolved'
+  }
+
+  return 'open'
+}
+
+function severityTone(severity) {
+  const value = String(severity || '').toLowerCase()
+
+  if (value === 'critical') return 'danger'
+  if (value === 'high') return 'warning'
+
+  return 'muted'
+}
+
+export default function IncidentsTable({
+  incidents,
+  loading = false
+}) {
   const [search, setSearch] = useState('')
+  const [sort, setSort] = useState({
+    key: 'opened_at',
+    direction: 'desc'
+  })
   const [statusFilter, setStatusFilter] = useState('all')
   const [priorityFilter, setPriorityFilter] = useState('all')
+  const [showAll, setShowAll] = useState(false)
 
-  const filtered = incidents.filter((h) => {
-    const normalizedStatus = h.status === 'RESOLVED' ? 'resolved' : 'open'
-    const matchesSearch =
-      h.title.toLowerCase().includes(search.toLowerCase()) ||
-      h.id.toLowerCase().includes(search.toLowerCase()) ||
-      h.prio.toLowerCase().includes(search.toLowerCase())
+  const rows = Array.isArray(incidents) ? incidents : []
+  const query = search.trim().toLowerCase()
 
-    const matchesStatus = statusFilter === 'all' || normalizedStatus === statusFilter
-    const matchesPriority = priorityFilter === 'all' || h.prio === priorityFilter
+  const filtered = useMemo(() => {
+    return rows.filter(incident => {
+      const matchesSearch =
+        !query || searchableText(incident).includes(query)
 
-    return matchesSearch && matchesStatus && matchesPriority
-  })
+      const matchesStatus =
+        statusFilter === 'all' ||
+        normalizedStatus(incident) === statusFilter
+
+      const priority =
+        String(incident.priority || incident.prio || '').toUpperCase()
+
+      const matchesPriority =
+        priorityFilter === 'all' ||
+        priority === priorityFilter
+
+      return matchesSearch && matchesStatus && matchesPriority
+    })
+  }, [rows, query, statusFilter, priorityFilter])
+
+  const sorted = useMemo(() => {
+    const direction = sort.direction === 'asc' ? 1 : -1
+
+    return filtered
+      .map((incident, index) => ({ incident, index }))
+      .sort((left, right) => {
+        const primary =
+          compareIncidents(left.incident, right.incident, sort.key) *
+          direction
+
+        return primary || left.index - right.index
+      })
+      .map(({ incident }) => incident)
+  }, [filtered, sort])
+
+  const visibleIncidents = showAll
+    ? sorted
+    : sorted.slice(0, INITIAL_VISIBLE_COUNT)
+
+  const formatTime = value => {
+    if (!value) return '—'
+
+    const date = new Date(value)
+
+    return Number.isNaN(date.getTime())
+      ? String(value)
+      : date.toLocaleString()
+  }
+
+  const sortableHeader = (label, key, alignment = 'left') => {
+    const active = sort.key === key
+
+    const SortIcon = active
+      ? sort.direction === 'asc'
+        ? ArrowUp
+        : ArrowDown
+      : ArrowUpDown
+
+    return (
+      <th
+        key={key}
+        aria-sort={
+          active
+            ? sort.direction === 'asc'
+              ? 'ascending'
+              : 'descending'
+            : 'none'
+        }
+        className={`px-4 py-2.5 ${
+          alignment === 'right' ? 'text-right' : 'text-left'
+        } font-medium`}
+        scope="col"
+      >
+        <button
+          type="button"
+          onClick={() =>
+            setSort(current => ({
+              key,
+              direction:
+                current.key === key && current.direction === 'asc'
+                  ? 'desc'
+                  : 'asc'
+            }))
+          }
+          className={`inline-flex items-center gap-1.5 rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
+            alignment === 'right' ? 'flex-row-reverse' : ''
+          }`}
+          aria-label={`Sort by ${label}${
+            active
+              ? `, currently ${
+                  sort.direction === 'asc' ? 'ascending' : 'descending'
+                }`
+              : ''
+          }`}
+        >
+          {label}
+          <SortIcon
+            aria-hidden="true"
+            className={`size-3 ${
+              active ? 'text-primary' : 'text-muted-foreground/50'
+            }`}
+          />
+        </button>
+      </th>
+    )
+  }
 
   return (
     <Panel className="mt-4">
       <PanelHeader
         title="Incident History"
         icon={ListFilter}
+        className="flex-col items-stretch sm:flex-row sm:items-center"
         action={
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <div className="relative hidden sm:block">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <input
-                placeholder="Search incidents..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-8 w-44 rounded-md border border-input bg-background pl-8 pr-2 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none"
-              />
-            </div>
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            {/* Search */}
+            <label className="relative block min-w-0 flex-1 sm:flex-initial">
+              <span className="sr-only">
+                Search incident history
+              </span>
 
+              <Search
+                aria-hidden="true"
+                className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+              />
+
+              <input
+                type="text"
+                placeholder="Search incident history..."
+                value={search}
+                onChange={event => setSearch(event.target.value)}
+                className="h-8 w-full rounded-md border border-input bg-background pl-8 pr-8 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none sm:w-64"
+              />
+
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  aria-label="Clear incident history search"
+                  title="Clear search"
+                >
+                  <X
+                    aria-hidden="true"
+                    className="size-3.5"
+                  />
+                </button>
+              )}
+            </label>
+
+            {/* Status filter */}
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={event => setStatusFilter(event.target.value)}
               className="h-8 rounded-md border border-input bg-background px-2 font-mono text-[11px] text-foreground outline-none focus:border-ring"
+              aria-label="Filter by incident status"
             >
               <option value="all">All Status</option>
               <option value="open">Open</option>
               <option value="resolved">Resolved</option>
             </select>
 
+            {/* Priority filter */}
             <select
               value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
+              onChange={event => setPriorityFilter(event.target.value)}
               className="h-8 rounded-md border border-input bg-background px-2 font-mono text-[11px] text-foreground outline-none focus:border-ring"
+              aria-label="Filter by incident priority"
             >
               <option value="all">All Priority</option>
               <option value="P0">P0</option>
@@ -58,50 +459,128 @@ export default function IncidentsTable({ incidents }) {
               <option value="P2">P2</option>
               <option value="P3">P3</option>
             </select>
-
-            <ActionButton icon={ListFilter} className="h-8 cursor-pointer">Filter</ActionButton>
           </div>
         }
       />
+
       <div className="max-h-[360px] overflow-y-auto overflow-x-auto">
-        <table className="w-full min-w-[720px] text-sm">
+        <table className="w-full min-w-[900px] text-sm">
           <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm">
             <tr className="border-y border-border font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-              <th className="px-4 py-2.5 text-left font-medium">ID</th>
-              <th className="px-4 py-2.5 text-left font-medium">Incident Title</th>
-              <th className="px-4 py-2.5 text-left font-medium">Priority</th>
-              <th className="px-4 py-2.5 text-left font-medium">Status</th>
-              <th className="px-4 py-2.5 text-left font-medium">Start Time</th>
-              <th className="px-4 py-2.5 text-left font-medium">Res. Time</th>
-              <th className="px-4 py-2.5 text-right font-medium">Action</th>
+              {sortableHeader('Incident Title', 'title')}
+              {sortableHeader('Violated Metric', 'condition')}
+              {sortableHeader('Target', 'target')}
+              {sortableHeader('Severity', 'severity')}
+              {sortableHeader('Priority', 'priority')}
+              {sortableHeader('Opened', 'opened_at')}
+
+              <th
+                className="px-4 py-2.5 text-right font-medium"
+                scope="col"
+              >
+                Action
+              </th>
             </tr>
           </thead>
+
           <tbody className="text-xs">
-            {filtered.map((h) => (
-              <tr key={h.id} className="border-b border-border/60 last:border-0 hover:bg-secondary/40">
-                <td className="px-4 py-3 font-mono text-muted-foreground">{h.id}</td>
-                <td className="px-4 py-3 font-medium text-foreground">{h.title}</td>
-                <td className="px-4 py-3">
-                  <StatusBadge tone={h.prio === 'P0' ? 'danger' : h.prio === 'P1' ? 'warning' : 'muted'}>
-                    {h.prio}
-                  </StatusBadge>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="flex items-center gap-1.5 font-mono text-foreground/80">
-                    <Dot tone={h.status === 'RESOLVED' ? 'success' : 'muted'} />
-                    {h.status === 'RESOLVED' ? 'Resolved' : 'Open'}
-                  </span>
-                </td>
-                <td className="px-4 py-3 font-mono text-muted-foreground">{h.start}</td>
-                <td className="px-4 py-3 font-mono text-foreground/80">{h.res}</td>
-                <td className="px-4 py-3 text-right text-accent hover:underline">
-                  <button className="cursor-pointer">View Log</button>
+            {visibleIncidents.map((incident, index) => {
+              const incidentKey =
+                incident.incident_id ||
+                incident.id ||
+                `incident-${index}`
+
+              const priority =
+                incident.priority || incident.prio
+
+              return (
+                <tr
+                  key={incidentKey}
+                  className="border-b border-border/60 last:border-0 hover:bg-secondary/40"
+                >
+                  <td className="px-4 py-3 font-medium text-foreground">
+                    {incident.title ||
+                      incident.description ||
+                      '—'}
+                  </td>
+
+                  <td className="px-4 py-3 font-mono text-muted-foreground">
+                    {violatedMetricCondition(incident)}
+                  </td>
+
+                  <td className="px-4 py-3 text-foreground/80">
+                    {targetOf(incident) || '—'}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    <StatusBadge tone={severityTone(incident.severity)}>
+                      {incident.severity || '—'}
+                    </StatusBadge>
+                  </td>
+
+                  <td className="px-4 py-3 font-mono text-muted-foreground">
+                    {priority || '—'}
+                  </td>
+
+                  <td className="px-4 py-3 font-mono text-muted-foreground">
+                    {formatTime(openedAt(incident))}
+                  </td>
+
+                  <td className="px-4 py-3 text-right text-accent hover:underline">
+                    <button
+                      type="button"
+                      className="cursor-pointer"
+                      onClick={() => {
+                        // Connect this action to your existing incident
+                        // detail navigation if that callback is available.
+                      }}
+                    >
+                      View Log
+                    </button>
+                  </td>
+                </tr>
+              )
+            })}
+
+            {sorted.length === 0 && (
+              <tr>
+                <td
+                  colSpan="7"
+                  className="px-4 py-8 text-center font-mono text-xs text-muted-foreground"
+                >
+                  {loading
+                    ? 'Loading incident history…'
+                    : rows.length === 0
+                      ? 'No incident history is available.'
+                      : 'No incidents match your filters. Try another search or clear the filters.'}
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
+
+      {!showAll && sorted.length > INITIAL_VISIBLE_COUNT && (
+        <div className="flex justify-center border-t border-border/60 p-3">
+          <ActionButton
+            type="button"
+            onClick={() => setShowAll(true)}
+          >
+            See More
+          </ActionButton>
+        </div>
+      )}
+
+      {showAll && sorted.length > INITIAL_VISIBLE_COUNT && (
+        <div className="flex justify-center border-t border-border/60 p-3">
+          <ActionButton
+            type="button"
+            onClick={() => setShowAll(false)}
+          >
+            Show Less
+          </ActionButton>
+        </div>
+      )}
     </Panel>
   )
 }

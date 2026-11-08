@@ -1,8 +1,9 @@
+
 import React, { useEffect, useState } from 'react'
+
 import {
   TriangleAlert,
-  Server,
-  Cpu,
+  HardDrive,
   Activity,
   ChevronRight
 } from 'lucide-react'
@@ -13,23 +14,31 @@ import {
   StatusBadge
 } from '@/components/kit'
 
+
 function formatAlertAge(updatedAt, now, fallbackAge) {
   if (!updatedAt) {
     return fallbackAge
   }
 
   const timestamp = new Date(updatedAt).getTime()
+
   if (Number.isNaN(timestamp)) {
     return fallbackAge
   }
 
-  const elapsedSeconds = Math.max(0, Math.floor((now - timestamp) / 1000))
+  const elapsedSeconds = Math.max(
+    0,
+    Math.floor((now - timestamp) / 1000)
+  )
+
   if (elapsedSeconds < 60) {
     return 'now'
   }
+
   if (elapsedSeconds < 3600) {
     return `${Math.floor(elapsedSeconds / 60)}m ago`
   }
+
   if (elapsedSeconds < 86400) {
     return `${Math.floor(elapsedSeconds / 3600)}h ago`
   }
@@ -37,44 +46,79 @@ function formatAlertAge(updatedAt, now, fallbackAge) {
   return `${Math.floor(elapsedSeconds / 86400)}d ago`
 }
 
+
 export default function ActiveAlertsList({
   alerts,
   acknowledgeAlert,
   resolveAlert,
   selectIncident,
-  selectedIncidentId
+  selectedIncidentId,
+  activeSnapshotLoading = false,
+  activeSnapshotError = ""
 }) {
 
   const activeCount = alerts.length
+
   const [now, setNow] = useState(Date.now())
-  const [pendingAction, setPendingAction] = useState({ id: null, type: null })
+
+  const [pendingAction, setPendingAction] = useState({
+    id: null,
+    type: null
+  })
+
 
   useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 15000)
+    const interval = setInterval(
+      () => setNow(Date.now()),
+      15000
+    )
+
     return () => clearInterval(interval)
   }, [])
 
+
   const handleAcknowledge = async (id) => {
-    if (pendingAction.id) return
-    setPendingAction({ id, type: 'acknowledge' })
+    if (pendingAction.id !== null) return
+
+    setPendingAction({
+      id,
+      type: 'acknowledge'
+    })
 
     try {
       await acknowledgeAlert(id)
     } finally {
-      setPendingAction({ id: null, type: null })
+      setPendingAction({
+        id: null,
+        type: null
+      })
     }
   }
 
+
   const handleResolve = async (id) => {
-    if (pendingAction.id) return
-    setPendingAction({ id, type: 'resolve' })
+    if (pendingAction.id !== null) return
+
+    if (typeof resolveAlert !== 'function') {
+      console.error('resolveAlert callback was not provided')
+      return
+    }
+
+    setPendingAction({
+      id,
+      type: 'resolve'
+    })
 
     try {
       await resolveAlert(id)
     } finally {
-      setPendingAction({ id: null, type: null })
+      setPendingAction({
+        id: null,
+        type: null
+      })
     }
   }
+
 
   return (
     <Panel>
@@ -89,13 +133,12 @@ export default function ActiveAlertsList({
         }
       />
 
-
       <div className="flex flex-col gap-5 p-3 pt-0">
 
         {alerts.map((a) => {
 
           const isSelected = a.id === selectedIncidentId
-          const isCritical = a.id === selectedIncidentId
+          const isCritical = a.tone === 'danger'
           const isWarning = a.tone === 'warning'
 
           return (
@@ -111,7 +154,8 @@ export default function ActiveAlertsList({
                 hover:bg-secondary/50
                 ${
                   isSelected
-                    ? 'border-yellow-500 bg-yellow-500/5':""
+                    ? 'border-yellow-500 bg-yellow-500/5'
+                    : ""
                 }
               `}
             >
@@ -135,23 +179,25 @@ export default function ActiveAlertsList({
                 {a.title}
               </h4>
 
+              <span className="mt-1 inline-block font-mono text-[9px] uppercase tracking-wider text-primary">
+                {a.category || 'unknown category'}
+              </span>
+
 
               {/* DETAILS */}
               <div className="mt-3 space-y-1.5 text-[14px] text-muted-foreground">
 
-
-
-
                 <div className="flex items-center gap-2">
-                  <Cpu className="size-5 shrink-0" />
+                  <HardDrive className="size-5 shrink-0" />
+
                   <span>
-                    {a.process || a.body}
+                    {a.target || a.process || a.body}
                   </span>
                 </div>
 
-
                 <div className="flex items-center gap-2">
                   <Activity className="size-3 shrink-0" />
+
                   <span>
                     {a.metric || 'Threshold violation detected'}
                   </span>
@@ -191,29 +237,35 @@ export default function ActiveAlertsList({
                         }
                       `}
                     >
-                      {isCritical
+                      {a.status === 'WAITING_APPROVAL'
                         ? 'Waiting Approval'
-                        : isWarning
+                        : a.status === 'HEALING'
                           ? 'Healing'
-                          : 'Open'}
+                          : String(a.status).toUpperCase() === 'RESOLVED'
+                            ? 'Resolved'
+                            : 'Open'}
                     </span>
 
                   )}
                 </div>
-
 
                 <ChevronRight className="size-4 text-muted-foreground" />
 
               </div>
 
 
-              {/* OPTIONAL ACTION BUTTONS */}
+              {/* ACTION BUTTONS */}
               {!a.acked && (
+
                 <div className="mt-3 flex gap-2">
 
+                  {/* ACKNOWLEDGE */}
                   <button
-                    onClick={() => handleAcknowledge(a.id)}
-                    disabled={pendingAction.id === a.id}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      handleAcknowledge(a.id)
+                    }}
+                    disabled={pendingAction.id !== null}
                     className="
                       flex flex-1
                       items-center
@@ -235,7 +287,8 @@ export default function ActiveAlertsList({
                       disabled:opacity-50
                     "
                   >
-                    {pendingAction.id === a.id && pendingAction.type === 'acknowledge' ? (
+                    {pendingAction.id === a.id &&
+                    pendingAction.type === 'acknowledge' ? (
                       <>
                         <span className="inline-block size-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
                         <span>Working...</span>
@@ -246,9 +299,13 @@ export default function ActiveAlertsList({
                   </button>
 
 
+                  {/* RESOLVE */}
                   <button
-                    onClick={() => handleResolve(a.id)}
-                    disabled={pendingAction.id === a.id}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      handleResolve(a.id)
+                    }}
+                    disabled={pendingAction.id !== null}
                     className="
                       flex flex-1
                       items-center
@@ -269,7 +326,8 @@ export default function ActiveAlertsList({
                       disabled:opacity-50
                     "
                   >
-                    {pendingAction.id === a.id && pendingAction.type === 'resolve' ? (
+                    {pendingAction.id === a.id &&
+                    pendingAction.type === 'resolve' ? (
                       <>
                         <span className="inline-block size-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
                         <span>Resolving...</span>
@@ -287,13 +345,38 @@ export default function ActiveAlertsList({
         })}
 
 
-        {alerts.length === 0 && (
-
-          <div className="py-6 text-center font-mono text-xs text-muted-foreground">
-            No active incidents detected.
+        {/* LOADING STATE */}
+        {activeSnapshotLoading && alerts.length === 0 && (
+          <div
+            role="status"
+            className="py-6 text-center font-mono text-xs text-muted-foreground"
+          >
+            Loading current-run alerts…
           </div>
-
         )}
+
+
+        {/* ERROR STATE */}
+        {activeSnapshotError && (
+          <div
+            role="alert"
+            className="rounded-md border border-destructive/40 bg-destructive/5 p-3 font-mono text-[10px] text-destructive"
+          >
+            Current-run Disk alerts are unavailable: {activeSnapshotError}
+          </div>
+        )}
+
+
+        {/* EMPTY STATE */}
+        {alerts.length === 0 &&
+          !activeSnapshotLoading &&
+          !activeSnapshotError && (
+
+            <div className="py-6 text-center font-mono text-xs text-muted-foreground">
+              No active incidents detected.
+            </div>
+
+          )}
 
       </div>
 

@@ -18,6 +18,17 @@ import Step10 from "./steps/Step10"
 import Step11 from "./steps/Step11"
 import Step12 from "./steps/Step12"
 import Step13 from "./steps/Step13"
+import Step4Disk from "./steps/disk/Step4Disk"
+import Step5Disk from "./steps/disk/Step5Disk"
+import Step6Disk from "./steps/disk/Step6Disk"
+import Step7Disk from "./steps/disk/Step7Disk"
+import Step8Disk from "./steps/disk/Step8Disk"
+import Step9Disk from "./steps/disk/Step9Disk"
+import Step10Disk from "./steps/disk/Step10Disk"
+import Step11Disk from "./steps/disk/Step11Disk"
+import Step12Disk from "./steps/disk/Step12Disk"
+import Step13Disk from "./steps/disk/Step13Disk"
+import { DISK_METRICS } from "./steps/disk/diskHelpers"
 
 const STATS = [
   { label: "Active Rules", value: "0", hint: "Loaded from database", tone: "text-primary" },
@@ -155,6 +166,10 @@ export default function PolicyPage() {
   const [activeTab, setActiveTab] = useState("all-user_rules")
   const [step, setStep] = useState(1)
   const [form, setForm] = useState(INITIAL_FORM)
+  // Existing Disk wizard validation
+  const [stepValidationError, setStepValidationError] = useState("")
+
+  // Database-backed rule management
   const [rules, setRules] = useState([])
   const [rulesLoading, setRulesLoading] = useState(false)
   const [rulesError, setRulesError] = useState("")
@@ -165,8 +180,9 @@ export default function PolicyPage() {
   const loadRules = useCallback(async () => {
     setRulesLoading(true)
     setRulesError("")
+
     try {
-      setRules(await getUserRules(1))
+      setRules(await getUserRules(2))   //meeka balapaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaan
     } catch (error) {
       setRulesError(error.message || "Failed to load rules")
     } finally {
@@ -179,7 +195,11 @@ export default function PolicyPage() {
   }, [activeTab, loadRules])
 
   const stats = STATS.map(stat => stat.label === "Active Rules"
-    ? { ...stat, value: rules.filter(({ rule }) => rule.status === "ENABLED").length, hint: "From database" }
+    ? {
+        ...stat,
+        value: rules.filter(({ rule }) => rule.status === "ENABLED").length,
+        hint: "From database"
+      }
     : stat)
 
   const formatDuration = seconds => {
@@ -190,41 +210,227 @@ export default function PolicyPage() {
   }
 
   const renderRules = () => {
-    if (rulesLoading) return <Panel className="flex items-center justify-center gap-3 py-20"><RefreshCw className="size-4 animate-spin text-primary" /><span className="font-mono text-sm text-muted-foreground">Loading rules from database…</span></Panel>
-    if (rulesError) return <Panel className="flex flex-col items-center justify-center gap-3 py-16 text-center"><AlertCircle className="size-8 text-destructive" /><p className="font-mono text-sm text-destructive">{rulesError}</p><button onClick={loadRules} className="inline-flex h-9 items-center gap-2 rounded-md border border-border px-4 font-mono text-xs hover:bg-secondary"><RefreshCw className="size-3.5" /> Retry</button></Panel>
-    if (!rules.length) return <Panel className="flex flex-col items-center justify-center gap-4 py-20"><Shield className="size-10 text-muted-foreground/30" /><p className="font-mono text-sm text-muted-foreground">No rules found in the database</p><button onClick={() => { setActiveTab("create-rule"); setStep(1) }} className="inline-flex h-9 items-center gap-2 rounded-md bg-primary/10 border border-primary/20 px-4 font-mono text-xs text-primary hover:bg-primary/20 transition-colors cursor-pointer"><Plus className="size-3.5" /> Create New Rule</button></Panel>
-
-    return <div className="grid grid-cols-1 gap-4">{rules.map(({ rule, targets = [], metrics = [], actions = [], notifications = [], ...ruleData }) => (
-      <Panel key={rule.id} className="overflow-hidden">
-        <div className="flex flex-col gap-3 border-b border-border px-5 py-4 md:flex-row md:items-center md:justify-between">
-          <div><div className="flex items-center gap-3"><h2 className="text-lg font-semibold">{rule.name}</h2><span className={cn("rounded border px-2 py-0.5 font-mono text-[10px] uppercase", rule.status === "ENABLED" ? "border-primary/30 bg-primary/10 text-primary" : "border-border text-muted-foreground")}>{rule.status || "UNKNOWN"}</span></div><p className="mt-1 font-mono text-[11px] text-muted-foreground">ID #{rule.id} · {rule.monitor_type} · {rule.environment || "No environment"} · {rule.region || "No region"}</p></div>
-          <div className="flex items-center gap-2 font-mono text-[11px] text-muted-foreground"><span>Priority: <b className="text-foreground">{rule.priority || "—"}</b></span><span>Severity: <b className="text-warning">{rule.severity || "—"}</b></span></div>
-        </div>
-        <div className="grid gap-4 px-5 py-4 md:grid-cols-4">
-          <div><p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Targets</p>{targets.length ? targets.map((target, index) => <p key={index} className="flex items-center gap-2 font-mono text-xs"><Target className="size-3 text-primary" />{target.target}{target.host ? ` @ ${target.host}` : ""}</p>) : <p className="font-mono text-xs text-muted-foreground">—</p>}</div>
-          <div><p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Conditions</p>{metrics.length ? metrics.map(metric => <p key={metric.id} className="font-mono text-xs">{metric.metric} {metric.operator} {metric.threshold ?? "—"} <span className="text-muted-foreground">({formatDuration(metric.duration_seconds)})</span></p>) : <p className="font-mono text-xs text-muted-foreground">—</p>}</div>
-          <div><p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Actions</p>{actions.length ? actions.map((action, index) => <p key={index} className="font-mono text-xs">{action.action_type}</p>) : <p className="font-mono text-xs text-muted-foreground">—</p>}</div>
-          <div><p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Notifications</p>{notifications.length ? <p className="font-mono text-xs">{[...new Set(notifications.map(notification => notification.channel))].join(", ")}</p> : <p className="font-mono text-xs text-muted-foreground">—</p>}</div>
-        </div>
-        <div className="flex items-center justify-between border-t border-border bg-secondary/10 px-5 py-2.5"><span className="font-mono text-[10px] text-muted-foreground">Owner: {rule.owner || "Unassigned"}</span><div className="flex items-center gap-4"><button type="button" onClick={() => setEditingRule({ rule, targets, metrics, actions, notifications, ...ruleData })} className="inline-flex items-center gap-1.5 font-mono text-[10px] text-primary hover:underline"><Pencil className="size-3" /> Edit</button><button type="button" onClick={() => setDeletingRule(rule)} className="inline-flex items-center gap-1.5 font-mono text-[10px] text-destructive hover:underline"><Trash2 className="size-3" /> Delete</button>
-        {/* <button type="button" className="inline-flex items-center gap-1.5 font-mono text-[10px] text-primary hover:underline"><Eye className="size-3" /> View details</button> */}
-        </div></div>
+    if (rulesLoading) return (
+      <Panel className="flex items-center justify-center gap-3 py-20">
+        <RefreshCw className="size-4 animate-spin text-primary" />
+        <span className="font-mono text-sm text-muted-foreground">
+          Loading rules from database…
+        </span>
       </Panel>
-    ))}</div>
+    )
+
+    if (rulesError) return (
+      <Panel className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+        <AlertCircle className="size-8 text-destructive" />
+        <p className="font-mono text-sm text-destructive">{rulesError}</p>
+        <button
+          onClick={loadRules}
+          className="inline-flex h-9 items-center gap-2 rounded-md border border-border px-4 font-mono text-xs hover:bg-secondary"
+        >
+          <RefreshCw className="size-3.5" /> Retry
+        </button>
+      </Panel>
+    )
+
+    if (!rules.length) return (
+      <Panel className="flex flex-col items-center justify-center gap-4 py-20">
+        <Shield className="size-10 text-muted-foreground/30" />
+        <p className="font-mono text-sm text-muted-foreground">
+          No rules found in the database
+        </p>
+        <button
+          onClick={() => {
+            setActiveTab("create-rule")
+            setStep(1)
+          }}
+          className="inline-flex h-9 items-center gap-2 rounded-md bg-primary/10 border border-primary/20 px-4 font-mono text-xs text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+        >
+          <Plus className="size-3.5" /> Create New Rule
+        </button>
+      </Panel>
+    )
+
+    return (
+      <div className="grid grid-cols-1 gap-4">
+        {rules.map(({
+          rule,
+          targets = [],
+          metrics = [],
+          actions = [],
+          notifications = [],
+          ...ruleData
+        }) => (
+          <Panel key={rule.id} className="overflow-hidden">
+            <div className="flex flex-col gap-3 border-b border-border px-5 py-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-lg font-semibold">{rule.name}</h2>
+                  <span className={cn(
+                    "rounded border px-2 py-0.5 font-mono text-[10px] uppercase",
+                    rule.status === "ENABLED"
+                      ? "border-primary/30 bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground"
+                  )}>
+                    {rule.status || "UNKNOWN"}
+                  </span>
+                </div>
+                <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+                  ID #{rule.id} · {rule.monitor_type} · {rule.environment || "No environment"} · {rule.region || "No region"}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 font-mono text-[11px] text-muted-foreground">
+                <span>
+                  Priority: <b className="text-foreground">{rule.priority || "—"}</b>
+                </span>
+                <span>
+                  Severity: <b className="text-warning">{rule.severity || "—"}</b>
+                </span>
+              </div>
+            </div>
+
+            <div className="grid gap-4 px-5 py-4 md:grid-cols-4">
+              <div>
+                <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Targets
+                </p>
+                {targets.length ? targets.map((target, index) => (
+                  <p key={index} className="flex items-center gap-2 font-mono text-xs">
+                    <Target className="size-3 text-primary" />
+                    {target.target}{target.host ? ` @ ${target.host}` : ""}
+                  </p>
+                )) : (
+                  <p className="font-mono text-xs text-muted-foreground">—</p>
+                )}
+              </div>
+
+              <div>
+                <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Conditions
+                </p>
+                {metrics.length ? metrics.map(metric => (
+                  <p key={metric.id} className="font-mono text-xs">
+                    {metric.metric} {metric.operator} {metric.threshold ?? "—"}
+                    <span className="text-muted-foreground">
+                      ({formatDuration(metric.duration_seconds)})
+                    </span>
+                  </p>
+                )) : (
+                  <p className="font-mono text-xs text-muted-foreground">—</p>
+                )}
+              </div>
+
+              <div>
+                <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Actions
+                </p>
+                {actions.length ? actions.map((action, index) => (
+                  <p key={index} className="font-mono text-xs">
+                    {action.action_type}
+                  </p>
+                )) : (
+                  <p className="font-mono text-xs text-muted-foreground">—</p>
+                )}
+              </div>
+
+              <div>
+                <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Notifications
+                </p>
+                {notifications.length ? (
+                  <p className="font-mono text-xs">
+                    {[...new Set(notifications.map(notification => notification.channel))].join(", ")}
+                  </p>
+                ) : (
+                  <p className="font-mono text-xs text-muted-foreground">—</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between border-t border-border bg-secondary/10 px-5 py-2.5">
+              <span className="font-mono text-[10px] text-muted-foreground">
+                Owner: {rule.owner || "Unassigned"}
+              </span>
+
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => setEditingRule({
+                    rule,
+                    targets,
+                    metrics,
+                    actions,
+                    notifications,
+                    ...ruleData
+                  })}
+                  className="inline-flex items-center gap-1.5 font-mono text-[10px] text-primary hover:underline"
+                >
+                  <Pencil className="size-3" /> Edit
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDeletingRule(rule)}
+                  className="inline-flex items-center gap-1.5 font-mono text-[10px] text-destructive hover:underline"
+                >
+                  <Trash2 className="size-3" /> Delete
+                </button>
+              </div>
+            </div>
+          </Panel>
+        ))}
+      </div>
+    )
   }
 
-  const handleNext = () => setStep(s => {
+  const handleNext = () => {
     if (form.monitorSource === "disk") {
-      const targetField = form.targetType === "Disk / Device" ? form.device : form.targetType === "Filesystem / Mount Point" || form.targetType === "Partition (Mount Point)" ? form.mountPoint : true
-      const required = { 4: [form.metric, form.targetType, form.host, targetField], 5: [form.condOperator, form.condThreshold, form.condDuration], 6: [form.severity], 7: [form.actionTypes?.length], 10: [form.recoveryMetric || form.metric, form.recoveryThreshold, form.recoveryDuration] }
-      if (required[s]?.some(value => !value)) return s
+      if (step === 4) {
+        const target = form.targets?.find(item => ["host", "disk", "filesystem", "partition", "process"].includes(item.type))
+        const validSystemTarget = form.selectionType === "system" && target?.type === "host" && target.name === "whole system"
+        const validPartitionTarget = form.selectionType === "partition" && target?.type === "partition" && !!form.partitionDevice && target.name === form.partitionDevice
+        if (!validSystemTarget && !validPartitionTarget) {
+          setStepValidationError(target?.type === "process" || form.selectionType === "process"
+            ? "Disk rules cannot target a Process. Choose Whole system or Specific partition."
+            : form.selectionType === "partition"
+              ? "Select a discovered partition before continuing."
+              : "Select Whole system or Specific partition before continuing.")
+          return
+        }
+        const metric = DISK_METRICS.find(item => item.id === form.metric)
+        const metricMatchesTarget = validSystemTarget
+          ? metric?.labels.length === 0
+          : metric?.labels.some(label => label === "disk" || label === "device")
+        if (!metricMatchesTarget || target.metrics?.[0]?.conditions?.[0]?.metric !== form.metric) {
+          setStepValidationError("Select a Disk metric whose Prometheus labels match the chosen target scope.")
+          return
+        }
+      }
+      const required = { 5: [form.condOperator, form.condThreshold, form.condDuration], 6: [form.severity], 7: [form.actions?.length], 10: [form.recoveryMetric || form.metric, form.recoveryThreshold, form.recoveryDuration] }
+      if (required[step]?.some(value => !value)) return
     }
-    return Math.min(13, s + 1)
-  })
+    setStepValidationError("")
+    setStep(s => Math.min(13, s + 1))
+  }
   const handleBack = () => { if (step === 1) setActiveTab("all-user_rules"); else setStep(s => Math.max(1, s - 1)) }
   const exitWizard = () => setActiveTab("all-user_rules")
 
   const renderStep = () => {
+    if (form.monitorSource === "disk" && step >= 4) {
+      const diskSteps = {
+        4: <Step4Disk form={form} setForm={setForm} validationError={stepValidationError} clearValidationError={() => setStepValidationError("")} />,
+        5: <Step5Disk form={form} setForm={setForm} />,
+        6: <Step6Disk form={form} setForm={setForm} />,
+        7: <Step7Disk form={form} setForm={setForm} />,
+        8: <Step8Disk form={form} setForm={setForm} />,
+        9: <Step9Disk form={form} setForm={setForm} />,
+        10: <Step10Disk form={form} setForm={setForm} />,
+        11: <Step11Disk form={form} setForm={setForm} />,
+        12: <Step12Disk form={form} setForm={setForm} />,
+        13: <Step13Disk form={form} onCancel={exitWizard} />,
+      }
+      return diskSteps[step]
+    }
     switch (step) {
       case 1:  return <Step1 form={form} setForm={setForm} onNext={handleNext} onCancel={exitWizard} />
       case 2:  return <Step2 form={form} setForm={setForm} />

@@ -1,9 +1,6 @@
-from detection.strategies.base_detector import DetectionStrategy
+from detection.strategies.generic_detector import GenericDetector
 
 
-class NetworkDetector(DetectionStrategy):
-
-    def detect(self, rule):
-        print("Detecting disk rule")
-
-        return []
+class NetworkDetector(GenericDetector):
+    def __init__(self):
+        super().__init__("network")

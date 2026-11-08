@@ -1,10 +1,29 @@
+
 import { useState } from "react"
-import { Eye, EyeOff, Link2, LockKeyhole, UserRound } from "lucide-react"
+import {
+  X,
+  Plus,
+  Eye,
+  EyeOff,
+  Link2,
+  LockKeyhole,
+  UserRound,
+} from "lucide-react"
+
 import { Panel } from "@/components/kit"
 import { cn } from "@/utils/cn"
 import { Checkbox } from "./wizardComponents"
 
-const EVENTS = ["Incident detected", "Condition recovered", "Remediation started", "Remediation successful", "Remediation failed", "Approval required", "Max retries reached"]
+const EVENTS = [
+  "Incident detected",
+  "Condition recovered",
+  "Remediation started",
+  "Remediation successful",
+  "Remediation failed",
+  "Approval required",
+  "Max retries reached",
+]
+
 const CHANNELS = [
   { id: "email", label: "Email", Logo: GmailLogo },
   { id: "slack", label: "Slack", Logo: SlackLogo },
@@ -13,34 +32,470 @@ const CHANNELS = [
   { id: "jira", label: "Jira", Logo: JiraLogo },
 ]
 
-function GmailLogo() { return <svg viewBox="0 0 24 18" aria-hidden="true" className="size-5"><path fill="#EA4335" d="M2 2.5 12 10 22 2.5V16a2 2 0 0 1-2 2h-1V6.6l-7 5.25L5 6.6V18H4a2 2 0 0 1-2-2V2.5Z"/><path fill="#4285F4" d="M2 2.5V16c0 1.1.9 2 2 2h1V6.6L2 2.5Z"/><path fill="#34A853" d="M22 2.5V16c0 1.1-.9 2-2 2h-1V6.6l3-4.1Z"/><path fill="#FBBC04" d="m2 2.5 3 4.1V3.8L12 9l7-5.2v2.8l3-4.1-1.7-1.3A2 2 0 0 0 19.1.8H4.9a2 2 0 0 0-1.2.4L2 2.5Z"/></svg> }
-function SlackLogo() { return <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5"><path fill="#36C5F0" d="M9.2 2.2a2.6 2.6 0 1 0 0 5.2h2.6V4.8a2.6 2.6 0 0 0-2.6-2.6Zm0 7.8H4.8a2.6 2.6 0 1 0 0 5.2h4.4V10Z"/><path fill="#2EB67D" d="M21.8 9.2a2.6 2.6 0 1 0-5.2 0v2.6h2.6a2.6 2.6 0 0 0 2.6-2.6Zm-7.8 0V4.8a2.6 2.6 0 1 0-5.2 0v4.4H14Z"/><path fill="#ECB22E" d="M14.8 21.8a2.6 2.6 0 1 0 0-5.2h-2.6v2.6a2.6 2.6 0 0 0 2.6 2.6Zm0-7.8h4.4a2.6 2.6 0 1 0 0-5.2h-4.4V14Z"/><path fill="#E01E5A" d="M2.2 14.8a2.6 2.6 0 1 0 5.2 0v-2.6H4.8a2.6 2.6 0 0 0-2.6 2.6Zm7.8 0v4.4a2.6 2.6 0 1 0 5.2 0v-4.4H10Z"/></svg> }
-function TeamsLogo() { return <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5"><path fill="#6264A7" d="M14.7 8.2h6.1v7.4c0 1.1-.9 2-2 2h-4.1V8.2ZM17.8 3a2.2 2.2 0 1 1 0 4.4A2.2 2.2 0 0 1 17.8 3Z"/><path fill="#464775" d="M3 8.2h10.7v8.7H5a2 2 0 0 1-2-2V8.2Zm4.6-5.3a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8Z"/><path fill="#7B83EB" d="M6 10h5v1.8H9.4v5H7.6v-5H6V10Z"/></svg> }
-function ServiceNowLogo() { return <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5"><circle cx="12" cy="12" r="10" fill="#81B441"/><path fill="#102B16" d="M7.2 13.2c.8 2.1 2.7 3.3 5.1 3.3 2.3 0 3.8-1 4.6-2.4.6-1.1-.3-2.3-1.5-2.3h-6c-.9 0-1.7.5-2.2 1.4Z"/><circle cx="12" cy="8.2" r="2.2" fill="#fff"/></svg> }
-function JiraLogo() { return <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5"><path fill="#1868DB" d="M12 3 4 11l8 8 8-8-8-8Z"/><path fill="#0C66E4" d="m12 3-4 4 4 4 4-4-4-4Z"/><path fill="#4C9AFF" d="m12 11-4 4 4 4 4-4-4-4Z"/><path fill="#B2D4FF" d="m4 11 4-4 4 4-4 4-4-4Z"/></svg> }
-
-function Field({ label, value, onChange, type = "text", icon: Icon = null, secret = false, placeholder }) {
-  const [visible, setVisible] = useState(false)
-  return <label className="block font-mono text-[11px] text-foreground">{label}<div className="relative mt-1">{Icon && <Icon className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />}<input type={secret && !visible ? "password" : type} value={value || ""} placeholder={placeholder} onChange={e => onChange(e.target.value)} className={cn("h-7 w-full rounded border border-border bg-card px-2.5 font-mono text-[11px] text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none", Icon && "pl-8", secret && "pr-8")} />{secret && <button type="button" onClick={() => setVisible(v => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer" aria-label={visible ? "Hide value" : "Show value"}>{visible ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}</button>}</div></label>
+function GmailLogo() {
+  return (
+    <svg viewBox="0 0 24 18" aria-hidden="true" className="size-5">
+      <path fill="#EA4335" d="M2 2.5 12 10 22 2.5V16a2 2 0 0 1-2 2h-1V6.6l-7 5.25L5 6.6V18H4a2 2 0 0 1-2-2V2.5Z" />
+      <path fill="#4285F4" d="M2 2.5V16c0 1.1.9 2 2 2h1V6.6L2 2.5Z" />
+      <path fill="#34A853" d="M22 2.5V16c0 1.1-.9 2-2 2h-1V6.6l3-4.1Z" />
+      <path fill="#FBBC04" d="m2 2.5 3 4.1V3.8L12 9l7-5.2v2.8l3-4.1-1.7-1.3A2 2 0 0 0 19.1.8H4.9a2 2 0 0 0-1.2.4L2 2.5Z" />
+    </svg>
+  )
 }
 
-function ChannelFrame({ title, Logo, children }) { return <div className="rounded-md border border-border bg-card px-3 py-2"><div className="mb-1 flex items-center gap-2"><Logo /><span className="font-mono text-xs font-semibold text-foreground">{title}</span></div>{children}</div> }
+function SlackLogo() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5">
+      <path fill="#36C5F0" d="M9.2 2.2a2.6 2.6 0 1 0 0 5.2h2.6V4.8a2.6 2.6 0 0 0-2.6-2.6Zm0 7.8H4.8a2.6 2.6 0 1 0 0 5.2h4.4V10Z" />
+      <path fill="#2EB67D" d="M21.8 9.2a2.6 2.6 0 1 0-5.2 0v2.6h2.6a2.6 2.6 0 0 0 2.6-2.6Zm-7.8 0V4.8a2.6 2.6 0 1 0-5.2 0v4.4H14Z" />
+      <path fill="#ECB22E" d="M14.8 21.8a2.6 2.6 0 1 0 0-5.2h-2.6v2.6a2.6 2.6 0 0 0 2.6 2.6Zm0-7.8h4.4a2.6 2.6 0 1 0 0-5.2h-4.4V14Z" />
+      <path fill="#E01E5A" d="M2.2 14.8a2.6 2.6 0 1 0 5.2 0v-2.6H4.8a2.6 2.6 0 0 0-2.6 2.6Zm7.8 0v4.4a2.6 2.6 0 1 0 5.2 0v-4.4H10Z" />
+    </svg>
+  )
+}
+
+function TeamsLogo() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5">
+      <path fill="#6264A7" d="M14.7 8.2h6.1v7.4c0 1.1-.9 2-2 2h-4.1V8.2ZM17.8 3a2.2 2.2 0 1 1 0 4.4A2.2 2.2 0 0 1 17.8 3Z" />
+      <path fill="#464775" d="M3 8.2h10.7v8.7H5a2 2 0 0 1-2-2V8.2Zm4.6-5.3a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8Z" />
+      <path fill="#7B83EB" d="M6 10h5v1.8H9.4v5H7.6v-5H6V10Z" />
+    </svg>
+  )
+}
+
+function ServiceNowLogo() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5">
+      <circle cx="12" cy="12" r="10" fill="#81B441" />
+      <path fill="#102B16" d="M7.2 13.2c.8 2.1 2.7 3.3 5.1 3.3 2.3 0 3.8-1 4.6-2.4.6-1.1-.3-2.3-1.5-2.3h-6c-.9 0-1.7.5-2.2 1.4Z" />
+      <circle cx="12" cy="8.2" r="2.2" fill="#fff" />
+    </svg>
+  )
+}
+
+function JiraLogo() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5">
+      <path fill="#1868DB" d="M12 3 4 11l8 8 8-8-8-8Z" />
+      <path fill="#0C66E4" d="m12 3-4 4 4 4 4-4-4-4Z" />
+      <path fill="#4C9AFF" d="m12 11-4 4 4 4 4-4-4-4Z" />
+      <path fill="#B2D4FF" d="m4 11 4-4 4 4-4 4-4-4Z" />
+    </svg>
+  )
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  type = "text",
+  icon: Icon = null,
+  secret = false,
+  placeholder,
+}) {
+  const [visible, setVisible] = useState(false)
+
+  return (
+    <label className="block font-mono text-[11px] text-foreground">
+      {label}
+
+      <div className="relative mt-1">
+        {Icon && (
+          <Icon className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        )}
+
+        <input
+          type={secret && !visible ? "password" : type}
+          value={value || ""}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          className={cn(
+            "h-7 w-full rounded border border-border bg-card px-2.5 font-mono text-[11px] text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none",
+            Icon && "pl-8",
+            secret && "pr-8"
+          )}
+        />
+
+        {secret && (
+          <button
+            type="button"
+            onClick={() => setVisible((v) => !v)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer text-muted-foreground hover:text-foreground"
+            aria-label={visible ? "Hide value" : "Show value"}
+          >
+            {visible
+              ? <EyeOff className="size-3.5" />
+              : <Eye className="size-3.5" />}
+          </button>
+        )}
+      </div>
+    </label>
+  )
+}
+
+function ChannelFrame({ title, Logo, children }) {
+  return (
+    <div className="rounded-md border border-border bg-card px-3 py-2">
+      <div className="mb-1 flex items-center gap-2">
+        <Logo />
+        <span className="font-mono text-xs font-semibold text-foreground">
+          {title}
+        </span>
+      </div>
+
+      {children}
+    </div>
+  )
+}
 
 function ChannelCard({ channel, form, update }) {
   const values = form.notifications || {}
-  if (channel === "email") return <ChannelFrame title="Emails" Logo={GmailLogo}><Field label="Recipient Email" value={values.emailRecipients} onChange={v => update("emailRecipients", v)} type="email" placeholder="alerts@acme.com" icon={UserRound} /><p className="mt-1 font-mono text-[10px] text-muted-foreground">Separate multiple emails with commas.</p></ChannelFrame>
-  if (channel === "slack") return <ChannelFrame title="Slack" Logo={SlackLogo}><Field label="" value={values.slackWebhook} onChange={v => update("slackWebhook", v)} placeholder="••••••••••••••••••••••••••••••••••••••••" secret icon={Link2} /><p className="mt-1 font-mono text-[10px] text-muted-foreground">Paste the Incoming Webhook URL for the Slack channel that should receive alerts. Keep it secret.</p></ChannelFrame>
-  if (channel === "teams") return <ChannelFrame title="Teams" Logo={TeamsLogo}><Field label="Microsoft Teams Webhook URL" value={values.teamsWebhook} onChange={v => update("teamsWebhook", v)} placeholder="••••••••••••••••••••••••••••••••••••••••" secret icon={Link2} /></ChannelFrame>
-  if (channel === "servicenow") return <ChannelFrame title="ServiceNow" Logo={ServiceNowLogo}><div className="grid gap-2"><Field label="Instance URL" value={values.serviceNowUrl} onChange={v => update("serviceNowUrl", v)} placeholder="https://acme.service-now.com" icon={Link2} /><Field label="Client ID" value={values.serviceNowClientId} onChange={v => update("serviceNowClientId", v)} placeholder="snc.1a2b34d5eeff7g9eh910j" icon={UserRound} /><Field label="Client Secret" value={values.serviceNowSecret} onChange={v => update("serviceNowSecret", v)} placeholder="••••••••••••••••••••••••••••••••••••••••" secret icon={LockKeyhole} /></div></ChannelFrame>
-  return <ChannelFrame title="Jira" Logo={JiraLogo}><div className="grid gap-2"><Field label="Jira Site URL" value={values.jiraUrl} onChange={v => update("jiraUrl", v)} placeholder="https://acme.atlassian.net" icon={Link2} /><Field label="Account Email" value={values.jiraEmail} onChange={v => update("jiraEmail", v)} placeholder="alerts@acme.com" icon={UserRound} /><Field label="API Token" value={values.jiraToken} onChange={v => update("jiraToken", v)} placeholder="••••••••••••••••••••••••••••••••••••••••" secret icon={LockKeyhole} /><Field label="Project Key" value={values.jiraProjectKey || "OPS"} onChange={v => update("jiraProjectKey", v)} /><Field label="Issue Type" value={values.jiraIssueType || "Task"} onChange={v => update("jiraIssueType", v)} /></div><div className="mt-2 flex items-center gap-2 rounded border border-sky-500 bg-sky-950/30 px-2.5 py-1.5 font-mono text-[10px] text-sky-100"><span className="flex size-3.5 items-center justify-center rounded-full border border-sky-400 text-[9px] text-sky-300">i</span>Ensure your Jira account has permission to create issues in the selected project and that all required issue fields are configured.</div></ChannelFrame>
+
+  if (channel === "email") {
+    return (
+      <ChannelFrame title="Emails" Logo={GmailLogo}>
+        <Field
+          label="Recipient Email"
+          value={values.emailRecipients}
+          onChange={(v) => update("emailRecipients", v)}
+          type="email"
+          placeholder="alerts@acme.com"
+          icon={UserRound}
+        />
+
+        <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+          Separate multiple emails with commas.
+        </p>
+      </ChannelFrame>
+    )
+  }
+
+  if (channel === "slack") {
+    return (
+      <ChannelFrame title="Slack" Logo={SlackLogo}>
+        <Field
+          label="Webhook URL"
+          value={values.slackWebhook}
+          onChange={(v) => update("slackWebhook", v)}
+          placeholder="Paste Slack Incoming Webhook URL"
+          secret
+          icon={Link2}
+        />
+
+        <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+          Paste the Incoming Webhook URL for the Slack channel that should receive alerts. Keep it secret.
+        </p>
+      </ChannelFrame>
+    )
+  }
+
+  if (channel === "teams") {
+    return (
+      <ChannelFrame title="Teams" Logo={TeamsLogo}>
+        <Field
+          label="Microsoft Teams Webhook URL"
+          value={values.teamsWebhook}
+          onChange={(v) => update("teamsWebhook", v)}
+          placeholder="Paste Teams Webhook URL"
+          secret
+          icon={Link2}
+        />
+      </ChannelFrame>
+    )
+  }
+
+  if (channel === "servicenow") {
+    return (
+      <ChannelFrame title="ServiceNow" Logo={ServiceNowLogo}>
+        <div className="grid gap-2">
+          <Field
+            label="Instance URL"
+            value={values.serviceNowUrl}
+            onChange={(v) => update("serviceNowUrl", v)}
+            placeholder="https://acme.service-now.com"
+            icon={Link2}
+          />
+
+          <Field
+            label="Client ID"
+            value={values.serviceNowClientId}
+            onChange={(v) => update("serviceNowClientId", v)}
+            placeholder="ServiceNow Client ID"
+            icon={UserRound}
+          />
+
+          <Field
+            label="Client Secret"
+            value={values.serviceNowSecret}
+            onChange={(v) => update("serviceNowSecret", v)}
+            placeholder="Enter Client Secret"
+            secret
+            icon={LockKeyhole}
+          />
+        </div>
+      </ChannelFrame>
+    )
+  }
+
+  return (
+    <ChannelFrame title="Jira" Logo={JiraLogo}>
+      <div className="grid gap-2">
+        <Field
+          label="Jira Site URL"
+          value={values.jiraUrl}
+          onChange={(v) => update("jiraUrl", v)}
+          placeholder="https://acme.atlassian.net"
+          icon={Link2}
+        />
+
+        <Field
+          label="Account Email"
+          value={values.jiraEmail}
+          onChange={(v) => update("jiraEmail", v)}
+          placeholder="alerts@acme.com"
+          icon={UserRound}
+        />
+
+        <Field
+          label="API Token"
+          value={values.jiraToken}
+          onChange={(v) => update("jiraToken", v)}
+          placeholder="Enter API Token"
+          secret
+          icon={LockKeyhole}
+        />
+
+        <Field
+          label="Project Key"
+          value={values.jiraProjectKey || "OPS"}
+          onChange={(v) => update("jiraProjectKey", v)}
+        />
+
+        <Field
+          label="Issue Type"
+          value={values.jiraIssueType || "Task"}
+          onChange={(v) => update("jiraIssueType", v)}
+        />
+      </div>
+
+      <div className="mt-2 flex items-center gap-2 rounded border border-sky-500 bg-sky-950/30 px-2.5 py-1.5 font-mono text-[10px] text-sky-100">
+        <span className="flex size-3.5 items-center justify-center rounded-full border border-sky-400 text-[9px] text-sky-300">
+          i
+        </span>
+        Ensure your Jira account has permission to create issues in the selected project and that all required issue fields are configured.
+      </div>
+    </ChannelFrame>
+  )
 }
 
 export default function Step11({ form, setForm }) {
+  const [recipientDraft, setRecipientDraft] = useState("")
+
   const disk = form.monitorSource === "disk"
   const notifications = form.notifications || {}
-  const events = Array.isArray(notifications.events) ? notifications.events : []
-  const channels = Array.isArray(notifications.channels) ? notifications.channels : []
-  const update = (key, value) => setForm(f => ({ ...f, notifications: { ...f.notifications, [key]: value } }))
-  const toggle = (arr, value) => arr.includes(value) ? arr.filter(item => item !== value) : [...arr, value]
-  return <Panel className="p-2.5 sm:p-3"><div className="mb-3"><p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">11. {disk ? "DISK NOTIFICATIONS" : "NOTIFICATIONS"}</p><p className="text-xs text-foreground mt-0.5">When and how should users be notified?</p></div><div className="space-y-3"><div><p className="mb-1.5 font-mono text-xs font-semibold text-foreground">Notify When</p><div className="grid grid-flow-col grid-rows-4 gap-x-8 gap-y-0.5 max-w-[520px]">{EVENTS.map(event => <label key={event} className="flex items-center gap-2 cursor-pointer"><Checkbox checked={events.includes(event)} onClick={() => update("events", toggle(events, event))} /><span className="font-mono text-[11px] text-foreground">{event}</span></label>)}</div></div><div><p className="mb-1.5 font-mono text-xs font-semibold text-foreground">Notification Channels</p><div className="flex flex-wrap gap-2">{CHANNELS.map(({ id, label, Logo }) => { const active = channels.includes(id); return <button key={id} type="button" onClick={() => update("channels", toggle(channels, id))} className={cn("inline-flex h-6 items-center gap-1.5 rounded border px-2.5 font-mono text-[11px] transition-colors cursor-pointer", active ? "border-primary bg-primary/10 text-primary" : "border-border text-foreground hover:border-primary/50")}><Logo />{label}</button> })}</div></div><div className="space-y-2">{channels.map(channel => <ChannelCard key={channel} channel={channel} form={form} update={update} />)}</div></div></Panel>
+
+  const events = Array.isArray(notifications.events)
+    ? notifications.events
+    : []
+
+  const channels = Array.isArray(notifications.channels)
+    ? notifications.channels
+    : []
+
+  const recipients = Array.isArray(notifications.recipients)
+    ? notifications.recipients
+    : []
+
+  const update = (key, value) => {
+    setForm((f) => ({
+      ...f,
+      notifications: {
+        ...(f.notifications || {}),
+        [key]: value,
+      },
+    }))
+  }
+
+  const toggle = (arr, value) => {
+    return arr.includes(value)
+      ? arr.filter((item) => item !== value)
+      : [...arr, value]
+  }
+
+  const toggleEvent = (event) => {
+    update("events", toggle(events, event))
+  }
+
+  const toggleChannel = (channel) => {
+    update("channels", toggle(channels, channel))
+  }
+
+  const removeRecipient = (recipient) => {
+    update(
+      "recipients",
+      recipients.filter((item) => item !== recipient)
+    )
+  }
+
+  const addRecipients = (input) => {
+    const values = String(input || "")
+      .split(/[;,]/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+
+    if (!values.length) return
+
+    update(
+      "recipients",
+      [...new Set([...recipients, ...values])]
+    )
+  }
+
+  const commitRecipientDraft = () => {
+    addRecipients(recipientDraft)
+    setRecipientDraft("")
+  }
+
+  return (
+    <Panel className="p-6">
+      <div className="mb-6">
+        <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-primary">
+          11. {disk ? "DISK NOTIFICATIONS" : "NOTIFICATIONS"}
+        </p>
+
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          When and how should users be notified?
+        </p>
+      </div>
+
+      <div className="space-y-6">
+
+        {/* Notification Events */}
+        <div>
+          <p className="mb-3 font-mono text-xs font-semibold text-foreground">
+            Notify When
+          </p>
+
+          <div className="grid grid-cols-2 gap-2">
+            {EVENTS.map((event) => (
+              <label
+                key={event}
+                className="flex cursor-pointer items-center gap-2.5"
+              >
+                <Checkbox
+                  checked={events.includes(event)}
+                  onClick={() => toggleEvent(event)}
+                />
+
+                <span className="font-mono text-xs text-foreground">
+                  {event}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Notification Channels */}
+        <div>
+          <p className="mb-3 font-mono text-xs font-semibold text-foreground">
+            Notification Channels
+          </p>
+
+          <div className="flex flex-wrap gap-2">
+            {CHANNELS.map(({ id, label, Logo }) => {
+              const active = channels.includes(id)
+
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => toggleChannel(id)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 font-mono text-xs transition-colors cursor-pointer",
+                    active
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/50"
+                  )}
+                >
+                  <Logo />
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Channel-specific Configuration */}
+        {channels.length > 0 && (
+          <div className="space-y-2">
+            {channels.map((channel) => (
+              <ChannelCard
+                key={channel}
+                channel={channel}
+                form={form}
+                update={update}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Notification Recipients */}
+        <div>
+          <p className="mb-2 font-mono text-xs font-semibold text-foreground">
+            Recipients
+          </p>
+
+          <div className="flex min-h-[42px] flex-wrap items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2">
+
+            {recipients.map((recipient) => (
+              <span
+                key={recipient}
+                className="inline-flex items-center gap-1 rounded border border-border bg-secondary/70 px-2 py-0.5 font-mono text-[11px] text-foreground"
+              >
+                {recipient}
+
+                <button
+                  type="button"
+                  onClick={() => removeRecipient(recipient)}
+                  className="ml-0.5 cursor-pointer text-muted-foreground hover:text-foreground"
+                  aria-label={`Remove ${recipient}`}
+                >
+                  <X className="size-2.5" />
+                </button>
+              </span>
+            ))}
+
+            <input
+              value={recipientDraft}
+              onChange={(e) => setRecipientDraft(e.target.value)}
+              onBlur={commitRecipientDraft}
+              placeholder="Add email?"
+              className="min-w-[120px] flex-1 bg-transparent font-mono text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === ",") {
+                  e.preventDefault()
+                  commitRecipientDraft()
+                }
+              }}
+            />
+
+            <button
+              type="button"
+              onClick={commitRecipientDraft}
+              className="ml-auto flex cursor-pointer items-center gap-1 rounded border border-primary/30 px-2 py-0.5 font-mono text-[11px] text-primary hover:bg-primary/10"
+            >
+              <Plus className="size-3" />
+              Add
+            </button>
+          </div>
+
+          <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+            Separate multiple emails with commas.
+          </p>
+        </div>
+
+      </div>
+    </Panel>
+  )
 }

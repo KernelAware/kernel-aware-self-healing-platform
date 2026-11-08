@@ -1,41 +1,95 @@
-from fastapi import APIRouter, HTTPException
+
+import logging
 from typing import Any
-from services.user_rule_service import user_rules_service
-from services.user_rule_service import get_user_rules, update_user_rule, delete_user_rule
+
+from fastapi import APIRouter, HTTPException
+from sqlalchemy.exc import SQLAlchemyError
+
+from services.user_rule_service import (
+    get_user_rules,
+    user_rules_service,
+    update_user_rule,
+    delete_user_rule,
+)
 
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+def _get_rules_or_503(
+    *,
+    system_id: int | None = None,
+    rule_id: int | None = None,
+):
+    try:
+        return get_user_rules(
+            system_id=system_id,
+            rule_id=rule_id,
+        )
+
+    except SQLAlchemyError as error:
+        endpoint = (
+            "/get_user_rule"
+            if rule_id is not None
+            else "/get_user_rules"
+        )
+
+        logger.error(
+            "Database error serving %s (system_id=%s, rule_id=%s): %s",
+            endpoint,
+            system_id,
+            rule_id,
+            error,
+        )
+
+        raise HTTPException(
+            status_code=503,
+            detail="database unavailable",
+        ) from error
+
 
 @router.get("/system_metrics")
-async def get_metrics():
+def get_metrics():
     return {"incidents": "[]"}
+
 
 @router.post("/user_rules")
 def put_incidents(data: dict[str, Any]):
-    print(data)
     return user_rules_service(data)
+
 
 @router.get("/get_user_rules")
 def get_user_rules_api(system_id: int):
-    return get_user_rules(system_id = system_id)
+    return _get_rules_or_503(system_id=system_id)
+
 
 @router.get("/get_user_rule")
 def get_rule_by_id_api(rule_id: int):
-    rule = get_user_rules(rule_id =rule_id)
-    return rule
+    return _get_rules_or_503(rule_id=rule_id)
 
 
 @router.patch("/user_rules/{rule_id}")
 def update_rule_api(rule_id: int, data: dict[str, Any]):
     result = update_user_rule(rule_id, data)
+
     if result is None:
-        raise HTTPException(status_code=404, detail="Rule not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Rule not found",
+        )
+
     return result
 
 
 @router.delete("/user_rules/{rule_id}")
 def delete_rule_api(rule_id: int):
     result = delete_user_rule(rule_id)
+
     if result is None:
-        raise HTTPException(status_code=404, detail="Rule not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Rule not found",
+        )
+
     return result

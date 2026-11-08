@@ -230,6 +230,12 @@ def update_disk_metrics():
 
     disk = get_disk_stats_snapshot()
 
+    # These labeled gauges describe the current mounts. Remove prior label sets
+    # so Prometheus discovery cannot keep offering an unmounted partition.
+    disk_partition_info.clear()
+    disk_partition_total_gb.clear()
+    disk_usage_percent.clear()
+
   #  print(
    #     json.dumps(disk, indent=4)
     #)

@@ -1,4 +1,6 @@
+
 import React from 'react'
+
 import {
   Activity,
   Server,
@@ -23,21 +25,30 @@ export default function IncidentDetailsResponse({ selectedIncident }) {
     )
   }
 
+  // Resolved incidents are displayed in historical records only.
   if (selectedIncident.status === 'RESOLVED') {
     return (
       <Panel>
-        <PanelHeader title="Incident Details & Response" icon={Activity} />
+        <PanelHeader
+          title="Incident Details & Response"
+          icon={Activity}
+        />
         <div className="p-4 pt-0 text-sm text-muted-foreground">
-          Incident {selectedIncident.id} has been resolved and is visible only in historical records.
+          Incident {selectedIncident.id} has been resolved and is visible
+          only in historical records.
         </div>
       </Panel>
     )
   }
 
-  const isCpuIncident = selectedIncident.incident_type === 'cpu' || selectedIncident.trigger?.metric?.startsWith('cpu_')
-  const trigger = selectedIncident.trigger
+  const trigger = selectedIncident.trigger || {}
   const decision = selectedIncident.decision || {}
   const policy = selectedIncident.policy || {}
+
+  const category =
+    selectedIncident.monitor_type ||
+    selectedIncident.category ||
+    selectedIncident.incident_type
 
   return (
     <Panel>
@@ -52,101 +63,204 @@ export default function IncidentDetailsResponse({ selectedIncident }) {
       />
 
       <div className="p-4 pt-0">
+        {/* Incident Overview */}
         <div className="border-b border-border pb-4">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-base font-semibold text-foreground">{selectedIncident.title}</h2>
+            <h2 className="text-base font-semibold text-foreground">
+              {selectedIncident.title}
+            </h2>
+
             <span className="rounded border border-destructive/40 bg-destructive/10 px-2 py-1 font-mono text-[10px] uppercase text-destructive">
-              {selectedIncident.priority} - {selectedIncident.severity}
+              {selectedIncident.priority || '—'} -{' '}
+              {selectedIncident.severity || '—'}
+            </span>
+
+            <span className="rounded border border-primary/30 bg-primary/5 px-2 py-1 font-mono text-[10px] uppercase text-primary">
+              {category || 'Unknown category'}
             </span>
           </div>
 
           <div className="mt-3 flex flex-wrap gap-4 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1">
               <Server className="size-3" />
-              {selectedIncident.system}
+              {selectedIncident.system || '—'}
+              {selectedIncident.system_id != null
+                ? ` (ID ${selectedIncident.system_id})`
+                : ''}
             </span>
-            <span>{selectedIncident.process}</span>
-            {selectedIncident.pid ? <span>PID {selectedIncident.pid}</span> : null}
+
+            <span>
+              {selectedIncident.target ||
+                selectedIncident.process ||
+                category ||
+                '—'}
+            </span>
+
+            {selectedIncident.pid && (
+              <span>
+                PID {selectedIncident.pid}
+              </span>
+            )}
+
             <span className="flex items-center gap-1">
               <Clock className="size-3" />
-              Detected: {selectedIncident.start || 'now'}
+              Detected:{' '}
+              {selectedIncident.detectedAgo ||
+                selectedIncident.created_at ||
+                selectedIncident.start ||
+                '—'}
             </span>
           </div>
         </div>
 
+        {/* Trigger Condition */}
         <div className="mt-4 rounded-md border border-border bg-secondary/20">
           <div className="flex items-center gap-2 border-b border-border px-3 py-2">
             <Activity className="size-4 text-accent" />
-            <p className="text-xs font-medium text-foreground">Trigger Condition</p>
+            <p className="text-xs font-medium text-foreground">
+              Trigger Condition
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-x-6 gap-y-3 p-3 text-xs md:grid-cols-4">
             <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground">Metric</p>
-              <p className="mt-1 break-words text-foreground">{trigger.metric || selectedIncident.metric || 'Unknown'}</p>
+              <p className="text-[10px] text-muted-foreground">
+                Metric
+              </p>
+              <p className="mt-1 break-words text-foreground">
+                {trigger.metric ||
+                  selectedIncident.metric ||
+                  '—'}
+              </p>
             </div>
 
             <div>
-              <p className="text-[10px] text-muted-foreground">Current Value</p>
-              <p className="mt-1 font-semibold text-destructive">{trigger.currentValue ?? 'N/A'}</p>
+              <p className="text-[10px] text-muted-foreground">
+                Current Value
+              </p>
+              <p className="mt-1 font-semibold text-destructive">
+                {trigger.currentValue ??
+                  selectedIncident.current_value ??
+                  '—'}
+              </p>
             </div>
 
             <div>
-              <p className="text-[10px] text-muted-foreground">Threshold</p>
-              <p className="mt-1 text-foreground">{trigger.operator || '>'} {trigger.threshold || 'N/A'}</p>
+              <p className="text-[10px] text-muted-foreground">
+                Threshold
+              </p>
+              <p className="mt-1 text-foreground">
+                {trigger.operator ||
+                  selectedIncident.operator ||
+                  '—'}{' '}
+                {trigger.threshold ??
+                  selectedIncident.threshold ??
+                  '—'}
+              </p>
             </div>
 
             <div>
-              <p className="text-[10px] text-muted-foreground">Duration</p>
-              <p className="mt-1 text-foreground">{trigger.duration || 'N/A'}</p>
+              <p className="text-[10px] text-muted-foreground">
+                Duration
+              </p>
+              <p className="mt-1 text-foreground">
+                {trigger.duration || '—'}
+              </p>
             </div>
           </div>
         </div>
 
+        {/* Decision Engine / Alert Handling */}
         <div className="mt-3 rounded-md border border-border bg-secondary/20">
           <div className="flex items-center gap-2 border-b border-border px-3 py-2">
             <Brain className="size-4 text-purple-400" />
-            <p className="text-xs font-medium text-foreground">Decision Engine</p>
+            <p className="text-xs font-medium text-foreground">
+              {category === 'disk'
+                ? 'Alert Handling'
+                : 'Decision Engine'}
+            </p>
           </div>
 
           <div className="grid grid-cols-1 gap-3 p-3 text-xs md:grid-cols-[1fr_1fr_2fr]">
             <div>
-              <p className="text-[10px] text-muted-foreground">Recommended Action</p>
-              <p className="mt-1 font-semibold text-primary">{decision.recommendedAction || 'No action'}</p>
+              <p className="text-[10px] text-muted-foreground">
+                Recommended Action
+              </p>
+              <p className="mt-1 font-semibold text-primary">
+                {decision.recommendedAction || '—'}
+              </p>
             </div>
+
             <div>
-              <p className="text-[10px] text-muted-foreground">Decision</p>
-              <p className="mt-1 text-foreground">{decision.decision || 'NO_ACTION'}</p>
+              <p className="text-[10px] text-muted-foreground">
+                Decision
+              </p>
+              <p className="mt-1 text-foreground">
+                {decision.decision || '—'}
+              </p>
             </div>
+
             <div>
-              <p className="text-[10px] text-muted-foreground">Reason</p>
-              <p className="mt-1 text-muted-foreground">{decision.reason || 'No reason provided'}</p>
+              <p className="text-[10px] text-muted-foreground">
+                Reason
+              </p>
+              <p className="mt-1 text-muted-foreground">
+                {decision.reason || '—'}
+              </p>
             </div>
           </div>
         </div>
 
+        {/* Policy Check */}
         <div className="mt-3 rounded-md border border-border bg-secondary/20">
           <div className="flex items-center gap-2 border-b border-border px-3 py-2">
             <ShieldCheck className="size-4 text-primary" />
-            <p className="text-xs font-medium text-foreground">Policy Check</p>
+            <p className="text-xs font-medium text-foreground">
+              Policy Check
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3 p-3 text-xs md:grid-cols-4">
             <div>
-              <p className="text-[10px] text-muted-foreground">Rule Enabled</p>
-              <p className="mt-1 font-semibold text-primary">{policy.ruleEnabled ? '✓ Yes' : '✕ No'}</p>
+              <p className="text-[10px] text-muted-foreground">
+                Rule Enabled
+              </p>
+              <p className="mt-1 font-semibold text-primary">
+                {policy.ruleEnabled ? '✓ Yes' : '✕ No'}
+              </p>
             </div>
+
             <div>
-              <p className="text-[10px] text-muted-foreground">Auto Execution</p>
-              <p className="mt-1 font-semibold text-primary">{policy.automaticExecution ? '✓ Yes' : '✕ No'}</p>
+              <p className="text-[10px] text-muted-foreground">
+                Auto Execution
+              </p>
+              <p className="mt-1 font-semibold text-primary">
+                {policy.automaticExecution ? '✓ Yes' : '✕ No'}
+              </p>
             </div>
+
             <div>
-              <p className="text-[10px] text-muted-foreground">Approval Required</p>
-              <p className="mt-1 font-semibold text-warning">{policy.approvalRequired ? '! Required' : '✓ Not Required'}</p>
+              <p className="text-[10px] text-muted-foreground">
+                Approval Required
+              </p>
+              <p className="mt-1 font-semibold text-warning">
+                {policy.approvalRequired
+                  ? '! Required'
+                  : '✓ Not Required'}
+              </p>
             </div>
+
             <div>
-              <p className="text-[10px] text-muted-foreground">Cooldown Passed</p>
-              <p className="mt-1 font-semibold text-primary">{policy.cooldownPassed ? '✓ Yes' : '✕ No'}</p>
+              <p className="text-[10px] text-muted-foreground">
+                Cooldown Passed
+              </p>
+              <p className="mt-1 font-semibold text-primary">
+                {policy.cooldownPassed == null
+                  ? '—'
+                  : policy.cooldownPassed
+                    ? '✓ Yes'
+                    : '✕ No'}
+              </p>
             </div>
           </div>
         </div>
