@@ -214,3 +214,16 @@ export async function updateUserRule(ruleId, updates) {
   }
   return json
 }
+
+export async function deleteUserRule(ruleId) {
+  const response = await fetch(`${API_BASE_URL}/user_rules/${ruleId}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+  })
+
+  const json = await response.json()
+  if (!response.ok) {
+    throw new Error(json.detail || 'Failed to delete user rule')
+  }
+  return json
+}

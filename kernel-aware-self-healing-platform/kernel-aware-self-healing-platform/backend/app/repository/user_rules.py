@@ -130,6 +130,40 @@ def update_rule(rule_id: int, updates: dict):
     finally:
         db.close()
 
+
+def delete_rule(rule_id: int):
+    """Delete a rule and every row owned by it across the rule tables."""
+    db = SessionLocal()
+
+    try:
+        rule = db.query(Rule).filter(Rule.id == rule_id).first()
+        if rule is None:
+            return False
+
+        for model in (
+            RuleTarget,
+            RuleMetric,
+            RuleAction,
+            RuleNotification,
+            RuleRecovery,
+            RuleJiraConfig,
+            RuleServiceNowConfig,
+        ):
+            db.query(model).filter(model.rule_id == rule_id).delete(
+                synchronize_session=False
+            )
+
+        db.delete(rule)
+        db.commit()
+        return True
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
 def get_rule_details(rule_id: int):
     db = SessionLocal()
 

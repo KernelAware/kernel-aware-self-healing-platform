@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from typing import Any
 from services.user_rule_service import user_rules_service
-from services.user_rule_service import get_user_rules, update_user_rule
+from services.user_rule_service import get_user_rules, update_user_rule, delete_user_rule
 
 
 router = APIRouter()
@@ -28,6 +28,14 @@ def get_rule_by_id_api(rule_id: int):
 @router.patch("/user_rules/{rule_id}")
 def update_rule_api(rule_id: int, data: dict[str, Any]):
     result = update_user_rule(rule_id, data)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Rule not found")
+    return result
+
+
+@router.delete("/user_rules/{rule_id}")
+def delete_rule_api(rule_id: int):
+    result = delete_user_rule(rule_id)
     if result is None:
         raise HTTPException(status_code=404, detail="Rule not found")
     return result
