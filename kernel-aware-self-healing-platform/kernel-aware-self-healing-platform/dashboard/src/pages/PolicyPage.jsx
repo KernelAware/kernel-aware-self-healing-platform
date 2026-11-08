@@ -1,7 +1,8 @@
-import React, { useState } from "react"
-import { Plus, Shield, TrendingUp } from "lucide-react"
+import React, { useCallback, useEffect, useState } from "react"
+import { AlertCircle, Eye, Plus, RefreshCw, Shield, Target, TrendingUp } from "lucide-react"
 import { Panel } from "@/components/kit"
 import { cn } from "@/utils/cn"
+import { getUserRules } from "@/services/api"
 import { INITIAL_FORM } from "./steps/wizardConstants"
 import { WizardProgress, StepNav } from "./steps/wizardComponents"
 import Step1 from "./steps/Step1"
@@ -19,7 +20,7 @@ import Step12 from "./steps/Step12"
 import Step13 from "./steps/Step13"
 
 const STATS = [
-  { label: "Active Rules", value: "42", hint: "↑ 8 from last week", tone: "text-primary" },
+  { label: "Active Rules", value: "0", hint: "Loaded from database", tone: "text-primary" },
   { label: "Policies", value: "15", hint: "↑ 3 from last week", tone: "text-primary" },
   { label: "Auto-Healing", value: "38", hint: "90.5% success rate", tone: "text-primary" },
   { label: "Pending Approvals", value: "2", hint: "Requires action", tone: "text-warning" },
@@ -33,9 +34,61 @@ const TABS = [
 ]
 
 export default function PolicyPage() {
-  const [activeTab, setActiveTab] = useState("create-rule")
+  const [activeTab, setActiveTab] = useState("all-user_rules")
   const [step, setStep] = useState(1)
   const [form, setForm] = useState(INITIAL_FORM)
+  const [rules, setRules] = useState([])
+  const [rulesLoading, setRulesLoading] = useState(false)
+  const [rulesError, setRulesError] = useState("")
+
+  const loadRules = useCallback(async () => {
+    setRulesLoading(true)
+    setRulesError("")
+    try {
+      setRules(await getUserRules(1))
+    } catch (error) {
+      setRulesError(error.message || "Failed to load rules")
+    } finally {
+      setRulesLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === "all-user_rules") loadRules()
+  }, [activeTab, loadRules])
+
+  const stats = STATS.map(stat => stat.label === "Active Rules"
+    ? { ...stat, value: rules.filter(({ rule }) => rule.status === "ENABLED").length, hint: "From database" }
+    : stat)
+
+  const formatDuration = seconds => {
+    if (seconds == null) return "—"
+    if (seconds >= 3600) return `${seconds / 3600}h`
+    if (seconds >= 60) return `${seconds / 60}m`
+    return `${seconds}s`
+  }
+
+  const renderRules = () => {
+    if (rulesLoading) return <Panel className="flex items-center justify-center gap-3 py-20"><RefreshCw className="size-4 animate-spin text-primary" /><span className="font-mono text-sm text-muted-foreground">Loading rules from database…</span></Panel>
+    if (rulesError) return <Panel className="flex flex-col items-center justify-center gap-3 py-16 text-center"><AlertCircle className="size-8 text-destructive" /><p className="font-mono text-sm text-destructive">{rulesError}</p><button onClick={loadRules} className="inline-flex h-9 items-center gap-2 rounded-md border border-border px-4 font-mono text-xs hover:bg-secondary"><RefreshCw className="size-3.5" /> Retry</button></Panel>
+    if (!rules.length) return <Panel className="flex flex-col items-center justify-center gap-4 py-20"><Shield className="size-10 text-muted-foreground/30" /><p className="font-mono text-sm text-muted-foreground">No rules found in the database</p><button onClick={() => { setActiveTab("create-rule"); setStep(1) }} className="inline-flex h-9 items-center gap-2 rounded-md bg-primary/10 border border-primary/20 px-4 font-mono text-xs text-primary hover:bg-primary/20 transition-colors cursor-pointer"><Plus className="size-3.5" /> Create New Rule</button></Panel>
+
+    return <div className="grid grid-cols-1 gap-4">{rules.map(({ rule, targets = [], metrics = [], actions = [], notifications = [] }) => (
+      <Panel key={rule.id} className="overflow-hidden">
+        <div className="flex flex-col gap-3 border-b border-border px-5 py-4 md:flex-row md:items-center md:justify-between">
+          <div><div className="flex items-center gap-3"><h2 className="text-lg font-semibold">{rule.name}</h2><span className={cn("rounded border px-2 py-0.5 font-mono text-[10px] uppercase", rule.status === "ENABLED" ? "border-primary/30 bg-primary/10 text-primary" : "border-border text-muted-foreground")}>{rule.status || "UNKNOWN"}</span></div><p className="mt-1 font-mono text-[11px] text-muted-foreground">ID #{rule.id} · {rule.monitor_type} · {rule.environment || "No environment"} · {rule.region || "No region"}</p></div>
+          <div className="flex items-center gap-2 font-mono text-[11px] text-muted-foreground"><span>Priority: <b className="text-foreground">{rule.priority || "—"}</b></span><span>Severity: <b className="text-warning">{rule.severity || "—"}</b></span></div>
+        </div>
+        <div className="grid gap-4 px-5 py-4 md:grid-cols-4">
+          <div><p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Targets</p>{targets.length ? targets.map((target, index) => <p key={index} className="flex items-center gap-2 font-mono text-xs"><Target className="size-3 text-primary" />{target.target}{target.host ? ` @ ${target.host}` : ""}</p>) : <p className="font-mono text-xs text-muted-foreground">—</p>}</div>
+          <div><p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Conditions</p>{metrics.length ? metrics.map(metric => <p key={metric.id} className="font-mono text-xs">{metric.metric} {metric.operator} {metric.threshold ?? "—"} <span className="text-muted-foreground">({formatDuration(metric.duration_seconds)})</span></p>) : <p className="font-mono text-xs text-muted-foreground">—</p>}</div>
+          <div><p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Actions</p>{actions.length ? actions.map((action, index) => <p key={index} className="font-mono text-xs">{action.action_type}</p>) : <p className="font-mono text-xs text-muted-foreground">—</p>}</div>
+          <div><p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Notifications</p>{notifications.length ? <p className="font-mono text-xs">{[...new Set(notifications.map(notification => notification.channel))].join(", ")}</p> : <p className="font-mono text-xs text-muted-foreground">—</p>}</div>
+        </div>
+        <div className="flex items-center justify-between border-t border-border bg-secondary/10 px-5 py-2.5"><span className="font-mono text-[10px] text-muted-foreground">Owner: {rule.owner || "Unassigned"}</span><button type="button" className="inline-flex items-center gap-1.5 font-mono text-[10px] text-primary hover:underline"><Eye className="size-3" /> View details</button></div>
+      </Panel>
+    ))}</div>
+  }
 
   const handleNext = () => setStep(s => {
     if (form.monitorSource === "disk") {
@@ -80,7 +133,7 @@ export default function PolicyPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {STATS.map(s => (
+        {stats.map(s => (
           <Panel key={s.label} className="p-4 flex flex-col gap-1">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{s.label}</p>
             <p className="text-3xl font-bold tracking-tight">{s.value}</p>
@@ -107,14 +160,8 @@ export default function PolicyPage() {
             <StepNav current={step} onBack={handleBack} onNext={handleNext} nextLabel={step === 12 ? "Review" : "Next"} />
           )}
         </div>
-      ) : (
-        <Panel className="flex flex-col items-center justify-center gap-4 py-20">
-          <Shield className="size-10 text-muted-foreground/30" />
-          <p className="font-mono text-sm text-muted-foreground">{TABS.find(t => t.id === activeTab)?.label} — Click "Create New Rule" to get started</p>
-          <button onClick={() => { setActiveTab("create-rule"); setStep(1); }} className="inline-flex h-9 items-center gap-2 rounded-md bg-primary/10 border border-primary/20 px-4 font-mono text-xs text-primary hover:bg-primary/20 transition-colors cursor-pointer">
-            <Plus className="size-3.5" /> Create New Rule
-          </button>
-        </Panel>
+      ) : activeTab === "all-user_rules" ? renderRules() : (
+        <Panel className="flex flex-col items-center justify-center gap-4 py-20"><Shield className="size-10 text-muted-foreground/30" /><p className="font-mono text-sm text-muted-foreground">{TABS.find(t => t.id === activeTab)?.label} — Click "Create New Rule" to get started</p><button onClick={() => { setActiveTab("create-rule"); setStep(1); }} className="inline-flex h-9 items-center gap-2 rounded-md bg-primary/10 border border-primary/20 px-4 font-mono text-xs text-primary hover:bg-primary/20 transition-colors cursor-pointer"><Plus className="size-3.5" /> Create New Rule</button></Panel>
       )}
     </div>
   )

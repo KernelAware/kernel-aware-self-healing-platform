@@ -182,3 +182,21 @@ export async function userRules(form) {
 
   return json
 }
+
+export async function getUserRules(systemId = 1) {
+  const url = new URL(`${API_BASE_URL}/get_user_rules`)
+  url.searchParams.set('system_id', String(systemId))
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  })
+
+  const json = await response.json()
+
+  if (!response.ok) {
+    throw new Error(json.detail || 'Failed to load user rules')
+  }
+
+  return Array.isArray(json) ? json : []
+}
