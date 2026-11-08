@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react"
-import { AlertCircle, AlertTriangle, ChevronDown, Eye, Info, Lock, Pencil, Plus, RefreshCw, Save, Shield, Target, Trash2, TrendingUp, X } from "lucide-react"
+import { AlertCircle, AlertTriangle, CheckCircle2, ChevronDown, Eye, Info, Lock, Pencil, Plus, RefreshCw, Save, Shield, Target, Trash2, TrendingUp, X } from "lucide-react"
 import { Panel } from "@/components/kit"
 import { cn } from "@/utils/cn"
 import { deleteUserRule, getUserRules, updateUserRule } from "@/services/api"
@@ -85,7 +85,7 @@ function EditRuleModal({ ruleData, onClose, onSaved }) {
       })
       onSaved()
     } catch (saveError) {
-      setError(saveError.message || "Failed to save changes")
+      setError("Unable to save changes. Please try again.")
     } finally {
       setSaving(false)
     }
@@ -158,6 +158,7 @@ export default function PolicyPage() {
   const [rules, setRules] = useState([])
   const [rulesLoading, setRulesLoading] = useState(false)
   const [rulesError, setRulesError] = useState("")
+  const [actionMessage, setActionMessage] = useState("")
   const [editingRule, setEditingRule] = useState(null)
   const [deletingRule, setDeletingRule] = useState(null)
 
@@ -205,7 +206,9 @@ export default function PolicyPage() {
           <div><p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Actions</p>{actions.length ? actions.map((action, index) => <p key={index} className="font-mono text-xs">{action.action_type}</p>) : <p className="font-mono text-xs text-muted-foreground">—</p>}</div>
           <div><p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Notifications</p>{notifications.length ? <p className="font-mono text-xs">{[...new Set(notifications.map(notification => notification.channel))].join(", ")}</p> : <p className="font-mono text-xs text-muted-foreground">—</p>}</div>
         </div>
-        <div className="flex items-center justify-between border-t border-border bg-secondary/10 px-5 py-2.5"><span className="font-mono text-[10px] text-muted-foreground">Owner: {rule.owner || "Unassigned"}</span><div className="flex items-center gap-4"><button type="button" onClick={() => setEditingRule({ rule, targets, metrics, actions, notifications, ...ruleData })} className="inline-flex items-center gap-1.5 font-mono text-[10px] text-primary hover:underline"><Pencil className="size-3" /> Edit</button><button type="button" onClick={() => setDeletingRule(rule)} className="inline-flex items-center gap-1.5 font-mono text-[10px] text-destructive hover:underline"><Trash2 className="size-3" /> Delete</button><button type="button" className="inline-flex items-center gap-1.5 font-mono text-[10px] text-primary hover:underline"><Eye className="size-3" /> View details</button></div></div>
+        <div className="flex items-center justify-between border-t border-border bg-secondary/10 px-5 py-2.5"><span className="font-mono text-[10px] text-muted-foreground">Owner: {rule.owner || "Unassigned"}</span><div className="flex items-center gap-4"><button type="button" onClick={() => setEditingRule({ rule, targets, metrics, actions, notifications, ...ruleData })} className="inline-flex items-center gap-1.5 font-mono text-[10px] text-primary hover:underline"><Pencil className="size-3" /> Edit</button><button type="button" onClick={() => setDeletingRule(rule)} className="inline-flex items-center gap-1.5 font-mono text-[10px] text-destructive hover:underline"><Trash2 className="size-3" /> Delete</button>
+        {/* <button type="button" className="inline-flex items-center gap-1.5 font-mono text-[10px] text-primary hover:underline"><Eye className="size-3" /> View details</button> */}
+        </div></div>
       </Panel>
     ))}</div>
   }
@@ -272,6 +275,8 @@ export default function PolicyPage() {
         ))}
       </div>
 
+      {actionMessage && <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-2 font-mono text-xs text-primary" role="status"><CheckCircle2 className="size-4" />{actionMessage}</div>}
+
       {activeTab === "create-rule" ? (
         <div className="space-y-4">
           <WizardProgress current={step} />
@@ -283,7 +288,7 @@ export default function PolicyPage() {
       ) : activeTab === "all-user_rules" ? renderRules() : (
         <Panel className="flex flex-col items-center justify-center gap-4 py-20"><Shield className="size-10 text-muted-foreground/30" /><p className="font-mono text-sm text-muted-foreground">{TABS.find(t => t.id === activeTab)?.label} — Click "Create New Rule" to get started</p><button onClick={() => { setActiveTab("create-rule"); setStep(1); }} className="inline-flex h-9 items-center gap-2 rounded-md bg-primary/10 border border-primary/20 px-4 font-mono text-xs text-primary hover:bg-primary/20 transition-colors cursor-pointer"><Plus className="size-3.5" /> Create New Rule</button></Panel>
       )}
-      {editingRule && <EditRuleModal ruleData={editingRule} onClose={() => setEditingRule(null)} onSaved={async () => { setEditingRule(null); await loadRules() }} />}
+      {editingRule && <EditRuleModal ruleData={editingRule} onClose={() => setEditingRule(null)} onSaved={async () => { setEditingRule(null); await loadRules(); setActionMessage("Rule updated successfully!") }} />}
       {deletingRule && <DeleteRuleModal rule={deletingRule} onClose={() => setDeletingRule(null)} onDeleted={async () => { setDeletingRule(null); await loadRules() }} />}
     </div>
   )
