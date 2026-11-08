@@ -1,13 +1,46 @@
-from engine.action_executor import execute_action
 from clients.backend_client import notify_backend
+from engine.executors.service_executor import execute_service_action
+from engine.executors.process_executor import execute_process_action
+from engine.executors.notification_executor import execute_notification_action
+from engine.executors.script_executor import execute_script_action
+
+async def execute_action(action_plan: dict):
+
+    action = action_plan["action"].lower()
+    incident_type = action_plan["category"]
+
+    if action == "run-command":
+        return await execute_script_action(action_plan)
+
+    if action == "run-automation":
+        return await execute_script_action(action_plan)
+
+    if action == "send-notification":
+        return await execute_notification_action(action_plan)
+
+    if action == "run-script":
+        return await execute_script_action(action_plan)
+
+    if incident_type == 'process':
+        return await execute_process_action(action_plan)
+
+    if incident_type == 'service':
+        return await execute_service_action(action_plan)
+
+    return {
+        "success": False,
+        "status": "FAILED",
+        "reason": f"Unsupported action: {action}",
+    }
+
 
 async def heal(action_plan: dict):
     result = await execute_action(action_plan)
+    print(result)
 
     response = {
-        "action_id": action_plan["action_id"],
         "system_id": action_plan["system_id"],
-        "action": action_plan["type"],
+        "action": action_plan["action"],
         "execution": result,
     }
 

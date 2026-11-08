@@ -9,4 +9,4 @@ scrape_configs:
       - targets:
         - host.docker.internal:8001
         labels:
-          system_id: "1"
+          system_id: "2"

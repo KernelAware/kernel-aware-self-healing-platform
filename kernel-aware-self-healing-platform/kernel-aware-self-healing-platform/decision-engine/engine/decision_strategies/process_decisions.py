@@ -30,7 +30,6 @@ class ProcessDecision(BaseDecision):
                     "all_actions": actions,
                     "reason": "Process or service is down"
                 }
-        print(metric)
         if metric == "CPU Usage (%)":
 
             if "restart-service" in actions:

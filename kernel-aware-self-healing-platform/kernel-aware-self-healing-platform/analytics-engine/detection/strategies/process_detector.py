@@ -1,155 +1,169 @@
 import logging
 import math
 
-from detection.duration import check_duration, clear_duration, verify_prometheus_duration
+from detection.duration import (
+    check_duration,
+    clear_duration,
+    duration_snapshot,
+    verify_prometheus_duration,
+)
 from detection.strategies.base_detector import DetectionStrategy
 from detection.threshold import check_threshold
 from incident_management.manager import manage_incidents
 from load_data.system_metrics.metrics_loader import (
-    canonical_process_metric,
     get_process_metric,
     get_process_metric_selector,
 )
 
 
 logger = logging.getLogger(__name__)
-_unsupported_metrics_logged = set()
 
 
-def _process_log_start(system_id, rule_id, metric_name, target, metric):
-    logger.warning(
-        "[PROCESS_RULE] START system_id=%s rule_id=%s metric=%s target_type=process target=%s operator=%s threshold=%s duration_seconds=%s",
-        system_id, rule_id, metric_name or "<missing>", target,
-        metric.get("operator", "<missing>"), metric.get("threshold", "<missing>"),
-        metric.get("duration_seconds", "<missing>"),
-    )
-
-
-def _process_log_final(system_id, rule_id, metric_name, target, metric, outcome, reason):
-    logger.warning(
-        "[PROCESS_RULE] FINAL system_id=%s rule_id=%s metric=%s target_type=process target=%s operator=%s threshold=%s duration_seconds=%s outcome=%s reason=%s",
-        system_id, rule_id, metric_name or "<missing>", target,
-        metric.get("operator", "<missing>"), metric.get("threshold", "<missing>"),
-        metric.get("duration_seconds", "<missing>"), outcome, reason,
-    )
+def _format_value(value):
+    if value is None:
+        return "missing"
+    return str(value)
 
 
 class ProcessDetector(DetectionStrategy):
     def detect(self, rule):
         if not isinstance(rule, dict) or not isinstance(rule.get("rule"), dict):
             return None
+
         rule_info = rule["rule"]
         if str(rule_info.get("status", "ENABLED")).upper() != "ENABLED":
             return None
 
         system_id = rule_info.get("system_id")
-        if system_id is None:
-            logger.warning("Skipping Process rule %s without a system_id", rule_info.get("id"))
-            return None
+        rule_id = rule_info.get("id")
+        details = []
 
         for rule_target in rule.get("targets") or []:
             target_name = str(rule_target.get("target") or "")
+
             for metric in rule.get("metrics") or []:
                 metric_name = str(metric.get("metric") or "")
-                _process_log_start(system_id, rule_info.get("id"), metric_name, target_name, metric)
+                operator = metric.get("operator")
+                threshold = metric.get("threshold")
+                duration = float(metric.get("duration_seconds") or 0)
+
                 identity = {
                     "category": "process",
                     "system_id": system_id,
-                    "rule_id": rule_info.get("id"),
+                    "rule_id": rule_id,
                     "target": target_name,
                     "metric": metric_name,
+                    "operator": operator,
+                    "threshold": threshold,
+                    "duration_seconds": duration,
                 }
+
                 try:
-                    canonical_metric, selector = get_process_metric_selector(
-                        system_id, target_name, metric, require_freshness=True
+                    canonical_metric, _selector = get_process_metric_selector(
+                        system_id,
+                        target_name,
+                        metric,
+                        require_freshness=True,
                     )
-                    results = get_process_metric(system_id, target_name, metric, require_freshness=True)
+                    results = get_process_metric(
+                        system_id,
+                        target_name,
+                        metric,
+                        require_freshness=True,
+                    )
                 except ValueError as error:
-                    if str(error).startswith("Unsupported Process metric:"):
-                        key = (str(rule_info.get("id")), metric_name)
-                        if key not in _unsupported_metrics_logged:
-                            logger.warning(
-                                "Skipping unsupported Process metric: rule_id=%s metric=%s",
-                                rule_info.get("id"), metric_name,
-                            )
-                            _unsupported_metrics_logged.add(key)
-                        _process_log_final(system_id, rule_info.get("id"), metric_name, target_name, metric, "ERROR", "unsupported_metric")
-                        continue
-                    logger.exception(
-                        "Prometheus query failed for Process rule %s metric %s",
-                        rule_info.get("id"), metric_name,
+                    details.append(
+                        f"metric={metric_name} target={target_name} "
+                        f"instant=ERROR reason={error}"
                     )
-                    _process_log_final(system_id, rule_info.get("id"), metric_name, target_name, metric, "DATA_UNAVAILABLE", "prometheus_query_failed")
                     continue
                 except Exception:
                     logger.exception(
-                        "Prometheus query failed for Process rule %s metric %s",
-                        rule_info.get("id"), metric_name,
+                        "Process metric query failed: system_id=%s rule_id=%s "
+                        "metric=%s target=%s",
+                        system_id,
+                        rule_id,
+                        metric_name,
+                        target_name,
                     )
-                    _process_log_final(system_id, rule_info.get("id"), metric_name, target_name, metric, "DATA_UNAVAILABLE", "prometheus_query_failed")
+                    details.append(
+                        f"metric={metric_name} target={target_name} "
+                        "instant=DATA_UNAVAILABLE reason=prometheus_query_failed"
+                    )
                     continue
 
                 if not results:
-                    logger.warning(
-                        "Process metric unavailable: rule_id=%s target=%s canonical_metric=%s selector=%s matching_series=0 reason=no_fresh_series",
-                        rule_info.get("id"), target_name, canonical_metric, selector,
+                    details.append(
+                        f"metric={canonical_metric} target={target_name} "
+                        "instant=DATA_UNAVAILABLE reason=no_fresh_series"
                     )
-                    _process_log_final(
-                        system_id, rule_info.get("id"), metric_name, target_name,
-                        metric, "DATA_UNAVAILABLE", "no_fresh_series",
-                    )
-                else:
-                    logger.debug(
-                        "Process metric accepted: rule_id=%s target=%s canonical_metric=%s selector=%s matching_series=%s",
-                        rule_info.get("id"), target_name, canonical_metric, selector, len(results),
-                    )
+                    continue
+
                 for result in results:
                     labels = result.get("metric") or {}
+                    pid = str(labels.get("pid") or "")
+                    series_identity = {**identity, "pid": pid}
+
                     try:
-                        pid = str(labels["pid"])
-                        current_value = float(result["value"][1])
-                        threshold = float(metric["threshold"])
+                        value = float(result["value"][1])
+                        numeric_threshold = float(threshold)
                     except (KeyError, TypeError, ValueError, IndexError):
-                        _process_log_final(system_id, rule_info.get("id"), metric_name, target_name, metric, "ERROR", "invalid_prometheus_sample")
-                        continue
-                    if not math.isfinite(current_value) or not math.isfinite(threshold):
-                        _process_log_final(system_id, rule_info.get("id"), metric_name, target_name, metric, "DATA_UNAVAILABLE", "non_finite_prometheus_sample")
+                        details.append(
+                            f"metric={canonical_metric} target={target_name} "
+                            "instant=ERROR reason=invalid_prometheus_sample"
+                        )
                         continue
 
-                    duration_seconds = float(metric.get("duration_seconds") or 0)
-                    operator = metric.get("operator")
-                    scoped_identity = {
-                        **identity,
-                        "pid": pid,
-                        "series": {key: str(value) for key, value in sorted(labels.items()) if key != "__name__"},
-                        "operator": operator,
-                        "threshold": threshold,
-                        "duration_seconds": duration_seconds,
-                    }
-                    if check_threshold(current_value, metric.get("operator"), threshold):
-                        if not check_duration(
-                            scoped_identity,
-                            duration_seconds,
-                        ):
-                            _process_log_final(system_id, rule_info.get("id"), metric_name, target_name, metric, "DURATION_PENDING", "duration_not_reached")
-                            continue
-                        try:
-                            duration_verified, _reason = verify_prometheus_duration(
-                                canonical_process_metric(metric_name),
-                                labels,
-                                operator,
-                                threshold,
-                                duration_seconds,
+                    if not math.isfinite(value) or not math.isfinite(numeric_threshold):
+                        details.append(
+                            f"metric={canonical_metric} target={target_name} "
+                            "instant=DATA_UNAVAILABLE reason=non_finite_sample"
+                        )
+                        continue
+
+                    violated = check_threshold(
+                        value,
+                        operator,
+                        numeric_threshold,
+                    )
+
+                    if not violated:
+                        reset = clear_duration(series_identity)
+                        if reset:
+                            manage_incidents(
+                                {
+                                    "rule_id": rule_id,
+                                    "system_id": system_id,
+                                    "monitor_type": "process",
+                                    "incident_type": "process",
+                                    "target_type": "process",
+                                    "target": target_name,
+                                    "pid": pid,
+                                    "metric": metric_name,
+                                },
+                                condition_violated=False,
                             )
-                        except Exception:
-                            logger.exception("Unable to verify Process metric history for rule %s", rule_info.get("id"))
-                            _process_log_final(system_id, rule_info.get("id"), metric_name, target_name, metric, "DURATION_UNVERIFIED", "prometheus_history_query_failed")
-                            continue
-                        if not duration_verified:
-                            _process_log_final(system_id, rule_info.get("id"), metric_name, target_name, metric, "DURATION_UNVERIFIED", _reason or "prometheus_history_not_continuous")
-                            continue
+                        details.append(
+                            f"metric={canonical_metric} target={target_name} "
+                            f"value={_format_value(value)} operator={operator} "
+                            f"threshold={numeric_threshold} instant=NOT_VIOLATED "
+                            f"redis_timer={'RESET' if reset else 'ERROR'} "
+                            "elapsed=0s outcome=NOT_VIOLATED"
+                        )
+                        continue
+
+                    completed = check_duration(
+                        series_identity,
+                        duration_seconds=duration,
+                    )
+                    timer_status, elapsed, remaining = duration_snapshot(
+                        series_identity,
+                        duration,
+                    )
+
+                    if completed:
                         incident = {
-                            "rule_id": rule_info.get("id"),
+                            "rule_id": rule_id,
                             "system_id": system_id,
                             "monitor_type": "process",
                             "incident_type": "process",
@@ -161,48 +175,33 @@ class ProcessDetector(DetectionStrategy):
                             "actions": rule.get("actions") or [],
                             "violated_metric": {
                                 **metric,
-                                "id": metric.get("id"),
                                 "metric": metric_name,
-                                "threshold": threshold,
+                                "threshold": numeric_threshold,
                             },
                             "metric": metric_name,
-                            "value": current_value,
+                            "value": value,
                         }
-                        managed = manage_incidents(incident, condition_violated=True) or {}
-                        publication_outcome = managed.get("_decision_publication_outcome")
-                        if managed.get("_backend_pending_event"):
-                            publication_status, publication_reason = "PUBLICATION_PENDING", "backend_event_pending"
-                        elif publication_outcome == "PUBLISH":
-                            publication_status, publication_reason = "PUBLISHED", "publication_succeeded"
-                        else:
-                            publication_status, publication_reason = "PUBLICATION_REJECTED", "decision_engine_rejected"
-                        _process_log_final(
-                            system_id, rule_info.get("id"), metric_name, target_name,
-                            metric, publication_status, publication_reason,
-                        )
+                        manage_incidents(incident, condition_violated=True)
+                        timer_status = "COMPLETED"
+                        outcome = "INCIDENT_CREATED"
                     else:
-                        if not clear_duration(scoped_identity, phase="trigger"):
-                            _process_log_final(system_id, rule_info.get("id"), metric_name, target_name, metric, "ERROR", "redis_reset_failed")
-                            continue
-                        manage_incidents(
-                            {
-                                "rule_id": rule_info.get("id"),
-                                "system_id": system_id,
-                                "monitor_type": "process",
-                                "incident_type": "process",
-                                "target_type": "process",
-                                "target": target_name,
-                                "pid": pid,
-                                "violated_metric": {
-                                    **metric,
-                                    "metric": metric_name,
-                                    "threshold": threshold,
-                                },
-                                "metric": metric_name,
-                                "value": current_value,
-                            },
-                            condition_violated=False,
-                        )
-                        _process_log_final(system_id, rule_info.get("id"), metric_name, target_name, metric, "NOT_VIOLATED", "threshold_not_violated")
+                        timer_status = timer_status
+                        outcome = "PENDING_DURATION"
 
+                    details.append(
+                        f"metric={canonical_metric} target={target_name} "
+                        f"pid={pid} value={_format_value(value)} operator={operator} "
+                        f"threshold={numeric_threshold} instant=VIOLATED "
+                        f"redis_timer={timer_status} elapsed={elapsed:.0f}s "
+                        f"required={duration:g}s "
+                        f"remaining={remaining if remaining is not None else 'unknown'}s "
+                        f"outcome={outcome}"
+                    )
+
+        logger.info(
+            "[RULE_EVAL] system_id=%s rule_id=%s monitor_type=process %s",
+            system_id,
+            rule_id,
+            " ; ".join(details) if details else "outcome=NO_DATA",
+        )
         return None

@@ -7,6 +7,7 @@ from sqlalchemy import (
     Boolean,
     TIMESTAMP,
     ForeignKey,
+    Text,
     func
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -34,6 +35,12 @@ class RuleAction(Base):
     action_type: Mapped[str] = mapped_column(
         String(50),
         nullable=False
+    )
+
+    action_script: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+        default=None,
     )
 
     automatic_execution: Mapped[bool | None] = mapped_column(

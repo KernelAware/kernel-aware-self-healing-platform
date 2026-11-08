@@ -300,15 +300,6 @@ def _incident(rule, target_type, target, metric, metric_name, value, identity, l
 
 
 def _rule_result(rule_id, system_id, outcome, reason=None, **details):
-    detail_text = ", ".join(f"{key}={value}" for key, value in details.items()) or "none"
-    logger.info(
-        "Disk rule evaluation result: system_id=%s rule_id=%s outcome=%s reason=%s details=%s",
-        system_id,
-        rule_id,
-        outcome,
-        reason or "none",
-        detail_text,
-    )
     return {"system_id": system_id, "rule_id": rule_id, "outcome": outcome, "reason": reason, **details}
 
 
@@ -316,31 +307,11 @@ def _log_metric_start(system_id, rule_id, metric, target_type, target_name):
     metric_name = normalize_disk_metric_name(
         metric.get("metric") or metric.get("name") if isinstance(metric, dict) else ""
     ) or "<malformed>"
-    logger.warning(
-        "[DISK_RULE] START system_id=%s rule_id=%s metric=%s target_type=%s target=%s operator=%s threshold=%s duration_seconds=%s",
-        system_id,
-        rule_id,
-        metric_name,
-        target_type,
-        target_name,
-        metric.get("operator") if isinstance(metric, dict) else "<malformed>",
-        metric.get("threshold") if isinstance(metric, dict) else "<malformed>",
-        metric.get("duration_seconds", 0) if isinstance(metric, dict) else "<malformed>",
-    )
     return metric_name
 
 
 def _log_metric_final(system_id, rule_id, metric_name, target_type, target_name, outcome, reason=None):
-    logger.warning(
-        "[DISK_RULE] FINAL system_id=%s rule_id=%s metric=%s target_type=%s target=%s outcome=%s reason=%s",
-        system_id,
-        rule_id,
-        metric_name,
-        target_type,
-        target_name,
-        outcome,
-        reason or "none",
-    )
+    return None
 
 
 class DiskDetector(DetectionStrategy):

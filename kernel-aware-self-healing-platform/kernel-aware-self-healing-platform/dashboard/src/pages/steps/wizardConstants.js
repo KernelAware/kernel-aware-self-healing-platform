@@ -97,6 +97,7 @@ export const INITIAL_FORM = {
     actions: [
       {
         type: "RESTART_SERVICE"
+        action_script:null
       }
     ]
   */
