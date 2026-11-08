@@ -91,11 +91,11 @@ def create_alert(decision, incident, rules, policy):
 
     severity = incident.get(
         "severity",
-        incident.get("incident_severity", "WARNING")
+        incident.get("incident_severity", "Warning")
     )
     priority = incident.get(
         "priority",
-        incident.get("incident_priority", "MEDIUM")
+        incident.get("incident_priority", "Medium")
     )
 
     title = f"{metric} - {target}"

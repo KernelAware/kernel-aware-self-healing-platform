@@ -57,8 +57,8 @@ function EditRuleModal({ ruleData, onClose, onSaved }) {
   const [form, setForm] = useState({
     name: rule.name || "",
     enabled: rule.status === "ENABLED",
-    priority: (rule.priority || "MEDIUM").toUpperCase(),
-    severity: (rule.severity || "WARNING").toUpperCase(),
+    priority: (rule.priority || "Medium"),
+    severity: (rule.severity || "Warning"),
     threshold: metric.threshold ?? "",
     operator: metric.operator || ">=",
     duration: metric.duration_seconds ?? "",
