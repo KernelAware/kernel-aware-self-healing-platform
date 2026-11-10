@@ -42,7 +42,7 @@ async def analysis_loop():
             await asyncio.to_thread(run_analysis)
         except Exception as error:
             print(f"Analysis loop error: {error}")
-        await asyncio.sleep(30)
+        await asyncio.sleep(10)
 
 
 @asynccontextmanager

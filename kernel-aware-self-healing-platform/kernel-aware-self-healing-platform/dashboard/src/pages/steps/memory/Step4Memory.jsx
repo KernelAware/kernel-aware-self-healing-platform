@@ -7,14 +7,12 @@ const METRIC_INFO = {
     "system_memory_usage_percent":   { label: "Memory Usage %",          desc: "Current physical memory usage as a percentage of total.", unit: "%",    formula: "used / total × 100" },
     "system_memory_used_bytes":      { label: "Memory Used (Bytes)",      desc: "Amount of physical memory currently in use.", unit: "bytes", formula: "psutil.virtual_memory().used" },
     "system_memory_available_bytes": { label: "Memory Available (Bytes)", desc: "Memory available for new processes without swapping.", unit: "bytes", formula: "psutil.virtual_memory().available" },
-    "system_memory_free_bytes":      { label: "Memory Free (Bytes)",      desc: "Completely unused physical memory.", unit: "bytes", formula: "psutil.virtual_memory().free" },
-    "system_memory_total_bytes":     { label: "Memory Total (Bytes)",     desc: "Total installed physical RAM on the host.", unit: "bytes", formula: "psutil.virtual_memory().total" },
+
   },
   swap: {
     "system_swap_usage_percent": { label: "Swap Usage %",         desc: "Current swap memory usage as a percentage of total swap.", unit: "%",    formula: "used / total × 100" },
     "system_swap_used_bytes":    { label: "Swap Used (Bytes)",    desc: "Amount of swap memory currently in use.", unit: "bytes", formula: "psutil.swap_memory().used" },
-    "system_swap_free_bytes":    { label: "Swap Free (Bytes)",    desc: "Unused swap space available.", unit: "bytes", formula: "psutil.swap_memory().free" },
-    "system_swap_total_bytes":   { label: "Swap Total (Bytes)",   desc: "Total swap space configured on the system.", unit: "bytes", formula: "psutil.swap_memory().total" },
+
   },
 }
 

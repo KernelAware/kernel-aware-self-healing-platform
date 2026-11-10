@@ -3,9 +3,22 @@ import { Plus, Trash2 } from "lucide-react"
 import { Panel } from "@/components/kit"
 import { SelectBox } from "../wizardComponents"
 
-const RAM_METRICS   = ["system_memory_usage_percent", "system_memory_used_bytes", "system_memory_available_bytes", "system_memory_free_bytes", "system_memory_total_bytes"]
-const SWAP_METRICS  = ["system_swap_usage_percent", "system_swap_used_bytes", "system_swap_free_bytes", "system_swap_total_bytes"]
-const BYTE_METRICS  = new Set(["system_memory_used_bytes","system_memory_available_bytes","system_memory_free_bytes","system_memory_total_bytes","system_swap_used_bytes","system_swap_free_bytes","system_swap_total_bytes"])
+const RAM_METRICS = [
+  "system_memory_usage_percent",
+  "system_memory_used_bytes",
+  "system_memory_available_bytes",
+]
+
+const SWAP_METRICS = [
+  "system_swap_usage_percent",
+  "system_swap_used_bytes",
+]
+
+const BYTE_METRICS = new Set([
+  "system_memory_used_bytes",
+  "system_memory_available_bytes",
+  "system_swap_used_bytes",
+])
 
 const allMetrics = [...RAM_METRICS, ...SWAP_METRICS]
 

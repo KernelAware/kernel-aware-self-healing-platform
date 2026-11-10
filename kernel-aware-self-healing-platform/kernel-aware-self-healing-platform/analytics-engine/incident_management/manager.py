@@ -20,14 +20,25 @@ def manage_incidents(incident):
 
     existing_incident = redis_client.get(key)
 
-    if existing_incident is None:
-        redis_client.set(
-            key,
-            json.dumps(incident)
-        )
+    # if existing_incident is None:
+    #     redis_client.set(
+    #         key,
+    #         json.dumps(incident)
+    #     )
+    #
+    # send_to_decision_engine(incident)
+
+    # Only process incidents that are not already active.
+    if existing_incident is not None:
+        print(f"Duplicate incident ignored: {key}")
+        return
+
+    redis_client.set(
+        key,
+        json.dumps(incident)
+    )
 
     send_to_decision_engine(incident)
-
 
 
 def send_to_decision_engine(incident: dict):
