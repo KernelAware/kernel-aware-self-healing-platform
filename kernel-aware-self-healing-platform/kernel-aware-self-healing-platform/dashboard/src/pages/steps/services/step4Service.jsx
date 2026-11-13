@@ -103,7 +103,7 @@ export default function Step4Service({ form, setForm }) {
       setErrorMessage("");
 
       try {
-        const data = await getService(form.system_id || 1);
+        const data = await getService();
 
         if (!cancelled) {
           setServices(Array.isArray(data.services) ? data.services : []);

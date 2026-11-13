@@ -3,6 +3,7 @@ import { ChevronDown } from "lucide-react"
 import { Panel } from "@/components/kit"
 import { SelectBox } from "../wizardComponents"
 import { queryPrometheus, queryPrometheusMetricNames } from "@/services/api"
+import { getConfiguredSystemId } from "@/services/system"
 import { DISK_METRICS, diskMetricsFromPrometheus, diskPartitionsFromPrometheus, updateDiskMetric, updateDiskTarget } from "./diskHelpers"
 
 const TARGET_OPTIONS = [
@@ -19,7 +20,6 @@ function TargetScopeSelect({ value, onChange }) {
     <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
   </div>
 }
-const SYSTEM_ID = import.meta.env.VITE_SYSTEM_ID || "1"
 const SYSTEM_MORE_METRICS = [
   "disk_read_bytes", "disk_write_bytes", "disk_read_count", "disk_write_count",
   "disk_read_time_ms", "disk_write_time_ms", "disk_busy_time_ms",
@@ -140,7 +140,7 @@ export default function Step4Disk({ form, setForm, validationError, clearValidat
     let active = true
     const loadPartitions = async () => {
       try {
-        const systemId = String(SYSTEM_ID).replace(/\\/g, "\\\\").replace(/"/g, '\\"')
+        const systemId = getConfiguredSystemId().replace(/\\/g, "\\\\").replace(/"/g, '\\"')
         const rows = await queryPrometheus(`disk_partition_info{system_id="${systemId}"}`)
         if (!active) return
         const discovered = diskPartitionsFromPrometheus(rows)

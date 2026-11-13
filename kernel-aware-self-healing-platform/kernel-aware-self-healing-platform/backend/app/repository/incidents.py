@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from models.incidents import Incident
+from system_config import SYSTEM_ID
 
 
 def _first_value(*values):
@@ -23,9 +24,12 @@ def _as_int(value, field: str, *, required: bool = False) -> int | None:
         raise ValueError(f"Incident has an invalid {field}")
 
     try:
-        return int(value)
+        result = int(value)
     except (TypeError, ValueError) as error:
         raise ValueError(f"Incident has an invalid {field}") from error
+    if result <= 0:
+        raise ValueError(f"Incident has an invalid {field}")
+    return result
 
 
 def _as_datetime(value, field: str) -> datetime | None:
@@ -93,11 +97,13 @@ def persist_incident(
     system_id = _as_int(
         _first_value(incident_detail.get("system_id"), alert.get("system_id")),
         "system_id",
-        required=record is None,
+        required=False,
     )
 
     if system_id is None and record is not None:
         system_id = record.system_id
+    elif system_id is None:
+        system_id = SYSTEM_ID
 
     category_value = _first_value(
         incident_detail.get("monitor_type"),
@@ -478,7 +484,13 @@ def create_or_update_incident(
     new_incident = Incident(
         id=incident_id,
         rule_id=incident_data.get("rule_id"),
-        system_id=int(incident_data.get("system_id") or 1),
+        system_id=_as_int(
+            incident_data.get("system_id")
+            if incident_data.get("system_id") is not None
+            else SYSTEM_ID,
+            "system_id",
+            required=True,
+        ),
         category=str(incident_data.get("category") or "system"),
         target=str(incident_data.get("target") or "unknown"),
         metric=str(incident_data.get("metric") or "unknown"),

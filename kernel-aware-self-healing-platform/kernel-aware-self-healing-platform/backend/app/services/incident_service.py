@@ -12,6 +12,7 @@ from repository.incidents import (
     resolve_incident,
     serialize_incident,
 )
+from system_config import SYSTEM_ID
 
 
 def _parse_status(value: Any) -> str:
@@ -23,11 +24,14 @@ def _parse_status(value: Any) -> str:
     return "OPEN"
 
 
-def _coerce_int(value: Any, default: int = 1) -> int:
+def _coerce_int(value: Any) -> int:
     try:
-        return int(value)
-    except (TypeError, ValueError):
-        return default
+        system_id = int(value)
+    except (TypeError, ValueError) as error:
+        raise ValueError("system_id must be a positive integer") from error
+    if system_id <= 0:
+        raise ValueError("system_id must be a positive integer")
+    return system_id
 
 
 def normalize_incident_payload(payload: dict) -> dict:
@@ -48,14 +52,10 @@ def normalize_incident_payload(payload: dict) -> dict:
         or alert.get("incident_id")
         or "INC-UNKNOWN"
     )
-    system_id_value = (
-        incident_detail.get("system_id")
-        or alert.get("system_id")
-        or incident_detail.get("system")
-        or alert.get("system")
-        or 1
-    )
-    system_id = _coerce_int(system_id_value)
+    system_id_value = incident_detail.get("system_id")
+    if system_id_value is None:
+        system_id_value = alert.get("system_id")
+    system_id = SYSTEM_ID if system_id_value is None else _coerce_int(system_id_value)
     category = incident_detail.get("monitor-type") or alert.get("monitor-type") or "system"
     target = (
         incident_detail.get("target")

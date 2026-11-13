@@ -182,7 +182,7 @@ export default function PolicyPage() {
     setRulesError("")
 
     try {
-      setRules(await getUserRules(2))   //meeka balapaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaan
+      setRules(await getUserRules())
     } catch (error) {
       setRulesError(error.message || "Failed to load rules")
     } finally {

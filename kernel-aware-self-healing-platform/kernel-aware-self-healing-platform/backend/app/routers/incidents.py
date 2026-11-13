@@ -12,6 +12,7 @@ from services.incident_service import (
     list_open_incidents,
     resolve_incident_by_id,
 )
+from system_config import SYSTEM_ID
 
 
 router = APIRouter()
@@ -43,12 +44,14 @@ def build_healing_action_payload(
         system_id = incident.get("system_id")
 
     if system_id is None:
-        system_id = 1
+        system_id = SYSTEM_ID
 
     try:
         system_id = int(system_id)
-    except (TypeError, ValueError):
-        system_id = 1
+    except (TypeError, ValueError) as error:
+        raise HTTPException(status_code=422, detail="system_id must be a positive integer") from error
+    if system_id <= 0:
+        raise HTTPException(status_code=422, detail="system_id must be a positive integer")
 
     category = incident.get("category")
 
