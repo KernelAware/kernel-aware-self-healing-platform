@@ -21,6 +21,11 @@ from collectors.service_details.service_collector import get_services
 import logging
 import threading
 import time
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from system_config import SYSTEM_ID
 
 
 app = FastAPI()
@@ -104,7 +109,7 @@ def collect_process_inventory():
             processes = get_processes()
 
             send_inventory(
-                system_id=1,
+                system_id=SYSTEM_ID,
                 items=processes,
                 inventory_type="processes"
             )
@@ -130,7 +135,7 @@ def collect_service_inventory():
             services = get_services()
 
             send_inventory(
-                system_id=1,
+                system_id=SYSTEM_ID,
                 items=services,
                 inventory_type="services"
             )

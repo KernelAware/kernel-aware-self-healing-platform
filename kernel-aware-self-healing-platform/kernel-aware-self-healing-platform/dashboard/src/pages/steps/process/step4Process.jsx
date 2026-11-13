@@ -24,7 +24,7 @@ export default function Step4Process({ form, setForm }) {
   useEffect(() => {
     async function loadProcesses() {
       try {
-        const data = await getProcess(form.system_id || 1)
+        const data = await getProcess()
 
         setProcesses(data.processes || [])
       } catch (error) {

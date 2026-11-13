@@ -258,7 +258,7 @@ export async function triggerHealingAction(
 // Process Inventory API
 // --------------------------------------------------
 
-export async function getProcess(system_id) {
+export async function getProcess(system_id = SYSTEM_ID) {
   const response = await fetch(
     `${API_BASE_URL}/processes_inventory/${encodeURIComponent(system_id)}`,
     {
@@ -279,7 +279,7 @@ export async function getProcess(system_id) {
 // Service Inventory API
 // --------------------------------------------------
 
-export async function getService(system_id) {
+export async function getService(system_id = SYSTEM_ID) {
   const response = await fetch(
     `${API_BASE_URL}/services_inventory/${encodeURIComponent(system_id)}`,
     {
