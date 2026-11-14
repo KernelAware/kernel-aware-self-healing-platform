@@ -31,7 +31,7 @@ MEMORY_METRICS_MAP = {
     "system_swap_used_bytes",
 }
 
-PROMETHEUS_URL = "http://localhost:7070"
+PROMETHEUS_URL = "http://localhost:9090"
 def query_prometheus(query: str):
     response = requests.get(
         f"{PROMETHEUS_URL}/api/v1/query",
