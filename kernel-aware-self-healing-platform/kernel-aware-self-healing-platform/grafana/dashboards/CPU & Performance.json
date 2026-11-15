@@ -1399,7 +1399,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "rate(cpu_ctx_switches{instance=~\"$instance\"}[5m])",
+                        "expr": "rate(cpu_ctx_switches_total{instance=~\"$instance\"}[1m])",
                         "legendFormat": "Context Switches",
                         "range": true
                       }
@@ -1439,7 +1439,7 @@
               },
               "fieldConfig": {
                 "defaults": {
-                  "unit": "short",
+                  "unit": "ops",
                   "decimals": 0,
                   "min": 0,
                   "thresholds": {
@@ -1523,7 +1523,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "rate(cpu_interrupts{instance=~\"$instance\"}[5m])",
+                        "expr": "rate(cpu_interrupts_total{instance=~\"$instance\"}[1m])",
                         "legendFormat": "Hardware Interrupts",
                         "range": true
                       }
@@ -1563,7 +1563,7 @@
               },
               "fieldConfig": {
                 "defaults": {
-                  "unit": "short",
+                  "unit": "ops",
                   "decimals": 0,
                   "thresholds": {
                     "mode": "absolute",
@@ -1646,7 +1646,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "rate(cpu_soft_interrupts{instance=~\"$instance\"}[5m])",
+                        "expr": "rate(cpu_soft_interrupts_total{instance=~\"$instance\"}[1m])",
                         "legendFormat": "Soft Interrupts",
                         "range": true
                       }
@@ -1686,7 +1686,7 @@
               },
               "fieldConfig": {
                 "defaults": {
-                  "unit": "short",
+                  "unit": "ops",
                   "decimals": 0,
                   "thresholds": {
                     "mode": "absolute",

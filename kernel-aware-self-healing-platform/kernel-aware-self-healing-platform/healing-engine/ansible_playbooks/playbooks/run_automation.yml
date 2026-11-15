@@ -1,0 +1,8 @@
+---
+- name: Run approved automation
+  hosts: "{{ target_host }}"
+  gather_facts: false
+  tasks:
+    - name: Starter automation
+      ansible.builtin.debug:
+        msg: "Running approved automation: {{ automation_name }}"

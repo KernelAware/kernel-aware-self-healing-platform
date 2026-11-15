@@ -1,0 +1,10 @@
+---
+- name: Start service
+  hosts: "{{ target_host }}"
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Start requested service
+      ansible.builtin.service:
+        name: "{{ service_name }}"
+        state: started

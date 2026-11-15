@@ -1,0 +1,14 @@
+- name: Execute script on client computer
+  hosts: "{{ target_host }}"
+  become: true
+
+  tasks:
+    - name: Copy script to client
+      ansible.builtin.copy:
+        content: "{{ script_content }}"
+        dest: /tmp/recovery_script.sh
+        mode: "0700"
+
+    - name: Execute script on client
+      ansible.builtin.command:
+        cmd: /bin/bash /tmp/recovery_script.sh

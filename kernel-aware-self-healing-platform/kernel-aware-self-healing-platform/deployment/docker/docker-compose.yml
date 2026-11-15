@@ -29,6 +29,8 @@ services:
     build:
       context: ../../dashboard
       dockerfile: Dockerfile
+      args:
+        VITE_SYSTEM_ID: ${VITE_SYSTEM_ID:-2}
     container_name: kernel-aware-dashboard
     ports:
       - "8080:80"

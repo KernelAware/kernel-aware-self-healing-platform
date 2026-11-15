@@ -4,12 +4,13 @@ import { SelectBox, Checkbox } from "./wizardComponents"
 
 export default function Step9({ form, setForm }) {
   const retry = form.retry || {}
+  const disk = form.monitorSource === "disk"
 
   return (
     <Panel className="p-6">
       <div className="mb-6">
         <p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">
-          9. Retry & Cooldown
+          9. {disk ? "RETRY & COOLDOWN" : "Retry & Cooldown"}
         </p>
 
         <p className="text-xs text-muted-foreground mt-0.5">

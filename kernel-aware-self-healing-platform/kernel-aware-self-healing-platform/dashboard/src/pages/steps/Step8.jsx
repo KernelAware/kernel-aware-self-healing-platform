@@ -4,12 +4,13 @@ import { Toggle, Radio } from "./wizardComponents"
 
 export default function Step8({ form, setForm }) {
   const safety = form.safety || {}
+  const disk = form.monitorSource === "disk"
 
   return (
     <Panel className="p-6">
       <div className="mb-6">
         <p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">
-          8. Safety (Approval & Permissions)
+          8. {disk ? "SAFETY" : "Safety (Approval & Permissions)"}
         </p>
 
         <p className="text-xs text-muted-foreground mt-0.5">
@@ -158,7 +159,11 @@ export default function Step8({ form, setForm }) {
             ))}
           </div>
         </div>
-
+        {disk && <div className="grid grid-cols-2 gap-4 rounded-md border border-primary/20 bg-primary/5 p-4">
+          <label className="font-mono text-[11px] text-foreground">Maximum Cleanup Size<input value={safety.maxCleanupSize || ""} onChange={e => setForm(f => ({ ...f, safety: { ...f.safety, maxCleanupSize: e.target.value } }))} placeholder="5 GB" className="mt-1.5 w-full rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs" /></label>
+          <label className="font-mono text-[11px] text-foreground">Protected Paths<input value={safety.protectedPaths || ""} onChange={e => setForm(f => ({ ...f, safety: { ...f.safety, protectedPaths: e.target.value } }))} placeholder="/etc, /var/lib, /home" className="mt-1.5 w-full rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs" /></label>
+          <label className="col-span-2 flex items-center gap-2 font-mono text-xs"><input type="checkbox" checked={!!safety.dryRun} onChange={e => setForm(f => ({ ...f, safety: { ...f.safety, dryRun: e.target.checked } }))} /> Dry Run Before Execution</label>
+        </div>}
       </div>
     </Panel>
   )
