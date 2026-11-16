@@ -1,10 +1,11 @@
 
-import asyncio
 from load_data.user_rules.rule_loader import load_rules
 
+SYSTEM_ID = 3
 
-async def main():
-    rules = await load_rules(1)
+
+def main():
+    rules = load_rules(SYSTEM_ID)
 
     print(f"Total rules loaded: {len(rules)}")
 
@@ -12,10 +13,10 @@ async def main():
         if rule["rule"]["monitor_type"].lower() == "memory":
             print("\nMemory rule found:")
             print(rule)
-            break
-    else:
-        print("No memory rules found.")
+            return
+
+    print("No memory rules found.")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

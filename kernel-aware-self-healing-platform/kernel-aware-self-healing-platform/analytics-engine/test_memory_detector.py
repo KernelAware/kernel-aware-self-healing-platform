@@ -22,6 +22,7 @@ def run_test_case(metric_name, value, threshold):
             "status": "ENABLED",
             "severity": "high",
             "priority": "Medium",
+            "monitor_type": "memory",
         },
         "metrics": [
             {
@@ -59,6 +60,10 @@ def run_test_case(metric_name, value, threshold):
             return_value=True,
         ) as mock_duration,
         patch(
+            "detection.strategies.memeory_detecter.duration_snapshot",
+            return_value={"status": "COMPLETED"},
+        ),
+        patch(
             "detection.strategies.memeory_detecter.manage_incidents"
         ) as mock_incidents,
     ):
@@ -71,13 +76,28 @@ def run_test_case(metric_name, value, threshold):
 
         mock_duration.assert_called_once()
 
+        identity = mock_duration.call_args.args[0]
+
+        assert identity["category"] == "memory"
+        assert identity["system_id"] == 3
+        assert identity["rule_id"] == 73
+        assert identity["metric"] == metric_name
+        assert identity["target"] == "host.docker.internal:8001"
+
         mock_incidents.assert_called_once()
 
         incident = mock_incidents.call_args.args[0]
 
         assert incident["incident_type"] == "memory"
+        assert incident["monitor_type"] == "memory"
+        assert incident["system_id"] == 3
+        assert incident["rule_id"] == 73
         assert incident["value"] == float(value)
         assert incident["violated_metric"]["metric"] == metric_name
+
+        assert mock_incidents.call_args.kwargs == {
+            "condition_violated": True
+        }
 
         print(f"PASS: {metric_name}")
         print(f"      Detected value: {incident['value']}")

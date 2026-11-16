@@ -1,7 +1,7 @@
 from load_data.system_metrics.metrics_loader import get_memory_metrics
 from detection.threshold import check_threshold
 
-metrics = get_memory_metrics(1)
+metrics = get_memory_metrics(3)
 
 print("Prometheus memory results:", metrics)
 
