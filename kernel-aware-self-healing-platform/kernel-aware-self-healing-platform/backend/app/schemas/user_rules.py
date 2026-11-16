@@ -33,6 +33,7 @@ class RuleMetricResponse(BaseModel):
 
 class RuleActionResponse(BaseModel):
     action_type: str
+    action_script: str | None = None
     automatic_execution: bool | None = None
     approval_required: str | None = None
     allowed_during: str | None = None

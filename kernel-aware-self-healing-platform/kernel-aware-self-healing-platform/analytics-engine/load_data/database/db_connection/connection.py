@@ -1,3 +1,4 @@
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -6,11 +7,11 @@ DATABASE_URL = "postgresql+psycopg2://kernelsentineldb:KernelProject1234@185.31.
 
 engine = create_engine(
     DATABASE_URL,
-    pool_pre_ping=True
+    pool_pre_ping=True,
 )
 
 SessionLocal = sessionmaker(
     bind=engine,
     autoflush=False,
-    autocommit=False
+    autocommit=False,
 )

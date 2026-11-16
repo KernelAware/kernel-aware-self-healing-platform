@@ -3,6 +3,9 @@ import { SelectBox } from "./wizardComponents"
 import { Info } from "lucide-react"
 import Step10Process from "./process/step10process.jsx"
 import Step10Memory from "./memory/Step10Memory.jsx"
+import Step10Cpu from "./cpu/Step10Cpu"
+import Step10Service from "@/pages/steps/services/step10Service.jsx";
+
 
 export default function Step10({ form, setForm }) {
 
@@ -15,6 +18,8 @@ export default function Step10({ form, setForm }) {
   const condUnit = isNetwork ? "errors/sec" : "%";
 
   if (form.monitorSource === "process") return <Step10Process form={form} setForm={setForm} />
+  if (form.monitorSource === "cpu") return <Step10Cpu form={form} setForm={setForm} />
+  if (form.monitorSource === "service") return <Step10Service form={form} setForm={setForm} />
   if (form.monitorSource === "memory") return <Step10Memory form={form} setForm={setForm} />
 
   return (

@@ -25,7 +25,7 @@ export default function Step1({ form, setForm, onNext, onCancel }) {
             <div className="grid grid-cols-3 gap-5">
               <div>
                 <label className="block font-mono text-[11px] text-foreground mb-1.5">Status</label>
-                <div className="flex items-center gap-2.5 rounded-md border border-border bg-card px-3 h-[42px]">
+                <div className="flex items-center gap-2.5 rounded-md bg-card px-3 h-[42px]">
                   <Toggle checked={form.enabled} onChange={v => setForm(f => ({ ...f, enabled: v }))} />
                   <span className="font-mono text-xs text-foreground">{form.enabled ? "Enabled" : "Disabled"}</span>
                 </div>

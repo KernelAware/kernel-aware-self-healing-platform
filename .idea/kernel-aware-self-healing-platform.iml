@@ -10,6 +10,7 @@
       <sourceFolder url="file://$MODULE_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/healing-engine" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
       <excludeFolder url="file://$MODULE_DIR$/kernel-aware-self-healing-platform/kernel-aware-self-healing-platform/deployment/docker/.venv" />
+      <excludeFolder url="file://$MODULE_DIR$/kernel-aware-self-healing-platform/.venv" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.12 (kernel-aware-self-healing-platform)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

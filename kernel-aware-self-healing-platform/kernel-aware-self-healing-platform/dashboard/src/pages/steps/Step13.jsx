@@ -9,10 +9,11 @@ import {
 import { Panel } from "@/components/kit"
 import {userRules} from "../../services/api.js";
 import { buildRulePayload } from "@/utils/rulePayloadBuilder";
+import { INITIAL_FORM } from "./wizardConstants.js"
 
-export default function Step13({ form, onCancel }) {
+export default function Step13({ form, onCancel ,setForm}) {
 
-  console.log(
+     console.log(
     "CURRENT FORM - form 13:\n",
     JSON.stringify(form, null, 2)
   )
@@ -40,6 +41,10 @@ export default function Step13({ form, onCancel }) {
   const safety = form.safety || {}
   const recovery = form.recovery || {}
   const schedule = form.schedule || {}
+  const isDisk = form.monitorSource === "disk"
+  const diskMetric = form.metric || "Disk Usage (%)"
+  const diskUnit = diskMetric.includes("Latency") ? "ms" : diskMetric.includes("IOPS") ? "IOPS" : diskMetric.includes("Throughput") ? "MB/s" : diskMetric.includes("Usage") || diskMetric.includes("Busy") ? "%" : "GB"
+  const diskActions = Array.isArray(form.actionTypes) ? form.actionTypes : []
 
   const recoveryConditions = Array.isArray(recovery.metric)
     ? recovery.metric
@@ -193,6 +198,7 @@ export default function Step13({ form, onCancel }) {
             onClick={() => {
               setCreated(false)
               onCancel()
+              setForm(INITIAL_FORM)
             }}
             className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-5 font-mono text-xs font-bold text-primary-foreground hover:bg-primary/90 shadow-glow-primary transition-colors cursor-pointer"
           >
@@ -235,8 +241,8 @@ export default function Step13({ form, onCancel }) {
       </Panel>
 
       <Panel className="p-5">
-        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-4">
-          Rule Summary
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-4">
+          {isDisk ? "DISK RULE SUMMARY" : "Rule Summary"}
         </p>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-4">
@@ -332,6 +338,19 @@ export default function Step13({ form, onCancel }) {
           </div>
         </div>
       </Panel>
+
+      {isDisk && <Panel className="p-4">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Disk Monitoring & Condition</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 font-mono text-xs">
+          <div><p className="text-muted-foreground">Metric</p><p>{diskMetric}</p></div>
+          <div><p className="text-muted-foreground">Unit</p><p>{diskUnit}</p></div>
+          <div><p className="text-muted-foreground">Target Type</p><p>{form.targetType || "Host"}</p></div>
+          <div><p className="text-muted-foreground">Host</p><p>{form.host || "Not specified"}</p></div>
+          <div><p className="text-muted-foreground">Device / Mount Point</p><p>{form.device || form.mountPoint || "Not specified"}</p></div>
+          <div><p className="text-muted-foreground">Aggregation</p><p>{form.aggregation || "Average"}</p></div>
+          <div className="col-span-2"><p className="text-muted-foreground">Condition</p><p>{form.condMetric || diskMetric} {form.condOperator || "Greater Than (>)"} {form.condThreshold || "Not specified"} {diskUnit} for {form.condDuration || "Not specified"} {(form.condDurationUnit || "Minutes").toLowerCase()}</p></div>
+        </div>
+      </Panel>}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
@@ -513,7 +532,7 @@ export default function Step13({ form, onCancel }) {
             Actions
           </p>
 
-          {actions.length === 0 ? (
+              {(isDisk ? diskActions : actions).length === 0 ? (
             <div className="rounded-md border border-dashed border-border p-3">
               <p className="font-mono text-xs text-muted-foreground">
                 No actions configured.
@@ -521,7 +540,7 @@ export default function Step13({ form, onCancel }) {
             </div>
           ) : (
             <div className="space-y-2">
-              {actions.map((action, index) => (
+              {(isDisk ? diskActions : actions).map((action, index) => (
                 <div
                   key={index}
                   className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2"
@@ -656,7 +675,7 @@ export default function Step13({ form, onCancel }) {
                     >
                       <div className="flex items-center justify-between gap-3">
                         <span className="text-primary font-semibold">
-                          {condition.metric || "Unknown metric"}
+                          {condition.metric || form.recoveryMetric || "Unknown metric"}
                         </span>
 
                         <span className="text-[9px] text-muted-foreground">
@@ -867,39 +886,67 @@ export default function Step13({ form, onCancel }) {
         {/*combind*/}
         {/*---------------------*/}
 
-        <button
-          type="button"
-          onClick={async () => {
-            try {
-              let payload;
 
-              if (form.monitorSource === "memory") {
-                // Memory rules: build the backend-compatible payload
-                payload = buildRulePayload(form);
-              } else {
-                // CPU and other rules: preserve existing behavior
-                payload = form;
-              }
+<button
+  type="button"
+  onClick={async () => {
+    try {
+      let payload;
 
-              console.log("RULE PAYLOAD:", payload);
-              console.log(
-                "RULE PAYLOAD JSON:",
-                JSON.stringify(payload, null, 2)
-              );
+      if (form.monitorSource === "memory") {
+        // Memory rules: build the backend-compatible payload
+        payload = buildRulePayload(form);
+      } else if (form.monitorSource === "cpu") {
+        // CPU rules: construct the expected backend payload
+        payload = {
+          ...form,
+          targets: [
+            {
+              type: form.targetType || "host",
+              name: form.host || "",
+              metrics: [
+                {
+                  name: form.metric,
+                  conditions: [
+                    {
+                      metric: form.metric,
+                      operator: form.condOperator,
+                      threshold: form.condThreshold,
+                      duration: form.condDuration,
+                      durationUnit: form.condDurationUnit || "Minutes",
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        };
+      } else {
+        // Disk and other rules: preserve existing behavior
+        payload = form;
+      }
 
-              const data = await userRules(payload);
+      console.log("RULE PAYLOAD:", payload);
+      console.log(
+        "RULE PAYLOAD JSON:",
+        JSON.stringify(payload, null, 2)
+      );
 
-              console.log("BACKEND RESPONSE:", data);
-              setCreated(true);
-            } catch (error) {
-              console.error("CREATE RULE ERROR:", error);
-            }
-          }}
-          className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-6 font-mono text-xs font-bold tracking-wide text-primary-foreground hover:bg-primary/90 shadow-glow-primary transition-colors cursor-pointer"
-        >
-          Create Rule
-          <ArrowRight className="size-3.5" />
-        </button>
+      const data = await userRules(payload);
+
+      console.log("BACKEND RESPONSE:", data);
+      setCreated(true);
+    } catch (error) {
+      console.error("CREATE RULE ERROR:", error);
+      alert(error?.message || "Failed to create rule");
+    }
+  }}
+  className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-6 font-mono text-xs font-bold tracking-wide text-primary-foreground hover:bg-primary/90 shadow-glow-primary transition-colors cursor-pointer"
+>
+  Create Rule
+  <ArrowRight className="size-3.5" />
+</button>
+
 
 
 

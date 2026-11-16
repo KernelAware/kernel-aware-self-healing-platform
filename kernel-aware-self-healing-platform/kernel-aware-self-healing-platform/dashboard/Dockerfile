@@ -3,6 +3,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+ARG VITE_SYSTEM_ID=2
+ENV VITE_SYSTEM_ID=${VITE_SYSTEM_ID}
+
 # Copy package dependencies
 COPY package.json package-lock.json ./
 

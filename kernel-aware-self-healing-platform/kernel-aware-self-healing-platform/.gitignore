@@ -26,6 +26,7 @@ dist/
 # =========================================================
 
 .env
+!/integrations/email/.env
 .env*.local
 
 # =========================================================
@@ -54,4 +55,5 @@ __v0_jsx-dev-runtime.ts
 Thumbs.db
 # Postman files
 infrastructure/.postman/
-infrastructure/postman/
+infrastructure/postman/__pycache__/
+*.pyc
