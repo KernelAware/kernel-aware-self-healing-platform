@@ -486,8 +486,6 @@ def _manage_incidents(incident: dict, condition_violated: bool = True):
                         return current
                     stored = json.dumps(current)
                     redis_client.set(key, stored)
-                else:
-                    return current
 
         publish_event = current.get("_backend_pending_event") or ("opened" if is_new else "updated")
         incident_id = current.get("incident_id") or f"INC-{uuid.uuid4().hex[:12].upper()}"

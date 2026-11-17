@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import unittest
@@ -17,6 +18,49 @@ from load_data.system_metrics.metrics_loader import (
 
 
 class ProcessMetricTests(unittest.TestCase):
+    @patch("incident_management.manager.publish_incident")
+    @patch("incident_management.manager.redis_client.set")
+    @patch("incident_management.manager.redis_client.get")
+    def test_requalified_disk_incident_publishes_update_with_existing_identity(
+        self, redis_get, _redis_set, publish
+    ):
+        incident = {
+            "rule_id": 108,
+            "system_id": 1,
+            "monitor_type": "disk",
+            "incident_type": "disk",
+            "target_type": "host",
+            "target": "Whole System",
+            "disk_condition_key": "condition-1",
+            "metric": "disk_usage_percent",
+            "value": 91,
+            "violated_metric": {
+                "metric": "disk_usage_percent",
+                "operator": "Greater Than (>)",
+                "threshold": 90,
+            },
+        }
+        existing = {
+            **incident,
+            "incident_id": "INC-existing",
+            "fingerprint": "existing-fingerprint",
+            "analytics_generation": manager.ANALYTICS_GENERATION,
+            "status": "OPEN",
+            "timeline": [],
+            "_decision_publication_outcome": "PUBLISH",
+        }
+        redis_get.return_value = json.dumps(existing)
+        publish.return_value = {"incident": {"incident_id": "INC-existing"}}
+
+        result = manager._manage_incidents(incident)
+
+        publish.assert_called_once()
+        args, _kwargs = publish.call_args
+        self.assertEqual(args[0]["incident_id"], "INC-existing")
+        self.assertEqual(args[0]["fingerprint"], "existing-fingerprint")
+        self.assertEqual(args[1], "updated")
+        self.assertEqual(result["incident_id"], "INC-existing")
+
     def test_display_cpu_metric_maps_to_exported_metric(self):
         metric, selector = get_process_metric_selector(
             1,

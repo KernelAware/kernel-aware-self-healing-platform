@@ -11,7 +11,6 @@ import { fetchMonitoringReadiness } from '@/services/incidents'
 import { resolveIncident } from '@/services/api'
 
 import {
-  currentRunDiskIncidents,
   isCurrentRunDiskIncident,
   isStaleAnalyticsGeneration
 } from '@/services/activeAlertLifecycle'
@@ -38,14 +37,10 @@ const USER_RULE_CATEGORIES = new Set([
   'logs'
 ])
 
-// Live incidents stay in memory across page routes.
-// Disk state is hydrated only from the Backend's current-run
-// in-memory snapshot, never from incident history.
+// Live incidents stay in memory across page routes and are populated by events.
 let liveIncidentState = []
 const liveIncidentListeners = new Set()
-const incidentEventsById = new Map()
 
-let incidentEventVersion = 0
 let activeSnapshotState = {
   status: 'idle',
   error: ''
@@ -89,7 +84,6 @@ function publishActiveSnapshotState(nextState) {
 function resetIncidentsForNewLifecycle(generation) {
   lifecycleVersion += 1
   currentAnalyticsGeneration = generation
-  incidentEventsById.clear()
 
   // Active incident state belongs to one Analytics process lifetime.
   publishLiveIncidents([])
@@ -115,113 +109,6 @@ function incidentId(incident) {
   return incident?.incident_id || incident?.id
 }
 
-function reconcileDiskSnapshot(rows, requestVersion, generation) {
-  const nextById = new Map()
-
-  // Keep non-Disk incidents untouched.
-  liveIncidentState
-    .filter(incident => incidentType(incident) !== 'disk')
-    .forEach(incident => {
-      nextById.set(incidentId(incident), incident)
-    })
-
-  // Add only Disk incidents belonging to the current Analytics generation.
-  ;(Array.isArray(rows) ? rows : []).forEach(snapshotIncident => {
-    const id = incidentId(snapshotIncident)
-
-    if (
-      !id ||
-      !currentRunDiskIncidents([snapshotIncident], generation).length
-    ) {
-      return
-    }
-
-    const lastEvent = incidentEventsById.get(id)
-
-    if (lastEvent?.incident === null) return
-
-    const current =
-      lastEvent?.version > requestVersion
-        ? lastEvent.incident
-        : snapshotIncident
-
-    nextById.set(id, {
-      ...current,
-      id,
-      incident_id: id
-    })
-  })
-
-  // Apply Disk events received after the snapshot request started.
-  incidentEventsById.forEach((lastEvent, id) => {
-    if (
-      lastEvent.version <= requestVersion ||
-      lastEvent.monitorType !== 'disk'
-    ) {
-      return
-    }
-
-    if (lastEvent.incident === null) {
-      nextById.delete(id)
-    } else {
-      nextById.set(id, lastEvent.incident)
-    }
-  })
-
-  console.info('DASHBOARD_ACTIVE_SNAPSHOT_HYDRATED', {
-    generation,
-    received_count: Array.isArray(rows) ? rows.length : 0,
-    accepted_count:
-      nextById.size -
-      liveIncidentState.filter(
-        incident => incidentType(incident) !== 'disk'
-      ).length
-  })
-
-  publishLiveIncidents([...nextById.values()])
-}
-
-function loadActiveDiskIncidents(readiness, requestContext = {}) {
-  if (!readiness?.ready || !readiness.generation) return
-
-  if (activeSnapshotState.status === 'loaded') {
-    return Promise.resolve()
-  }
-
-  const requestVersion =
-    requestContext.eventVersion ?? incidentEventVersion
-
-  const requestLifecycleVersion =
-    requestContext.lifecycleVersion ?? lifecycleVersion
-
-  publishActiveSnapshotState({
-    status: 'loading',
-    error: ''
-  })
-
-  if (requestLifecycleVersion !== lifecycleVersion) return
-
-  if (readiness.generation !== currentAnalyticsGeneration) return
-
-  console.debug('DASHBOARD_ACTIVE_SNAPSHOT_REQUEST_ACCEPTED', {
-    generation: readiness.generation,
-    active_alert_count: Array.isArray(readiness.active_alerts)
-      ? readiness.active_alerts.length
-      : 0
-  })
-
-  reconcileDiskSnapshot(
-    readiness.active_alerts,
-    requestVersion,
-    readiness.generation
-  )
-
-  publishActiveSnapshotState({
-    status: 'loaded',
-    error: ''
-  })
-}
-
 function handleLiveIncidentMessage(message) {
   // Analytics readiness and generation lifecycle.
   if (message?.type === 'monitoring_readiness') {
@@ -245,12 +132,9 @@ function handleLiveIncidentMessage(message) {
     }
 
     if (message.data?.ready === true) {
-      loadActiveDiskIncidents(message.data, {
-        lifecycleVersion,
-
-        // Readiness snapshots arrive before later events on the
-        // same connection. Previously observed events take precedence.
-        eventVersion: -1
+      publishActiveSnapshotState({
+        status: 'loaded',
+        error: ''
       })
     }
 
@@ -314,20 +198,6 @@ function handleLiveIncidentMessage(message) {
     ...liveIncident,
     id,
     incident_id: id
-  }
-
-  const version = ++incidentEventVersion
-
-  if (monitorType === 'disk') {
-    incidentEventsById.set(id, {
-      version,
-      monitorType,
-      generation: normalizedIncident.analytics_generation,
-      incident:
-        message.event === 'resolved'
-          ? null
-          : normalizedIncident
-    })
   }
 
   const index = liveIncidentState.findIndex(
@@ -480,7 +350,7 @@ export function useAlerts({ ruleAlertsOnly = false } = {}) {
         incident => String(incident.system_id) === systemId
       )
 
-  // Disk snapshot readiness is needed for the user-rule alert dashboard.
+  // Track Analytics readiness and generation for current-run Disk event validation.
   useEffect(() => {
     if (!ruleAlertsOnly) return undefined
 
@@ -490,8 +360,7 @@ export function useAlerts({ ruleAlertsOnly = false } = {}) {
     const checkReadiness = async () => {
       const requestContext = {
         generation: currentAnalyticsGeneration,
-        lifecycleVersion,
-        eventVersion: incidentEventVersion
+        lifecycleVersion
       }
 
       try {
@@ -523,11 +392,13 @@ export function useAlerts({ ruleAlertsOnly = false } = {}) {
           resetIncidentsForNewLifecycle(generation)
 
           requestContext.lifecycleVersion = lifecycleVersion
-          requestContext.eventVersion = -1
         }
 
         if (readiness.ready) {
-          loadActiveDiskIncidents(readiness, requestContext)
+          publishActiveSnapshotState({
+            status: 'loaded',
+            error: ''
+          })
           return
         }
 
