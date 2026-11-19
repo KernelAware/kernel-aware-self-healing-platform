@@ -8,9 +8,15 @@ import Step7Process from "./process/step7Process.jsx";
 import Step7Network from "./network/Step7Network.jsx";
 import Step7Cpu from "./cpu/Step7Cpu"
 import Step7Service from "@/pages/steps/services/step7Service.jsx";
-
+import Step7Memory from "./memory/Step7Memory.jsx"
 
 export default function Step7({ form, setForm }) {
+
+          console.log(
+    "CURRENT FORM - form 7:\n",
+    JSON.stringify(form, null, 2)
+  )
+
   const disk = form.monitorSource === "disk"
   const actionTypes = disk ? ACTION_TYPES.filter(action => ["alert", "free-disk", "clear-cache", "run-automation", "run-command", "trigger-webhook", "send-notification", "create-incident", "require-approval"].includes(action.id)) : ACTION_TYPES
   const selected = Array.isArray(form.actionTypes) ? form.actionTypes : (form.actionType ? [form.actionType] : [])
@@ -32,6 +38,7 @@ export default function Step7({ form, setForm }) {
   }
   if (form.monitorSource === "process") return <Step7Process form={form} setForm={setForm} />
   if (form.monitorSource === "network") return <Step7Network form={form} setForm={setForm} />
+  if (form.monitorSource === "memory") return <Step7Memory form={form} setForm={setForm} />
   if (form.monitorSource === "cpu") return <Step7Cpu form={form} setForm={setForm} />
   if (form.monitorSource === "service") return <Step7Service form={form} setForm={setForm} />
 

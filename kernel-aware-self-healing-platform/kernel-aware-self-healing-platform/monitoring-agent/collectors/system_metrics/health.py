@@ -1,4 +1,5 @@
 import os
+import re
 import platform
 import socket
 import time
@@ -150,77 +151,119 @@ def get_battery_status():
 
     }
 
+
 def get_smart_status():
     """
-    Collect SMART health information for all physical disks.
-
-    Returns:
-        - Health status
-        - Disk temperature (if available)
-        - Power-on hours (if available)
+    Collect SMART information from physical disks only.
+    Supports SATA and NVMe devices.
     """
 
     try:
-
         disks = []
 
         result = subprocess.run(
-            ["lsblk", "-d", "-n", "-o", "NAME"],
+            ["lsblk", "-d", "-n", "-o", "NAME,TYPE"],
             capture_output=True,
             text=True,
             check=True
         )
 
-        device_names = result.stdout.strip().splitlines()
+        device_names = [
+            parts[0]
+            for line in result.stdout.splitlines()
+            if len(parts := line.split()) == 2
+            and parts[1] == "disk"
+        ]
 
         for name in device_names:
-
             device = f"/dev/{name}"
 
             try:
-
                 smart = subprocess.run(
-                    ["smartctl", "-A", "-H", device],
+                    ["sudo", "-n", "smartctl", "-a", device],
                     capture_output=True,
                     text=True,
-                    timeout=10
+                    timeout=15
                 )
 
-                output = smart.stdout
+                output = smart.stdout + "\n" + smart.stderr
 
                 # Health
-                if "PASSED" in output:
+                if "SMART overall-health self-assessment test result: PASSED" in output:
                     health = "PASSED"
-                elif "FAILED" in output:
+                elif "SMART overall-health self-assessment test result: FAILED" in output:
+                    health = "FAILED"
+                elif "SMART Health Status: OK" in output:
+                    health = "PASSED"
+                elif "SMART Health Status: FAILED" in output:
                     health = "FAILED"
                 else:
                     health = "UNKNOWN"
 
+                # NVMe health
+                if health == "UNKNOWN" and "Critical Warning:" in output:
+                    match = re.search(
+                        r"Critical Warning:\s*0x([0-9a-fA-F]+)",
+                        output
+                    )
+
+                    if match:
+                        health = (
+                            "PASSED"
+                            if int(match.group(1), 16) == 0
+                            else "WARNING"
+                        )
+
                 # Temperature
                 temperature = None
 
-                for line in output.splitlines():
+                match = re.search(
+                    r"Temperature:\s*(\d+)\s+Celsius",
+                    output,
+                    re.IGNORECASE
+                )
 
-                    if "Temperature_Celsius" in line or "Temperature:" in line:
-                        values = line.split()
+                if match:
+                    temperature = int(match.group(1))
 
-                        for value in reversed(values):
-                            if value.isdigit():
-                                temperature = int(value)
-                                break
+                else:
+                    for line in output.splitlines():
+                        if "Temperature_Celsius" in line:
+                            match = re.search(
+                                r"Temperature_Celsius.*?\s(\d+)\s+\(Min/Max",
+                                line
+                            )
+
+                            if match:
+                                temperature = int(match.group(1))
+
+                            break
 
                 # Power-on hours
                 power_on_hours = None
 
-                for line in output.splitlines():
+                match = re.search(
+                    r"Power On Hours:\s*([\d,]+)",
+                    output,
+                    re.IGNORECASE
+                )
 
-                    if "Power_On_Hours" in line:
-                        values = line.split()
+                if match:
+                    power_on_hours = int(
+                        match.group(1).replace(",", "")
+                    )
 
-                        for value in reversed(values):
-                            if value.isdigit():
-                                power_on_hours = int(value)
-                                break
+                else:
+                    for line in output.splitlines():
+                        if "Power_On_Hours" in line:
+                            values = line.split()
+
+                            try:
+                                power_on_hours = int(values[-1])
+                            except (ValueError, IndexError):
+                                pass
+
+                            break
 
                 disks.append({
                     "device": device,
@@ -229,8 +272,19 @@ def get_smart_status():
                     "power_on_hours": power_on_hours
                 })
 
-            except Exception as e:
-                logger.warning(f"SMART unavailable for {device}: {e}")
+                logger.info(
+                    "SMART %s: health=%s temperature=%s power_on_hours=%s",
+                    device,
+                    health,
+                    temperature,
+                    power_on_hours
+                )
+
+            except subprocess.TimeoutExpired:
+                logger.warning("SMART timeout: %s", device)
+
+            except Exception:
+                logger.exception("SMART collection failed for %s", device)
 
         return {
             "timestamp": datetime.now().isoformat(),
@@ -238,9 +292,10 @@ def get_smart_status():
             "disks": disks
         }
 
-    except Exception as e:
-        logger.exception(e)
-        return {"status": "error"}
+    except Exception:
+        logger.exception("SMART collection failed")
+        return {"status": "error", "disk_count": 0, "disks": []}
+
 
 def get_bios_information():
 

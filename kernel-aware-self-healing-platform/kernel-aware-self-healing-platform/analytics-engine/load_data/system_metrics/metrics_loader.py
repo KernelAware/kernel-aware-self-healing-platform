@@ -50,6 +50,14 @@ CPU_METRIC_MAP = {
     "cpu_soft_interrupts_total": "cpu_soft_interrupts_total",
 }
 
+MEMORY_METRICS_MAP = {
+    "system_memory_usage_percent",
+    "system_memory_used_bytes",
+    "system_memory_available_bytes",
+    "system_swap_usage_percent",
+    "system_swap_used_bytes",
+}
+
 PROMETHEUS_URL = os.environ.get(
     "PROMETHEUS_URL",
     "http://localhost:9090",
@@ -256,8 +264,13 @@ def get_cpu_metrics():
     return query_prometheus("process_cpu_percent")
 
 
-def get_memory_metrics():
-    return query_prometheus("process_memory_rss_bytes")
+def get_memory_metrics(system_id, metric_name="system_memory_usage_percent"):
+    if metric_name not in MEMORY_METRICS_MAP:
+        raise ValueError(f"Unsupported memory metric: {metric_name}")
+
+    query = f'{metric_name}{{system_id="{system_id}"}}'
+
+    return query_prometheus(query)
 
 
 def get_disk_metrics(system_id=None):

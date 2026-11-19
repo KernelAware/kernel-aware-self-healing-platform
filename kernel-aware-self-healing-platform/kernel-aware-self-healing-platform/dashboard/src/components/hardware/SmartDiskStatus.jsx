@@ -8,7 +8,7 @@ import {
   ActionButton,
 } from '@/components/kit'
 
-const PROMETHEUS_URL = 'http://localhost:7070'
+const PROMETHEUS_URL = 'http://localhost:9090'
 
 export default function SmartDiskStatus() {
   const [disks, setDisks] = useState([])

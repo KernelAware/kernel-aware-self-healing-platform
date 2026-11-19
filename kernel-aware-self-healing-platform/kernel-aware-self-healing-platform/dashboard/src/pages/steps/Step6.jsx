@@ -3,6 +3,12 @@ import { cn } from "@/utils/cn"
 import { Radio } from "./wizardComponents"
 
 export default function Step6({ form, setForm }) {
+
+          console.log(
+    "CURRENT FORM - form 6:\n",
+    JSON.stringify(form, null, 2)
+  )
+
   const disk = form.monitorSource === "disk"
   const sevs = [
     { id:"warning",label:"Warning",emoji:"⚠️",desc:disk ? "Disk condition requires attention." : "Needs attention",note:"Recommended for non-urgent issues.",ab:"border-warning",bb:"border-warning/40",abg:"bg-warning/10",bbg:"bg-warning/5",tc:"text-warning" },
