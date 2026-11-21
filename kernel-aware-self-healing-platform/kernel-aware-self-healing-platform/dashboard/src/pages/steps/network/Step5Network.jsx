@@ -1,6 +1,35 @@
+
 import { useEffect } from "react"
 import { Panel } from "@/components/kit"
 import { SelectBox } from "../wizardComponents"
+
+const OPERATORS = [
+  "Greater Than (>)",
+  "Greater Than or Equal (>=)",
+  "Less Than (<)",
+  "Less Than or Equal (<=)",
+  "Equal (=)",
+]
+
+const OPERATOR_SYMBOLS = {
+  "Greater Than (>)": ">",
+  "Greater Than or Equal (>=)": ">=",
+  "Less Than (<)": "<",
+  "Less Than or Equal (<=)": "<=",
+  "Equal (=)": "=",
+}
+
+// Handles older symbolic values when displaying existing conditions.
+const SYMBOL_TO_OPERATOR = {
+  ">": "Greater Than (>)",
+  ">=": "Greater Than or Equal (>=)",
+  "<": "Less Than (<)",
+  "<=": "Less Than or Equal (<=)",
+  "=": "Equal (=)",
+}
+
+const normalizeOperator = (operator) =>
+  SYMBOL_TO_OPERATOR[operator] || operator
 
 export default function Step5Network({ form, setForm }) {
   const selectedMetric =
@@ -11,7 +40,7 @@ export default function Step5Network({ form, setForm }) {
   // Read the condition from the nested form structure.
   const condition = form.targets?.[0]?.metrics?.[0]?.conditions?.[0] || {
     metric: selectedMetric,
-    operator: ">",
+    operator: "Greater Than (>)",
     threshold: "",
     duration: 2,
     durationUnit: "minutes",
@@ -48,7 +77,7 @@ export default function Step5Network({ form, setForm }) {
 
       conditions[0] = {
         metric: metric.name,
-        operator: ">",
+        operator: "Greater Than (>)",
         threshold: "",
         duration: 2,
         durationUnit: "minutes",
@@ -96,7 +125,7 @@ export default function Step5Network({ form, setForm }) {
 
       const currentCondition = conditions[0] || {
         metric: metric.name,
-        operator: ">",
+        operator: "Greater Than (>)",
         threshold: "",
         duration: 2,
         durationUnit: "minutes",
@@ -126,24 +155,17 @@ export default function Step5Network({ form, setForm }) {
     })
   }
 
-  const operatorLabels = {
-    ">": "Greater Than (>)",
-    "<": "Less Than (<)",
-    "=": "Equals (=)",
-  }
-
-  const operatorValues = {
-    "Greater Than (>)": ">",
-    "Less Than (<)": "<",
-    "Equals (=)": "=",
-  }
-
   const unit =
     selectedMetric === "Incoming Packet Drop Rate" ? "%" : "B/s"
 
+  const durationUnit =
+    condition.durationUnit || "minutes"
+
   const durationUnitLabel =
-    condition.durationUnit.charAt(0).toUpperCase() +
-    condition.durationUnit.slice(1)
+    durationUnit.charAt(0).toUpperCase() +
+    durationUnit.slice(1)
+
+  const selectedOperator = normalizeOperator(condition.operator)
 
   return (
     <Panel className="p-6">
@@ -185,17 +207,10 @@ export default function Step5Network({ form, setForm }) {
             </div>
 
             <SelectBox
-              value={
-                operatorLabels[condition.operator] ||
-                operatorLabels[">"]
-              }
-              options={[
-                "Greater Than (>)",
-                "Less Than (<)",
-                "Equals (=)",
-              ]}
+              value={selectedOperator}
+              options={OPERATORS}
               onChange={(value) =>
-                updateCondition("operator", operatorValues[value])
+                updateCondition("operator", value)
               }
               className="w-44"
             />
@@ -315,12 +330,13 @@ export default function Step5Network({ form, setForm }) {
           </p>
 
           <p className="font-mono text-xs text-foreground">
-            {selectedMetric} {condition.operator}{" "}
+            {selectedMetric}{" "}
+            {OPERATOR_SYMBOLS[selectedOperator] || selectedOperator}{" "}
             {condition.threshold === "" ||
             condition.threshold == null
               ? "(enter threshold)"
               : condition.threshold}{" "}
-            {unit} for {condition.duration} {condition.durationUnit}
+            {unit} for {condition.duration} {durationUnit}
           </p>
         </div>
       </div>

@@ -10,6 +10,7 @@ from prometheus_client import generate_latest
 from collectors.system_metrics.network import get_network_stats_snapshot
 
 _previous_network_io = None
+_previous_network_io_per_interface = {}
 
 # Network IO system_metrics
 network_byte_sent = Counter(
@@ -30,6 +31,26 @@ network_packets_sent = Counter(
 network_packets_received = Counter(
     "network_packets_received_total",
     "Total packets received through network interfaces"
+)
+
+# Per-interface Network IO Metrics
+
+network_interface_bytes_sent = Counter(
+    "network_interface_bytes_sent_total",
+    "Total bytes sent through network interfaces",
+    ["interface"]
+)
+
+network_interface_bytes_received = Counter(
+    "network_interface_bytes_received_total",
+    "Total bytes received through network interfaces",
+    ["interface"]
+)
+
+network_interface_drops_in = Counter(
+    "network_interface_drops_in_total",
+    "Total incoming packet drops for each network interface",
+    ["interface"]
 )
 
 # Network errors and drops
@@ -124,6 +145,13 @@ def parse_address(address):
 
     return ip, port
 
+def calculate_counter_increment(current, previous):
+    if current >= previous:
+        return current - previous
+
+    # Handle a counter reset, such as an interface restarting.
+    return current
+
 def update_network_metrics():
 
     global _previous_network_io
@@ -131,6 +159,54 @@ def update_network_metrics():
     network = get_network_stats_snapshot()
 
     current_io = network["network_io"]
+
+    # Per-interface network metrics
+
+    current_interface_io = network.get(
+        "network_io_per_interface",
+        {}
+    )
+
+    for interface, current in current_interface_io.items():
+
+        sent_counter = network_interface_bytes_sent.labels(
+            interface = interface
+        )
+
+        received_counter = network_interface_bytes_received.labels(
+            interface = interface
+        )
+
+        drops_counter = network_interface_drops_in.labels(
+            interface=interface
+        )
+
+        previous = _previous_network_io_per_interface.get(interface)
+
+        if previous is not None:
+
+            sent_counter.inc(
+                calculate_counter_increment(
+                    current["bytes_sent"],
+                    previous["bytes_sent"]
+                )
+            )
+
+            received_counter.inc(
+                calculate_counter_increment(
+                    current["bytes_received"],
+                    previous["bytes_received"]
+                )
+            )
+
+            drops_counter.inc(
+                calculate_counter_increment(
+                    current["drops_in"],
+                    previous["drops_in"]
+                )
+            )
+
+        _previous_network_io_per_interface[interface] = current.copy()
 
     if _previous_network_io is None:
         _previous_network_io = current_io.copy()
