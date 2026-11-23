@@ -1,4 +1,4 @@
-const PROMETHEUS_URL = 'http://localhost:7070'
+const PROMETHEUS_URL = import.meta.env.VITE_PROMETHEUS_URL || 'http://localhost:9090'
 
 export async function queryPrometheus(query) {
   const response = await fetch(

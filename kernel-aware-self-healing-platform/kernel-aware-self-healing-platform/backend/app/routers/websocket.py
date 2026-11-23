@@ -1,29 +1,82 @@
+
+import logging
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi.encoders import jsonable_encoder
+
+from services.monitoring_lifecycle import get_monitoring_lifecycle
+
 
 router = APIRouter()
 
-connected_clients: dict[int, WebSocket] = {}
+connected_clients: dict[int, list[WebSocket]] = {}
+
+logger = logging.getLogger(__name__)
 
 
 @router.websocket("/ws/{systemid}")
 async def websocket_endpoint(websocket: WebSocket, systemid: int):
     await websocket.accept()
 
-    connected_clients[systemid] = websocket
+    await websocket.send_json(
+        jsonable_encoder({
+            "type": "monitoring_readiness",
+            "data": get_monitoring_lifecycle(systemid),
+        })
+    )
+
+    clients = connected_clients.setdefault(systemid, [])
+    clients.append(websocket)
 
     try:
         while True:
             await websocket.receive_text()
 
     except WebSocketDisconnect:
-        connected_clients.pop(systemid, None)
+        pass
+
+    finally:
+        clients = connected_clients.get(systemid)
+
+        if clients is not None:
+            clients[:] = [
+                client
+                for client in clients
+                if client is not websocket
+            ]
+
+            if not clients:
+                connected_clients.pop(systemid, None)
 
 
 async def give_message(message: dict, systemid: int):
-    websocket = connected_clients.get(systemid)
-    if websocket:
-        try:
-            await websocket.send_json(message)
-        except Exception:
-            connected_clients.pop(systemid, None)
+    clients = connected_clients.get(systemid, [])
 
+    disconnected = []
+
+    for websocket in tuple(clients):
+        try:
+            # Incident history serialization includes Python datetime values.
+            # Starlette's WebSocket.send_json uses json.dumps directly.
+            await websocket.send_json(
+                jsonable_encoder(message)
+            )
+
+        except Exception as error:
+            logger.warning(
+                "WebSocket delivery failed for system %s (%s); removing client",
+                systemid,
+                type(error).__name__,
+            )
+
+            disconnected.append(websocket)
+
+    # Remove disconnected clients without affecting other connections.
+    clients[:] = [
+        client
+        for client in clients
+        if all(client is not closed for closed in disconnected)
+    ]
+
+    if not clients:
+        connected_clients.pop(systemid, None)

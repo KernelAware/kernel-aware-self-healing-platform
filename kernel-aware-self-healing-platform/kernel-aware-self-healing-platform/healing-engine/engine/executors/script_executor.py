@@ -2,7 +2,8 @@ from ansible_runner import run_playbook
 
 
 async def execute_script_action(action_plan: dict):
-    script_content = action_plan.get("script_content")
+    print(action_plan)
+    script_content = action_plan.get("script_content") or action_plan.get("script")
 
     if not script_content:
         return {

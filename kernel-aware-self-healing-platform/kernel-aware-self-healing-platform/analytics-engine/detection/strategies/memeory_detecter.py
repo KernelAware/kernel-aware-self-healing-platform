@@ -1,9 +1,6 @@
-from detection.strategies.base_detector import DetectionStrategy
+from detection.strategies.generic_detector import GenericDetector
 
 
-class MemoryDetector(DetectionStrategy):
-
-    def detect(self, rule):
-        print("Detecting memory rule")
-
-        return []
+class MemoryDetector(GenericDetector):
+    def __init__(self):
+        super().__init__("memory")
