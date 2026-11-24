@@ -22,7 +22,7 @@ export default function Step10({ form, setForm }) {
         <div>
           <label className="block font-mono text-xs font-semibold text-foreground mb-2">Recovery Condition</label>
           <div className="flex items-center gap-2 flex-wrap">
-            <SelectBox options={["Download Bandwidth (bytes/sec)", "Upload Bandwidth (bytes/sec)" , "Incoming Packet Drop Rate (bytes/sec) %"]} onChange={() => {}} className="flex-1 min-w-[140px]" />
+            <SelectBox options={["Download Bandwidth (bytes/sec)", "Upload Bandwidth (bytes/sec)" , "Incoming Packet Drop Rate (bytes/sec)"]} onChange={() => {}} className="flex-1 min-w-[140px]" />
             <SelectBox value="Less Than (<)" options={["Less Than (<)","Greater Than (>)"]} onChange={() => {}} className="w-36" />
             <input type="number" value={form.recoveryThreshold} onChange={e => setForm(f => ({ ...f, recoveryThreshold: e.target.value }))}
               className="w-16 rounded-md border border-border bg-card px-3 py-2.5 font-mono text-xs text-foreground text-center focus:border-ring focus:outline-none" />

@@ -67,6 +67,15 @@ def create_action_plan(decision, incident, rules, policy):
             "incident_id": incident_detail["incident_id"]
         }
 
+    # Network incidents are alert-only.
+    # They must not trigger infrastructure healing actions.
+    if monitor_type == "network":
+        return {
+            "status": "ALERT_ONLY",
+            "reason": "Network incidents are handled through alerts and notifications.",
+            "incident_id": incident_detail["incident_id"]
+        }
+
     action_types = (
         decision.get("actions")
         or decision.get("all_actions")
@@ -197,11 +206,18 @@ def create_alert(decision, incident, rules, policy):
         )
     )
 
+    is_network_alert = incident_type == "network"
+
     approval_required = (
         policy.get("reason") == "Approval required"
+        and not is_network_alert
     )
 
-    if automatic_execution and not approval_required:
+    if is_network_alert:
+        status = "OPEN"
+        operator_required = False
+
+    elif automatic_execution and not approval_required:
         status = "HEALING"
         operator_required = False
 
@@ -298,9 +314,13 @@ def create_alert(decision, incident, rules, policy):
             "required": operator_required,
 
             "message": (
-                "Review the recommendation and select an approved remediation action."
-                if operator_required
-                else "Automatic remediation is allowed by policy."
+                "Network monitoring alert. No healing action will be executed."
+                if is_network_alert
+                else (
+                    "Review the recommendation and select an approved remediation action."
+                    if operator_required
+                    else "Automatic remediation is allowed by policy."
+                )
             ),
 
             "recommendedAction": recommended_action,
