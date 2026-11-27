@@ -68,7 +68,7 @@
                       },
                       "spec": {
                         "editorMode": "builder",
-                        "expr": "network_byte_received_total",
+                        "expr": "rate(network_byte_received_total[1m])",
                         "legendFormat": "__auto",
                         "range": true
                       }
@@ -150,7 +150,7 @@
                       },
                       "spec": {
                         "editorMode": "builder",
-                        "expr": "network_byte_sent_total",
+                        "expr": "rate(network_byte_sent_total[1m])",
                         "legendFormat": "__auto",
                         "range": true
                       }
@@ -298,7 +298,7 @@
         "kind": "Panel",
         "spec": {
           "id": 4,
-          "title": "Network Packet loss",
+          "title": "Incoming Packet Drop Rate",
           "description": "",
           "links": [],
           "data": {
@@ -355,7 +355,7 @@
               },
               "fieldConfig": {
                 "defaults": {
-                  "unit": "pps",
+                  "unit": "percent",
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [

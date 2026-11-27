@@ -5,6 +5,7 @@ import { cn } from "@/utils/cn"
 import { Checkbox, SelectBox } from "./wizardComponents"
 import { ACTION_TYPES } from "./wizardConstants"
 import Step7Process from "./process/step7Process.jsx";
+import Step7Network from "./network/Step7Network.jsx";
 import Step7Cpu from "./cpu/Step7Cpu"
 import Step7Service from "@/pages/steps/services/step7Service.jsx";
 import Step7Memory from "./memory/Step7Memory.jsx"
@@ -36,6 +37,7 @@ export default function Step7({ form, setForm }) {
     })
   }
   if (form.monitorSource === "process") return <Step7Process form={form} setForm={setForm} />
+  if (form.monitorSource === "network") return <Step7Network form={form} setForm={setForm} />
   if (form.monitorSource === "memory") return <Step7Memory form={form} setForm={setForm} />
   if (form.monitorSource === "cpu") return <Step7Cpu form={form} setForm={setForm} />
   if (form.monitorSource === "service") return <Step7Service form={form} setForm={setForm} />

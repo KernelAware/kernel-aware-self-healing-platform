@@ -113,7 +113,13 @@ def build_payload(incident: dict, event: str) -> dict:
         },
         "operatorAction": {
             "required": False,
-            "message": "This Disk alert is informational; recovery is tracked from the saved rule." if category == "disk" else "See the configured Process rule actions.",
+            "message": (
+                "This Disk alert is informational; recovery is tracked from the saved rule."
+                if category == "disk"
+                else "This Network alert is informational; no healing action will be executed."
+                if category == "network"
+                else "See the configured Process rule actions."
+            ),
             "recommendedAction": "Alert only" if category == "disk" else None,
             "allowedActions": [],
             "selectedAction": None,

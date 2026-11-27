@@ -125,13 +125,43 @@ def get_network_processes():
         )
         return []
 
-# 6. Complete Network Snapshot
+#6. Network IO Statistics for Individual Interfaces
+def get_network_io_per_interface():
+
+    try:
+        interfaces = psutil.net_io_counters(pernic=True)
+
+        result = {}
+
+        for name, io in interfaces.items():
+            result[name] = {
+                "bytes_sent": io.bytes_sent,
+                "bytes_received": io.bytes_recv,
+                "packets_sent": io.packets_sent,
+                "packets_received": io.packets_recv,
+                "errors_in": io.errin,
+                "errors_out": io.errout,
+                "drops_in": io.dropin,
+                "drops_out": io.dropout
+            }
+
+        return result
+
+    except Exception as e:
+        logger.error(
+            f"Per-interface network IO collection failed: {e}"
+        )
+        return {}
+
+# 7. Complete Network Snapshot
 def get_network_stats_snapshot():
 
     try:
         return {
             "network_io":
                 get_network_io(),
+            "network_io_per_interface":
+                get_network_io_per_interface(),
             "interfaces":
                 get_network_interfaces(),
             "addresses":

@@ -19,7 +19,7 @@ export default function Step3({ form, setForm }) {
               if (f.monitorSource === src.id) return f;
               const base = { ...f, monitorSource: src.id };
               if (src.id === "network") {
-                return { ...base, metric: "Network Error Rate (Incoming)", targetType: "Network Interface", aggregation: "Average (60s)", condMetric: "Error Rate (errors/sec)", condThreshold: "", recoveryThreshold: "", condInterval: "Every 20 seconds", actionType: "alert" };
+                return { ...base, metric: "", targetType: "", aggregation: "Average (60s)", condMetric: "Error Rate (errors/sec)", condThreshold: "", recoveryThreshold: "", condInterval: "Every 20 seconds", actionType: "alert" };
               } else if (src.id === "disk") {
                 const targets = Array.isArray(f.targets)
                   ? f.targets.filter(target => !["host", "disk", "filesystem", "partition", "process"].includes(String(target?.type || "").toLowerCase()))
