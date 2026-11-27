@@ -1,9 +1,22 @@
+from decimal import Decimal, InvalidOperation
+
+
 SUPPORTED_OPERATORS = {
     "Greater Than (>)",
     "Less Than (<)",
     "Greater Than or Equal (>=)",
     "Less Than or Equal (<=)",
     "Equal (=)",
+    ">",
+    "<",
+    ">=",
+    "<=",
+    "==",
+    "!=",
+    "Greater Than or Equal To (>=)",
+    "Less Than or Equal To (<=)",
+    "Equal To (==)",
+    "Not Equal To (!=)",
 }
 
 
@@ -12,19 +25,37 @@ def is_supported_operator(operator):
 
 
 def check_threshold(value, operator, threshold):
-    if operator == "Greater Than (>)":
-        return value > threshold
+    normalized = " ".join(str(operator).split())
+    comparisons = {
+        ">": lambda left, right: left > right,
+        "Greater Than (>)": lambda left, right: left > right,
+        "<": lambda left, right: left < right,
+        "Less Than (<)": lambda left, right: left < right,
+        ">=": lambda left, right: left >= right,
+        "Greater Than or Equal (>=)": lambda left, right: left >= right,
+        "Greater Than or Equal To (>=)": lambda left, right: left >= right,
+        "<=": lambda left, right: left <= right,
+        "Less Than or Equal (<=)": lambda left, right: left <= right,
+        "Less Than or Equal To (<=)": lambda left, right: left <= right,
+        "==": lambda left, right: left == right,
+        "Equal (=)": lambda left, right: left == right,
+        "Equal To (==)": lambda left, right: left == right,
+        "!=": lambda left, right: left != right,
+        "Not Equal To (!=)": lambda left, right: left != right,
+    }
+    compare = comparisons.get(normalized)
+    if compare is None:
+        return False
 
-    if operator == "Less Than (<)":
-        return value < threshold
+    # Prometheus and rule payloads can represent numeric values as strings.
+    # Decimal avoids lexical string comparisons while keeping integer precision.
+    if isinstance(value, str) or isinstance(threshold, str):
+        try:
+            value, threshold = Decimal(str(value)), Decimal(str(threshold))
+        except (InvalidOperation, ValueError):
+            return False
 
-    if operator == "Greater Than or Equal (>=)":
-        return value >= threshold
-
-    if operator == "Less Than or Equal (<=)":
-        return value <= threshold
-
-    if operator == "Equal (=)":
-        return value == threshold
-
-    return False
+    try:
+        return compare(value, threshold)
+    except (TypeError, ValueError):
+        return False

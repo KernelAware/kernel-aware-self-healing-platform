@@ -27,6 +27,8 @@ def verify_prometheus_duration(
     threshold: float,
     duration_seconds: int | float,
     now: float | None = None,
+    *,
+    canonicalize_metric: bool = True,
 ) -> tuple[bool, str | None]:
     """Verify a condition from fresh Prometheus samples across its full duration.
 
@@ -38,10 +40,12 @@ def verify_prometheus_duration(
     step = max(0.1, float(PROMETHEUS_SCRAPE_INTERVAL_SECONDS))
     freshness = step * 1.25
 
-    selector = build_metric_selector(
-        canonical_metric_name(metric_name),
-        labels,
+    query_metric = (
+        canonical_metric_name(metric_name)
+        if canonicalize_metric
+        else str(metric_name or "")
     )
+    selector = build_metric_selector(query_metric, labels)
 
     fresh_selector = (
         f"({selector}) and "

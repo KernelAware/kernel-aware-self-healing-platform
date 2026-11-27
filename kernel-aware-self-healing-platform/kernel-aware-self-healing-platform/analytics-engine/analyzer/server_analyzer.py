@@ -189,6 +189,16 @@ def _canonical_disk_rule(rule):
     }
 
 
+def _disk_instant_state(result):
+    if not isinstance(result, dict):
+        return "DATA_UNAVAILABLE"
+    if result.get("violations_observed"):
+        return "VIOLATED"
+    if result.get("matched_samples"):
+        return "NOT_VIOLATED"
+    return "DATA_UNAVAILABLE"
+
+
 def _dispatch_rules(
     system_id,
     rules,
@@ -213,16 +223,18 @@ def _dispatch_rules(
 
                 logger.info(
                     "[RULE_EVAL] system_id=%s rule_id=%s monitor_type=disk "
-                    "instant=%s redis_timer=%s outcome=%s reason=%s "
-                    "metrics=%s matched_samples=%s violations_confirmed=%s",
+                    "instant=%s outcome=%s reason=%s metrics=%s "
+                    "matched_samples=%s violations_observed=%s "
+                    "duration_pending=%s violations_confirmed=%s",
                     system_id,
                     rule_id,
-                    "VIOLATED" if result and result.get("violations_confirmed") else "DATA_UNAVAILABLE",
-                    "COMPLETED" if result and result.get("violations_confirmed") else "UNCHANGED",
+                    _disk_instant_state(result),
                     result.get("outcome", "ERROR") if isinstance(result, dict) else "ERROR",
                     result.get("reason", "evaluation_failed") if isinstance(result, dict) else "evaluation_failed",
                     result.get("eligible_metrics", 0) if isinstance(result, dict) else 0,
                     result.get("matched_samples", 0) if isinstance(result, dict) else 0,
+                    result.get("violations_observed", 0) if isinstance(result, dict) else 0,
+                    result.get("duration_pending", 0) if isinstance(result, dict) else 0,
                     result.get("violations_confirmed", 0) if isinstance(result, dict) else 0,
                 )
 
@@ -244,16 +256,18 @@ def _dispatch_rules(
                 if is_disk:
                     logger.info(
                         "[RULE_EVAL] system_id=%s rule_id=%s monitor_type=disk "
-                        "instant=%s redis_timer=%s outcome=%s reason=%s "
-                        "metrics=%s matched_samples=%s violations_confirmed=%s",
+                        "instant=%s outcome=%s reason=%s metrics=%s "
+                        "matched_samples=%s violations_observed=%s "
+                        "duration_pending=%s violations_confirmed=%s",
                         system_id,
                         rule_id,
-                        "VIOLATED" if result and result.get("violations_confirmed") else "DATA_UNAVAILABLE",
-                        "COMPLETED" if result and result.get("violations_confirmed") else "UNCHANGED",
+                        _disk_instant_state(result),
                         result.get("outcome", "ERROR") if isinstance(result, dict) else "ERROR",
                         result.get("reason", "evaluation_failed") if isinstance(result, dict) else "evaluation_failed",
                         result.get("eligible_metrics", 0) if isinstance(result, dict) else 0,
                         result.get("matched_samples", 0) if isinstance(result, dict) else 0,
+                        result.get("violations_observed", 0) if isinstance(result, dict) else 0,
+                        result.get("duration_pending", 0) if isinstance(result, dict) else 0,
                         result.get("violations_confirmed", 0) if isinstance(result, dict) else 0,
                     )
 
@@ -267,7 +281,7 @@ def _dispatch_rules(
             else:
                 logger.exception(
                     "[RULE_EVAL] system_id=%s rule_id=%s monitor_type=%s "
-                    "instant=DATA_UNAVAILABLE redis_timer=UNCHANGED "
+                    "instant=DATA_UNAVAILABLE duration_state=UNKNOWN "
                     "outcome=ERROR reason=evaluation_failed; continuing with remaining rules",
                     system_id,
                     rule_id,
@@ -287,9 +301,16 @@ def analyze_server(system, *, disk_alerts_enabled=True):
         return
 
     selected = []
+    requested_system_id = _system_id_value(system)
 
     for rule in rules:
         rule_info = rule.get("rule") if isinstance(rule, dict) else None
+
+        if (
+            isinstance(rule_info, dict)
+            and _system_id_value(rule_info.get("system_id")) != requested_system_id
+        ):
+            continue
 
         if (
             isinstance(rule_info, dict)

@@ -3,6 +3,7 @@
 import hashlib
 import json
 import logging
+import math
 import time
 
 from load_data.redis_connection.redis_connection import redis_client
@@ -62,12 +63,29 @@ def get_disk_violation_state(identity: dict) -> dict | None:
     return _read_state(_state_key(identity))
 
 
+def _default_max_observation_gap() -> float:
+    """Allow one Analytics cycle plus the existing Prometheus freshness window."""
+    try:
+        # Imported lazily because main imports the analyzer and detector modules.
+        from main import ANALYSIS_INTERVAL_SECONDS
+        from load_data.system_metrics.metrics_loader import PROMETHEUS_SCRAPE_INTERVAL_SECONDS
+    except (ImportError, AttributeError) as error:
+        raise DiskDurationStateError(
+            "Analytics observation interval is unavailable"
+        ) from error
+
+    return float(ANALYSIS_INTERVAL_SECONDS) + (
+        float(PROMETHEUS_SCRAPE_INTERVAL_SECONDS) * 1.25
+    )
+
+
 def observe_disk_violation(
     identity: dict,
     duration_seconds: int | float,
     now: float | None = None,
+    max_observation_gap: int | float | None = None,
 ) -> tuple[bool, dict]:
-    """Start or continue a violation timer and report whether it has elapsed."""
+    """Start or continue a timer using only recent valid observations."""
     current_time = time.time() if now is None else float(now)
     duration = max(0.0, float(duration_seconds or 0))
     key = _state_key(identity)
@@ -97,11 +115,53 @@ def observe_disk_violation(
         logger.error("Disk violation state has no valid start timestamp; preserving it")
         raise DiskDurationStateError("Redis state has an invalid start timestamp") from error
 
+    if state.get("status") == "active":
+        state["last_observed_at"] = current_time
+        _write_state(key, state)
+        return True, state
+
+    maximum_gap = (
+        _default_max_observation_gap()
+        if max_observation_gap is None
+        else float(max_observation_gap)
+    )
+    if not math.isfinite(maximum_gap) or maximum_gap <= 0:
+        raise DiskDurationStateError("Maximum observation gap must be positive and finite")
+
+    try:
+        last_observed_at = float(state["last_observed_at"])
+    except (KeyError, TypeError, ValueError):
+        # An old or incomplete pending record cannot prove continuity.
+        previous_resolution_id = state.get("previous_resolution_incident_id")
+        state = {
+            "identity": identity,
+            "status": "pending",
+            "started_at": current_time,
+            "last_observed_at": current_time,
+        }
+        if previous_resolution_id:
+            state["previous_resolution_incident_id"] = previous_resolution_id
+        _write_state(key, state, ttl=max(3600, int(duration) + 3600))
+        return duration == 0, state
+
+    gap = max(0.0, current_time - last_observed_at)
+    if gap > maximum_gap:
+        previous_resolution_id = state.get("previous_resolution_incident_id")
+        state = {
+            "identity": identity,
+            "status": "pending",
+            "started_at": current_time,
+            "last_observed_at": current_time,
+        }
+        if previous_resolution_id:
+            state["previous_resolution_incident_id"] = previous_resolution_id
+        _write_state(key, state, ttl=max(3600, int(duration) + 3600))
+        return duration == 0, state
+
     state["last_observed_at"] = current_time
-    ttl = None if state.get("status") == "active" else max(3600, int(duration) + 3600)
-    _write_state(key, state, ttl=ttl)
+    _write_state(key, state, ttl=max(3600, int(duration) + 3600))
     elapsed = max(0.0, current_time - started_at)
-    return state.get("status") == "active" or elapsed >= duration, state
+    return elapsed >= duration, state
 
 
 def mark_disk_incident_active(

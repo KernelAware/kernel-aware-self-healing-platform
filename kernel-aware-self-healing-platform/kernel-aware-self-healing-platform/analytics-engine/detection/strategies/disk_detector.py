@@ -12,7 +12,6 @@ from detection.disk_duration import (
     mark_disk_resolution_pending,
     observe_disk_violation,
 )
-from detection.duration import verify_prometheus_duration
 from detection.strategies.base_detector import DetectionStrategy
 from detection.threshold import check_threshold, is_supported_operator
 from incident_management.manager import manage_disk_incident
@@ -337,12 +336,14 @@ class DiskDetector(DetectionStrategy):
         summary = {
             "eligible_metrics": 0,
             "matched_samples": 0,
+            "violations_observed": 0,
             "violations_confirmed": 0,
             "duration_pending": 0,
             "recoveries_confirmed": 0,
             "recoveries_pending": 0,
         }
         skipped_reasons = []
+        duration_reasons = []
         seen_targets = set()
 
         for target_index, target in enumerate(targets):
@@ -469,6 +470,8 @@ class DiskDetector(DetectionStrategy):
 
                         summary["matched_samples"] += 1
                         violated = check_threshold(value, metric.get("operator"), threshold)
+                        if violated:
+                            summary["violations_observed"] += 1
                         identity = _condition_identity(
                             system_id,
                             rule_id,
@@ -499,6 +502,7 @@ class DiskDetector(DetectionStrategy):
                             except DiskDurationStateError as error:
                                 reason = f"Redis violation state unavailable: {error}"
                                 skipped_reasons.append(reason)
+                                duration_reasons.append(reason)
                                 metric_outcomes.append("DURATION_UNVERIFIED")
                                 metric_reason = reason
                                 summary["duration_pending"] += 1
@@ -513,6 +517,7 @@ class DiskDetector(DetectionStrategy):
                             except DiskDurationStateError as error:
                                 reason = f"Redis violation state unavailable: {error}"
                                 skipped_reasons.append(reason)
+                                duration_reasons.append(reason)
                                 metric_outcomes.append("DURATION_UNVERIFIED")
                                 metric_reason = reason
                                 summary["duration_pending"] += 1
@@ -520,31 +525,16 @@ class DiskDetector(DetectionStrategy):
 
                             if not sustained:
                                 summary["duration_pending"] += 1
+                                duration_reasons.append("violation duration has not elapsed")
                                 metric_outcomes.append("DURATION_PENDING")
                                 metric_reason = "violation duration has not elapsed"
                                 continue
 
-                            if not state or state.get("status") != "active":
-                                try:
-                                    duration_verified, verification_reason = verify_prometheus_duration(
-                                        metric_name,
-                                        labels,
-                                        metric.get("operator"),
-                                        threshold,
-                                        duration_seconds,
-                                        now=observation_time,
-                                    )
-                                except Exception:
-                                    logger.exception("Unable to verify Disk metric history for rule %s", rule_id)
-                                    duration_verified, verification_reason = False, "Prometheus history query failed"
-                                if not duration_verified:
-                                    summary["duration_pending"] += 1
-                                    metric_outcomes.append("DURATION_UNVERIFIED")
-                                    metric_reason = verification_reason or "Prometheus history did not sustain the violation"
-                                    continue
-
                             if not allow_incident_creation:
                                 summary["duration_pending"] += 1
+                                duration_reasons.append(
+                                    "waiting for the first evaluation round to complete"
+                                )
                                 metric_outcomes.append("DURATION_PENDING")
                                 metric_reason = "waiting for the first evaluation round to complete"
                                 continue
@@ -671,7 +661,9 @@ class DiskDetector(DetectionStrategy):
         elif summary["recoveries_pending"]:
             outcome, reason = "recovery_not_confirmed", None
         elif summary["duration_pending"]:
-            outcome, reason = "duration_not_confirmed", None
+            outcome, reason = "duration_not_confirmed", "; ".join(
+                dict.fromkeys(duration_reasons)
+            ) or "duration not confirmed"
         elif summary["matched_samples"] and skipped_reasons:
             outcome, reason = "partially_skipped", "; ".join(dict.fromkeys(skipped_reasons))
         elif summary["matched_samples"]:
