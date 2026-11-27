@@ -290,6 +290,12 @@ function ChannelCard({ channel, form, update }) {
 }
 
 export default function Step11({ form, setForm }) {
+
+            console.log(
+    "CURRENT FORM - form 11:\n",
+    JSON.stringify(form, null, 2)
+  )
+
   const [recipientDraft, setRecipientDraft] = useState("")
 
   const disk = form.monitorSource === "disk"
@@ -356,6 +362,31 @@ export default function Step11({ form, setForm }) {
     addRecipients(recipientDraft)
     setRecipientDraft("")
   }
+
+  // const addRecipient = (input) => {
+  //   const value = input.trim();
+  //
+  //   if (!value) return;
+  //
+  //   setForm((f) => {
+  //     const notifications = f.notifications || {};
+  //     const current = Array.isArray(notifications.recipients)
+  //       ? notifications.recipients
+  //       : [];
+  //
+  //     if (current.includes(value)) {
+  //       return f;
+  //     }
+  //
+  //     return {
+  //       ...f,
+  //       notifications: {
+  //         ...notifications,
+  //         recipients: [...current, value],
+  //       },
+  //     };
+  //   });
+  // };
 
   return (
     <Panel className="p-6">

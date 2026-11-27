@@ -1,3 +1,4 @@
+from engine.decision_strategies.memory_decisions import MemoryDecision
 from engine.decision_strategies.service_decisions import ServiceDecision
 from engine.decision_strategies.process_decisions import ProcessDecision
 from engine.decision_strategies.cpu_decisions import CpuDecision
@@ -10,6 +11,7 @@ STRATEGIES = {
     "process": ProcessDecision(),
     "cpu": CpuDecision(),
     "health": HealthDecision(),
+    "memory": MemoryDecision(),
     "network": NetworkDecision(),
     "disk": DiskDecision(),
     "service": ServiceDecision()

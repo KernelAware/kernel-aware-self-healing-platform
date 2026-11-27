@@ -4,7 +4,7 @@ import os
 
 
 def _read_system_id() -> int:
-    value = os.getenv("KAISP_SYSTEM_ID", "1")
+    value = os.getenv("KAISP_SYSTEM_ID", "3")
     try:
         system_id = int(value)
     except (TypeError, ValueError) as error:

@@ -297,3 +297,9 @@ def duration_snapshot(
     except Exception:
         logger.exception("Unable to read Redis duration snapshot")
         return "ERROR", 0.0, None
+
+    return elapsed >= duration_seconds
+
+def reset_duration(system_id, pid, metric_name):
+    key = f"violation:{system_id}:{pid}:{metric_name}"
+    redis_client.delete(key)

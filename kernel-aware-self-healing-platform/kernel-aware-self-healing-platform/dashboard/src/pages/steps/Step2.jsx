@@ -4,6 +4,12 @@ import { cn } from "@/utils/cn"
 import { SelectBox, Radio } from "./wizardComponents"
 
 export default function Step2({ form, setForm }) {
+
+          console.log(
+    "CURRENT FORM - form 2:\n",
+    JSON.stringify(form, null, 2)
+  )
+
   return (
     <Panel className="p-6">
       <div className="mb-6"><p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">2. Scope (Target / Where)</p><p className="text-xs text-muted-foreground mt-0.5">Where should this rule apply?</p></div>

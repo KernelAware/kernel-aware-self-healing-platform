@@ -8,9 +8,16 @@ import {
 } from "lucide-react"
 import { Panel } from "@/components/kit"
 import {userRules} from "../../services/api.js";
+import { buildRulePayload } from "@/utils/rulePayloadBuilder";
 import { INITIAL_FORM } from "./wizardConstants.js"
 
 export default function Step13({ form, onCancel ,setForm}) {
+
+     console.log(
+    "CURRENT FORM - form 13:\n",
+    JSON.stringify(form, null, 2)
+  )
+
   const [created, setCreated] = useState(false)
 
   const targets = Array.isArray(form.targets) ? form.targets : []
@@ -817,45 +824,135 @@ export default function Step13({ form, onCancel ,setForm}) {
         </p>
       </Panel>
 
+
       <div className="flex justify-end pt-1">
-        <button
-          type="button"
-          onClick={async () => {
-            try {
-              const payload = form.monitorSource === "cpu"
-                ? {
-                    ...form,
-                    targets: [{
-                      type: form.targetType || "host",
-                      name: form.host || "",
-                      metrics: [{
-                        name: form.metric,
-                        conditions: [{
-                          metric: form.metric,
-                          operator: form.condOperator,
-                          threshold: form.condThreshold,
-                          duration: form.condDuration,
-                          durationUnit: form.condDurationUnit || "Minutes",
-                        }],
-                      }],
-                    }],
-                  }
-                : form;
-              const data = await userRules(payload);
 
-              setCreated(true)
+        {/*--------------*/}
+        {/*default*/}
+        {/*-------------*/}
 
-            } catch (error) {
-              console.error(error);
-              alert(error)
-            }
-          }}
-          className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-6 font-mono text-xs font-bold tracking-wide text-primary-foreground hover:bg-primary/90 shadow-glow-primary transition-colors cursor-pointer"
-        >
-          Create Rule
-          <ArrowRight className="size-3.5" />
-        </button>
+        {/*<button*/}
+        {/*  type="button"*/}
+        {/*  onClick={async () => {*/}
+        {/*    try {*/}
+        {/*      const data = await userRules(form);*/}
+        {/*      setCreated(true)*/}
+        {/*    } catch (error) {*/}
+        {/*      console.error(error);*/}
+        {/*    }*/}
+        {/*  }}*/}
+        {/*  className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-6 font-mono text-xs font-bold tracking-wide text-primary-foreground hover:bg-primary/90 shadow-glow-primary transition-colors cursor-pointer"*/}
+        {/*>*/}
+        {/*  Create Rule*/}
+        {/*  <ArrowRight className="size-3.5" />*/}
+        {/*</button>*/}
+
+        {/*------------*/}
+        {/*memory*/}
+        {/*------------*/}
+
+        {/*<button*/}
+        {/*    type="button"*/}
+        {/*    onClick={async () => {*/}
+        {/*          try {*/}
+        {/*            const payload = buildRulePayload(form);*/}
+
+        {/*            // Check the complete object*/}
+        {/*            console.log("FORM DATA:", form);*/}
+        {/*            console.log("RULE PAYLOAD:", payload);*/}
+
+        {/*            // Pretty-print the object as JSON*/}
+        {/*            console.log(*/}
+        {/*              "RULE PAYLOAD JSON:",*/}
+        {/*              JSON.stringify(payload, null, 2)*/}
+        {/*            );*/}
+
+        {/*            const data = await userRules(payload);*/}
+
+        {/*            console.log("BACKEND RESPONSE:", data);*/}
+        {/*            setCreated(true);*/}
+        {/*          } catch (error) {*/}
+        {/*            console.error("CREATE RULE ERROR:", error);*/}
+        {/*          }*/}
+        {/*        }}*/}
+
+        {/*    className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-6 font-mono text-xs font-bold tracking-wide text-primary-foreground hover:bg-primary/90 shadow-glow-primary transition-colors cursor-pointer"*/}
+        {/*  >*/}
+        {/*    Create Rule*/}
+        {/*    <ArrowRight className="size-3.5" />*/}
+        {/*</button>*/}
+
+        {/*----------------------*/}
+        {/*combind*/}
+        {/*---------------------*/}
+
+
+<button
+  type="button"
+  onClick={async () => {
+    try {
+      let payload;
+
+      if (form.monitorSource === "memory") {
+        // Memory rules: build the backend-compatible payload
+        payload = buildRulePayload(form);
+      } else if (form.monitorSource === "cpu") {
+        // CPU rules: construct the expected backend payload
+        payload = {
+          ...form,
+          targets: [
+            {
+              type: form.targetType || "host",
+              name: form.host || "",
+              metrics: [
+                {
+                  name: form.metric,
+                  conditions: [
+                    {
+                      metric: form.metric,
+                      operator: form.condOperator,
+                      threshold: form.condThreshold,
+                      duration: form.condDuration,
+                      durationUnit: form.condDurationUnit || "Minutes",
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        };
+      } else {
+        // Disk and other rules: preserve existing behavior
+        payload = form;
+      }
+
+      console.log("RULE PAYLOAD:", payload);
+      console.log(
+        "RULE PAYLOAD JSON:",
+        JSON.stringify(payload, null, 2)
+      );
+
+      const data = await userRules(payload);
+
+      console.log("BACKEND RESPONSE:", data);
+      setCreated(true);
+    } catch (error) {
+      console.error("CREATE RULE ERROR:", error);
+      alert(error?.message || "Failed to create rule");
+    }
+  }}
+  className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-6 font-mono text-xs font-bold tracking-wide text-primary-foreground hover:bg-primary/90 shadow-glow-primary transition-colors cursor-pointer"
+>
+  Create Rule
+  <ArrowRight className="size-3.5" />
+</button>
+
+
+
+
       </div>
+
+
     </div>
   )
 }
