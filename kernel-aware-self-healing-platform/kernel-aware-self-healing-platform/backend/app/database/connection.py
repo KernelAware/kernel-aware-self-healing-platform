@@ -2,9 +2,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-DATABASE_URL = "postgresql+psycopg2://kernelsentineldb:KernelProject1234@postgresql-kernelsentineldb.alwaysdata.net:5432/kernelsentineldb_user_rules"
-#DATABASE_URL = "postgresql+psycopg2://kernelsentineldb:KernelProject1234@185.31.41.42:5432/kernelsentineldb_user_rules"
-
+DATABASE_URL = "postgresql+psycopg2://kernelproject:KernelProject1234%40%40%40@postgresql-kernelproject.alwaysdata.net:5432/kernelproject_databse"
 
 engine = create_engine(
     DATABASE_URL,
